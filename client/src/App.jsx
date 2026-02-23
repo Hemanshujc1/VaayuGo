@@ -26,6 +26,9 @@ import AdminShopDetails from "./pages/AdminShopDetails";
 import AdminCustomerDetails from "./pages/AdminCustomerDetails";
 import ShopProfile from "./pages/ShopProfile";
 import ShopLayout from "./components/ShopLayout";
+import CustomerProfile from "./pages/CustomerProfile";
+import CompanyOverview from "./pages/CompanyOverview";
+import CustomerLayout from "./components/CustomerLayout";
 
 // Placeholder Dashboards
 // const Home = () => {
@@ -50,17 +53,21 @@ function App() {
       <Toaster position="top-center" />
       <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<Home />} />
-        <Route path="/shop/:id" element={<ShopDetails />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/my-orders" element={<MyOrders />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        {/* Protected Routes */}
-        {/* Customer Routes */}
-        <Route element={<ProtectedRoute allowedRoles={["customer"]} />}>
+
+        {/* Customer Routes (Public & Protected mixed for layout) */}
+        <Route element={<CustomerLayout />}>
           <Route path="/" element={<Home />} />
+          <Route path="/shop/:id" element={<ShopDetails />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/company" element={<CompanyOverview />} />
+
+          <Route element={<ProtectedRoute allowedRoles={["customer"]} />}>
+            <Route path="/my-orders" element={<MyOrders />} />
+            <Route path="/profile" element={<CustomerProfile />} />
+          </Route>
         </Route>
 
         {/* Shopkeeper Routes */}
@@ -70,6 +77,7 @@ function App() {
             <Route path="products" element={<ProductManager />} />
             <Route path="orders" element={<ShopOrders />} />
             <Route path="profile" element={<ShopProfile />} />
+            <Route path="support" element={<CompanyOverview />} />
             <Route path="register" element={<ShopRegister />} />
             <Route index element={<Navigate to="dashboard" replace />} />
           </Route>

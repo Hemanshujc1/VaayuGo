@@ -33,6 +33,13 @@ const Navbar = () => {
               Home
             </Link>
 
+            <Link
+              to="/company"
+              className="hover:text-accent transition-colors font-medium"
+            >
+              About & Contact
+            </Link>
+
             {/* Cart Icon */}
             <Link
               to="/cart"
@@ -57,6 +64,12 @@ const Navbar = () => {
                   className="hover:text-accent transition-colors font-medium"
                 >
                   Orders
+                </Link>
+                <Link
+                  to="/profile"
+                  className="hover:text-accent transition-colors font-medium"
+                >
+                  Profile
                 </Link>
                 <button
                   onClick={logout}

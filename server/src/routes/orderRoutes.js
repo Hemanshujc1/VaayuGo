@@ -1,5 +1,5 @@
 const express = require('express');
-const { createOrder, getMyOrders, getShopOrders, updateOrderStatus } = require('../controllers/orderController');
+const { createOrder, getMyOrders, getShopOrders, updateOrderStatus, rateOrder } = require('../controllers/orderController');
 const { authenticateToken } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
@@ -8,6 +8,7 @@ router.use(authenticateToken); // Any authenticated user can place orders
 
 router.post('/', createOrder);
 router.get('/my-orders', getMyOrders);
+router.post('/:id/rate', rateOrder);
 router.get('/shop-orders', getShopOrders); // Shopkeeper only
 router.put('/:id/status', updateOrderStatus); // Shopkeeper only
 

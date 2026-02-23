@@ -43,6 +43,18 @@ const Order = sequelize.define('Order', {
     type: DataTypes.ENUM('pending', 'paid', 'failed'),
     defaultValue: 'pending',
   },
+  shop_rating: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  delivery_rating: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  is_rated: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
 }, {
   timestamps: true,
 });

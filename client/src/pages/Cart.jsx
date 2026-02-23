@@ -1,12 +1,9 @@
 import { useCart } from "../context/CartContext";
-import { Link, useNavigate } from "react-router-dom";
-
-import Navbar from "../components/Navbar";
+import { Link } from "react-router-dom";
 
 const Cart = () => {
   const { cartItems, cartShop, updateQuantity, getCartTotal, clearCart } =
     useCart();
-  const navigate = useNavigate();
   const total = getCartTotal();
 
   // Mock Fee Logic (To be enhanced with ServiceConfig)
@@ -17,7 +14,6 @@ const Cart = () => {
   if (cartItems.length === 0) {
     return (
       <div className="min-h-screen bg-primary text-primary-text">
-        <Navbar />
         <div className="p-10 text-center">
           <h2 className="text-2xl font-bold text-white mb-4">
             Your Cart is Empty
@@ -32,7 +28,6 @@ const Cart = () => {
 
   return (
     <div className="min-h-screen bg-primary text-primary-text pb-20">
-      <Navbar />
       <div className="container mx-auto p-4 md:p-8">
         <h1 className="text-2xl font-bold mb-6 text-white ">Your Basket</h1>
 

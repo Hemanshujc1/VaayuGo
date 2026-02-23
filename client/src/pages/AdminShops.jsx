@@ -17,7 +17,7 @@ const AdminShops = () => {
     try {
       const res = await api.get("/admin/shops/all");
       setShops(res.data);
-    } catch (error) {
+    } catch (err) {
       toast.error("Failed to fetch shops");
     } finally {
       setLoading(false);
@@ -32,7 +32,7 @@ const AdminShops = () => {
       setShops(
         shops.map((s) => (s.id === id ? { ...s, status: "approved" } : s)),
       );
-    } catch (error) {
+    } catch (err) {
       toast.error("Failed to verify shop");
     }
   };
@@ -45,7 +45,7 @@ const AdminShops = () => {
       setShops(
         shops.map((s) => (s.id === id ? { ...s, status: "rejected" } : s)),
       );
-    } catch (error) {
+    } catch (err) {
       toast.error("Failed to reject shop");
     }
   };

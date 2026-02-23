@@ -40,12 +40,25 @@ const AdminCustomerDetails = () => {
       <div className="bg-neutral-dark p-6 rounded shadow border border-neutral-mid flex flex-col md:flex-row justify-between items-start md:items-center">
         <div className="flex items-center gap-6">
           <div className="w-20 h-20 rounded-full bg-accent flex items-center justify-center text-primary text-3xl font-bold">
-            {user.username.charAt(0).toUpperCase()}
+            {user.name ? user.name.charAt(0).toUpperCase() : "?"}
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">{user.username}</h1>
+            <h1 className="text-3xl font-bold text-white">
+              {user.name || "N/A"}
+            </h1>
+            <p className="text-neutral-light">{user.mobile_number}</p>
             <p className="text-neutral-light">{user.email}</p>
-            <p className="text-sm text-neutral-light">
+            {user.location && (
+              <p className="text-neutral-light text-sm mt-1">
+                <span className="font-bold">Location:</span> {user.location}
+              </p>
+            )}
+            {user.address && (
+              <p className="text-neutral-light text-sm">
+                <span className="font-bold">Address:</span> {user.address}
+              </p>
+            )}
+            <p className="text-sm text-neutral-light mt-1">
               Joined: {new Date(user.createdAt).toLocaleDateString("en-GB")}
             </p>
           </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCart } from "../context/CartContext";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
@@ -6,9 +6,22 @@ import toast from "react-hot-toast";
 
 const Checkout = () => {
   const { cartItems, cartShop, getCartTotal, clearCart } = useCart();
-  const [address, setAddress] = useState("");
+  const [address, setAddress] = useState("Fetching registered address...");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await api.get("/auth/me");
+        setAddress(res.data.address || "No address found on profile.");
+      } catch (error) {
+        console.error("Failed to load profile", error);
+        setAddress("Failed to load address.");
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const total = getCartTotal();
   const deliveryFee = 10;
@@ -49,8 +62,13 @@ const Checkout = () => {
     }
   };
 
-  if (cartItems.length === 0)
-    return <div className="p-10 text-white text-center">Cart is empty</div>;
+  if (cartItems.length === 0 || !cartShop) {
+    return (
+      <div className="p-10 text-white text-center">
+        Cart is empty or shop not selected.
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 bg-primary min-h-screen text-primary-text">
@@ -105,12 +123,12 @@ const Checkout = () => {
             <label className="block text-sm font-medium mb-1 text-neutral-light">
               Delivery Address
             </label>
-            <textarea
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="w-full border border-neutral-mid bg-neutral-mid text-white p-2 rounded h-24 focus:outline-none focus:ring-2 focus:ring-accent"
-              placeholder="Enter your full address here..."
-            ></textarea>
+            <div className="w-full border border-neutral-mid bg-neutral-dark text-neutral-light p-4 rounded h-auto min-h-24 shadow-inner">
+              {address}
+            </div>
+            <p className="text-xs text-accent mt-2">
+              * Delivery will be made to your registered address.
+            </p>
           </div>
 
           <h2 className="text-lg font-bold mb-4 text-accent">Payment Method</h2>

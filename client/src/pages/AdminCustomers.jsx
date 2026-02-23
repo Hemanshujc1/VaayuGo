@@ -54,13 +54,13 @@ const AdminCustomers = () => {
             <thead className="bg-neutral-mid">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-neutral-light uppercase tracking-wider">
-                  Mobile
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-neutral-light uppercase tracking-wider">
                   Name
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-neutral-light uppercase tracking-wider">
                   Email
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-neutral-light uppercase tracking-wider">
+                  Mobile
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-neutral-light uppercase tracking-wider">
                   Location
@@ -82,15 +82,17 @@ const AdminCustomers = () => {
                   key={user.id}
                   className="hover:bg-neutral-mid/50 transition-colors"
                 >
-                  <td className="px-6 py-4 whitespace-nowrap text-white font-medium">
-                    {user.mobile_number || "N/A"}
-                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-neutral-light">
                     {user.name || "N/A"}
                   </td>
+
                   <td className="px-6 py-4 whitespace-nowrap text-neutral-light">
                     {user.email}
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-white font-medium">
+                    {user.mobile_number || "N/A"}
+                  </td>
+
                   <td className="px-6 py-4 whitespace-nowrap text-neutral-light">
                     {user.location || "N/A"}
                   </td>

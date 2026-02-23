@@ -10,9 +10,8 @@ const getAllShops = async (req, res) => {
             include: [{
                 model: User,
                 attributes: ['id', 'is_blocked'],
-                where: { is_blocked: false } // Only show shops if owner is NOT blocked
             }],
-            attributes: ['id', 'name', 'category', 'location_address', 'image_url', 'rating', 'is_open'] 
+            attributes: ['id', 'name', 'category', 'location_address', 'image_url', 'rating', 'delivery_rating', 'is_open'] 
         });
         res.json(shops);
     } catch (error) {

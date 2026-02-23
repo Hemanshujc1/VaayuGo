@@ -24,7 +24,7 @@ const productRoutes = require('./src/routes/productRoutes');
 const publicRoutes = require('./src/routes/publicRoutes');
 const orderRoutes = require('./src/routes/orderRoutes');
 const uploadRoutes = require('./src/routes/uploadRoutes');
-
+const contactRoutes = require('./src/routes/contactRoutes');
 
 
 // Database Connection
@@ -38,6 +38,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/public', publicRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/files', uploadRoutes);
+app.use('/api/contact', contactRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {

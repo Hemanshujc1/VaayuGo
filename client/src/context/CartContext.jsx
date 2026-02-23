@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useContext, useEffect } from "react";
 import toast from "react-hot-toast";
 
@@ -6,25 +7,32 @@ const CartContext = createContext();
 export const useCart = () => useContext(CartContext);
 
 export const CartProvider = ({ children }) => {
-  const [cartItems, setCartItems] = useState([]);
-  const [cartShop, setCartShop] = useState(null); // Ensure all items from same shop
-
-  // Persist cart
-  useEffect(() => {
+  // Initialize state directly from localStorage
+  const [cartItems, setCartItems] = useState(() => {
     try {
       const savedCart = localStorage.getItem("vaayugo_cart");
-      const savedShop = localStorage.getItem("vaayugo_cart_shop");
-
-      if (savedCart && savedCart !== "undefined")
-        setCartItems(JSON.parse(savedCart));
-      if (savedShop && savedShop !== "undefined")
-        setCartShop(JSON.parse(savedShop));
+      if (savedCart && savedCart !== "undefined") {
+        return JSON.parse(savedCart);
+      }
     } catch (e) {
-      console.error("Failed to parse cart from local storage", e);
-      localStorage.removeItem("vaayugo_cart");
-      localStorage.removeItem("vaayugo_cart_shop");
+      console.warn("Failed to parse cart items", e);
     }
-  }, []);
+    return [];
+  });
+
+  const [cartShop, setCartShop] = useState(() => {
+    try {
+      const savedShop = localStorage.getItem("vaayugo_cart_shop");
+      if (savedShop && savedShop !== "undefined") {
+        return JSON.parse(savedShop);
+      }
+    } catch (e) {
+      console.warn("Failed to parse cart shop", e);
+    }
+    return null;
+  }); // Ensure all items from same shop
+
+  // Persist cart to local storage when state changes
 
   useEffect(() => {
     localStorage.setItem("vaayugo_cart", JSON.stringify(cartItems));
@@ -119,3 +127,5 @@ export const CartProvider = ({ children }) => {
     </CartContext.Provider>
   );
 };
+
+export default CartProvider;

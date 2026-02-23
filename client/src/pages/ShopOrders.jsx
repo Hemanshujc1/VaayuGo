@@ -57,7 +57,11 @@ const ShopOrders = () => {
                     Order #{order.id}
                   </h2>
                   <p className="text-sm text-neutral-light">
-                    From: {order.User?.username} ({order.User?.email})
+                    From: {order.User?.name || "N/A"} (
+                    {order.User?.mobile_number
+                      ? order.User.mobile_number + " | "
+                      : ""}
+                    {order.User?.email})
                   </p>
                   <p className="text-sm text-neutral-light">
                     {new Date(order.createdAt).toLocaleString()}
@@ -80,7 +84,6 @@ const ShopOrders = () => {
                     {order.status.toUpperCase()}
                   </span>
 
-                  {/* Status Controls */}
                   <select
                     value={order.status}
                     onChange={(e) =>
@@ -95,6 +98,27 @@ const ShopOrders = () => {
                     <option value="delivered">Delivered</option>
                     <option value="cancelled">Cancel</option>
                   </select>
+
+                  {/* Customer Rating Details */}
+                  {order.is_rated && (
+                    <div className="mt-2 text-right text-xs bg-neutral-dark/50 border border-neutral-mid/30 p-2 rounded-md">
+                      <p className="text-neutral-light font-semibold mb-1">
+                        Customer Feedback:
+                      </p>
+                      <p className="text-white flex items-center justify-end gap-1">
+                        Shop:{" "}
+                        <span className="text-warning">
+                          ★ {order.shop_rating}
+                        </span>
+                      </p>
+                      <p className="text-white flex items-center justify-end gap-1">
+                        Delivery:{" "}
+                        <span className="text-warning">
+                          ★ {order.delivery_rating}
+                        </span>
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

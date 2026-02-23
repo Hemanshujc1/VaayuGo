@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useEffect, useContext } from "react";
 import { jwtDecode } from "jwt-decode";
 import api from "../api/axios";
@@ -12,6 +13,14 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  // We declare logout early so useEffect can use it if the token is completely expired on load
+  const logout = () => {
+    localStorage.removeItem("token");
+    setUser(null);
+    navigate("/login");
+    toast.success("Logged out successfully");
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -30,6 +39,7 @@ export const AuthProvider = ({ children }) => {
       }
     }
     setLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const login = async (email, password) => {
@@ -46,10 +56,13 @@ export const AuthProvider = ({ children }) => {
       else if (userData.role === "shopkeeper") navigate("/shop/dashboard");
       else navigate("/");
 
-      return true;
+      return { success: true };
     } catch (error) {
       toast.error(error.response?.data?.message || "Login Failed");
-      return false;
+      return {
+        success: false,
+        message: error.response?.data?.message || "Login Failed",
+      };
     }
   };
 
@@ -63,13 +76,6 @@ export const AuthProvider = ({ children }) => {
       toast.error(error.response?.data?.message || "Registration Failed");
       return false;
     }
-  };
-
-  const logout = () => {
-    localStorage.removeItem("token");
-    setUser(null);
-    navigate("/login");
-    toast.success("Logged out successfully");
   };
 
   const value = {
@@ -86,3 +92,5 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
+export default AuthProvider;

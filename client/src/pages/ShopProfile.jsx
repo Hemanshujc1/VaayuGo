@@ -5,23 +5,27 @@ import toast from "react-hot-toast";
 
 const ShopProfile = () => {
   const { user } = useAuth();
+  const [profile, setProfile] = useState(null);
   const [shop, setShop] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchShop();
+    const fetchData = async () => {
+      try {
+        const [profileRes, shopRes] = await Promise.all([
+          api.get("/auth/me").catch(() => null),
+          api.get("/shop/my-shop").catch(() => null),
+        ]);
+        if (profileRes && profileRes.data) setProfile(profileRes.data);
+        if (shopRes && shopRes.data) setShop(shopRes.data);
+      } catch (err) {
+        console.error("Failed to load dashboard data", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, []);
-
-  const fetchShop = async () => {
-    try {
-      const res = await api.get("/shop/my-shop");
-      setShop(res.data);
-    } catch (error) {
-      // Shop might not exist yet
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) return <div className="text-white">Loading...</div>;
 
@@ -36,23 +40,53 @@ const ShopProfile = () => {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-neutral-light text-sm block">Username</label>
-            <p className="text-white font-medium">{user?.username}</p>
+            <label className="text-neutral-light text-sm block">Name</label>
+            <p className="text-white font-medium">
+              {profile?.name || user?.name}
+            </p>
           </div>
           <div>
             <label className="text-neutral-light text-sm block">Email</label>
-            <p className="text-white font-medium">{user?.email}</p>
+            <p className="text-white font-medium">
+              {profile?.email || user?.email}
+            </p>
           </div>
           <div>
             <label className="text-neutral-light text-sm block">Role</label>
-            <p className="text-white font-medium capitalize">{user?.role}</p>
+            <p className="text-white font-medium capitalize">
+              {profile?.role || user?.role}
+            </p>
           </div>
           <div>
             <label className="text-neutral-light text-sm block">
               Joined On
             </label>
             <p className="text-white font-medium">
-              {new Date(user?.createdAt).toLocaleDateString("en-GB")}
+              {profile?.createdAt
+                ? new Date(profile.createdAt).toLocaleDateString("en-GB")
+                : "N/A"}
+            </p>
+          </div>
+          <div>
+            <label className="text-neutral-light text-sm block">
+              Phone Number
+            </label>
+            <p className="text-white font-medium">
+              {profile?.mobile_number || "N/A"}
+            </p>
+          </div>
+          <div>
+            <label className="text-neutral-light text-sm block">Location</label>
+            <p className="text-white font-medium">
+              {profile?.location || "N/A"}
+            </p>
+          </div>
+          <div className="md:col-span-2">
+            <label className="text-neutral-light text-sm block">
+              Registered Address
+            </label>
+            <p className="text-white font-medium">
+              {profile?.address || "N/A"}
             </p>
           </div>
         </div>
@@ -122,6 +156,28 @@ const ShopProfile = () => {
                       ? "Yes, currently open"
                       : "No, currently closed"}
                   </span>
+                </div>
+                <div>
+                  <label className="text-neutral-light text-sm block">
+                    Shop Rating
+                  </label>
+                  <p className="text-white font-bold flex items-center gap-1">
+                    <span className="text-warning">★</span>
+                    {shop.rating != null && shop.rating > 0
+                      ? shop.rating.toFixed(1)
+                      : "N/A"}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-neutral-light text-sm block">
+                    Delivery Rating
+                  </label>
+                  <p className="text-white font-bold flex items-center gap-1">
+                    <span className="text-warning">★</span>
+                    {shop.delivery_rating != null && shop.delivery_rating > 0
+                      ? shop.delivery_rating.toFixed(1)
+                      : "N/A"}
+                  </p>
                 </div>
               </div>
             </div>

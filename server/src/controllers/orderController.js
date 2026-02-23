@@ -111,7 +111,7 @@ const getShopOrders = async (req, res) => {
 
         const orders = await Order.findAll({
             where: { shop_id: shop.id },
-            include: [{ model: OrderItem, include: [Product] }, { model: User, attributes: ['username', 'email'] }], // Include customer details
+            include: [{ model: OrderItem, include: [Product] }, { model: User, attributes: ['name', 'mobile_number', 'email'] }], // Include customer details
             order: [['createdAt', 'DESC']]
         });
         res.json(orders);
@@ -142,4 +142,55 @@ const updateOrderStatus = async (req, res) => {
     }
 };
 
-module.exports = { createOrder, getMyOrders, getShopOrders, updateOrderStatus };
+const rateOrder = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { shop_rating, delivery_rating } = req.body;
+
+        const order = await Order.findByPk(id);
+        if (!order) return res.status(404).json({ message: 'Order not found' });
+
+        if (order.customer_id !== req.user.id) {
+            return res.status(403).json({ message: 'Unauthorized. You can only rate your own orders.' });
+        }
+
+        if (order.status !== 'delivered') {
+            return res.status(400).json({ message: 'You can only rate orders that have been delivered.' });
+        }
+
+        if (order.is_rated) {
+            return res.status(400).json({ message: 'You have already rated this order.' });
+        }
+
+        order.shop_rating = shop_rating;
+        order.delivery_rating = delivery_rating;
+        order.is_rated = true;
+        await order.save();
+
+        // Calculate new average shop rating and delivery rating
+        const shop = await Shop.findByPk(order.shop_id);
+        if (shop) {
+            const ratedOrders = await Order.findAll({
+                where: { shop_id: shop.id, is_rated: true }
+            });
+
+            if (ratedOrders.length > 0) {
+                const totalRating = ratedOrders.reduce((acc, curr) => acc + curr.shop_rating, 0);
+                const avgRating = totalRating / ratedOrders.length;
+                shop.rating = avgRating;
+
+                const totalDeliveryRating = ratedOrders.reduce((acc, curr) => acc + curr.delivery_rating, 0);
+                const avgDeliveryRating = totalDeliveryRating / ratedOrders.length;
+                shop.delivery_rating = avgDeliveryRating;
+                
+                await shop.save();
+            }
+        }
+
+        res.json({ message: 'Rating submitted successfully', order });
+    } catch (error) {
+        res.status(500).json({ message: 'Error submitting rating', error });
+    }
+};
+
+module.exports = { createOrder, getMyOrders, getShopOrders, updateOrderStatus, rateOrder };

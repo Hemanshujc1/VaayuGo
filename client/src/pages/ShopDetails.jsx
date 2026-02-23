@@ -5,8 +5,6 @@ import { useCart } from "../context/CartContext";
 import XeroxOrderForm from "../components/XeroxOrderForm";
 import ProductCard from "../components/ProductCard";
 
-import Navbar from "../components/Navbar";
-
 const ShopDetails = () => {
   const { id } = useParams();
   const [shop, setShop] = useState(null);
@@ -35,8 +33,6 @@ const ShopDetails = () => {
 
   return (
     <div className="min-h-screen bg-primary text-primary-text pb-20">
-      <Navbar />
-
       <div className="container mx-auto p-4 md:p-8">
         {/* Floating Cart Button */}
         {cartCount > 0 && (
@@ -66,11 +62,25 @@ const ShopDetails = () => {
                   </span>
                   {shop.location_address}
                 </p>
-                <div className="flex items-center gap-1 mb-4">
-                  <span className="text-yellow-400">★</span>
-                  <span className="text-white font-bold">{shop.rating}</span>
-                  <span className="text-neutral-light text-sm">
-                    (50+ ratings)
+                <div className="flex items-center gap-1 mb-4 flex-wrap">
+                  <span className="bg-neutral-dark/50 px-3 py-1.5 rounded-full border border-neutral-mid flex items-center gap-2">
+                    <span className="text-neutral-light text-sm">Shop:</span>
+                    <span className="text-yellow-400">★</span>
+                    <span className="text-white font-bold">
+                      {shop.rating ? shop.rating.toFixed(1) : "0"}
+                    </span>
+                  </span>
+
+                  <span className="bg-neutral-dark/50 px-3 py-1.5 rounded-full border border-neutral-mid flex items-center gap-2">
+                    <span className="text-neutral-light text-sm">
+                      Delivery:
+                    </span>
+                    <span className="text-yellow-400">★</span>
+                    <span className="text-white font-bold">
+                      {shop.delivery_rating
+                        ? shop.delivery_rating.toFixed(1)
+                        : "0"}
+                    </span>
                   </span>
                 </div>
               </div>
@@ -124,7 +134,7 @@ const ShopDetails = () => {
                     key={product.id}
                     product={product}
                     isShopkeeper={false}
-                    onAddToCart={addToCart}
+                    onAddToCart={(product) => addToCart(product, shop)}
                     shopIsOpen={shop.is_open}
                     cartItem={cartItems.find((item) => item.id === product.id)}
                     onUpdateQuantity={updateQuantity}

@@ -19,6 +19,7 @@ const ShopLayout = () => {
     { name: "Products", path: "/shop/products", icon: "📦" },
     { name: "Orders", path: "/shop/orders", icon: "📝" },
     { name: "My Profile", path: "/shop/profile", icon: "🏪" },
+    { name: "Support", path: "/shop/support", icon: "📞" },
   ];
 
   return (

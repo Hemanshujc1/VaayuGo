@@ -69,7 +69,8 @@ const AdminShopDetails = () => {
           <p className="text-neutral-light">
             Owner:{" "}
             <span className="text-white font-medium">
-              {shop.User?.username} ({shop.User?.email})
+              {shop.User?.name || "N/A"} ({shop.User?.mobile_number} |{" "}
+              {shop.User?.email})
             </span>
           </p>
           <div className="mt-4 flex gap-4">
@@ -100,8 +101,43 @@ const AdminShopDetails = () => {
         </div>
       </div>
 
+      {/* Shop Gallery */}
+      {(() => {
+        let parsedImages = [];
+        try {
+          if (Array.isArray(shop.images)) {
+            parsedImages = shop.images;
+          } else if (typeof shop.images === "string") {
+            parsedImages = JSON.parse(shop.images);
+          }
+        } catch (e) {
+          if (shop.image_url) parsedImages = [shop.image_url];
+        }
+        if (!parsedImages || parsedImages.length === 0) {
+          if (shop.image_url) parsedImages = [shop.image_url];
+        }
+
+        if (parsedImages.length === 0) return null;
+
+        return (
+          <div className="bg-neutral-dark p-6 rounded shadow border border-neutral-mid">
+            <h3 className="text-xl font-bold text-white mb-4">Shop Photos</h3>
+            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
+              {parsedImages.map((img, idx) => (
+                <img
+                  key={idx}
+                  src={`http://localhost:3001${img}`}
+                  alt={`${shop.name} ${idx + 1}`}
+                  className="w-48 h-32 object-cover rounded-md shrink-0 border border-neutral-mid"
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-neutral-dark p-6 rounded shadow border-l-4 border-blue-500">
           <h3 className="text-neutral-light font-bold">Total Orders</h3>
           <p className="text-2xl font-bold text-white">{orders.length}</p>
@@ -111,9 +147,21 @@ const AdminShopDetails = () => {
           <p className="text-2xl font-bold text-white">{products.length}</p>
         </div>
         <div className="bg-neutral-dark p-6 rounded shadow border-l-4 border-green-500">
-          <h3 className="text-neutral-light font-bold">Avg. Rating</h3>
-          <p className="text-2xl font-bold text-white">
-            {shop.rating || "N/A"}
+          <h3 className="text-neutral-light font-bold">Shop Rating</h3>
+          <p className="text-2xl font-bold text-white flex items-center gap-1">
+            <span className="text-warning text-lg">★</span>
+            {shop.rating != null && shop.rating > 0
+              ? shop.rating.toFixed(1)
+              : "N/A"}
+          </p>
+        </div>
+        <div className="bg-neutral-dark p-6 rounded shadow border-l-4 border-yellow-500">
+          <h3 className="text-neutral-light font-bold">Delivery Rating</h3>
+          <p className="text-2xl font-bold text-white flex items-center gap-1">
+            <span className="text-warning text-lg">★</span>
+            {shop.delivery_rating != null && shop.delivery_rating > 0
+              ? shop.delivery_rating.toFixed(1)
+              : "N/A"}
           </p>
         </div>
       </div>
@@ -130,6 +178,9 @@ const AdminShopDetails = () => {
             <thead className="bg-neutral-mid">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-bold text-neutral-light uppercase">
+                  Image
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-bold text-neutral-light uppercase">
                   Name
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-bold text-neutral-light uppercase">
@@ -144,16 +195,47 @@ const AdminShopDetails = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-mid">
-              {products.map((p) => (
-                <tr key={p.id}>
-                  <td className="px-6 py-3 text-white">{p.name}</td>
-                  <td className="px-6 py-3 text-white">₹{p.price}</td>
-                  <td className="px-6 py-3 text-white">{p.stock_quantity}</td>
-                  <td className="px-6 py-3 text-white">
-                    {p.is_available ? "In Stock" : "Unavailable"}
-                  </td>
-                </tr>
-              ))}
+              {products.map((p) => {
+                let imgPath = p.image_url;
+                if (!imgPath && p.images) {
+                  try {
+                    const parsed =
+                      typeof p.images === "string"
+                        ? JSON.parse(p.images)
+                        : p.images;
+                    if (Array.isArray(parsed) && parsed.length > 0)
+                      imgPath = parsed[0];
+                  } catch (e) {
+                    console.warn(
+                      "Failed to parse images JSON for product",
+                      p.id,
+                    );
+                  }
+                }
+                return (
+                  <tr key={p.id}>
+                    <td className="px-6 py-3">
+                      {imgPath ? (
+                        <img
+                          src={`http://localhost:3001${imgPath}`}
+                          alt={p.name}
+                          className="w-12 h-12 object-cover rounded border border-neutral-mid"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-neutral-dark rounded flex items-center justify-center text-xs text-neutral-light border border-neutral-mid">
+                          No Img
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-3 text-white">{p.name}</td>
+                    <td className="px-6 py-3 text-white">₹{p.price}</td>
+                    <td className="px-6 py-3 text-white">{p.stock_quantity}</td>
+                    <td className="px-6 py-3 text-white">
+                      {p.is_available ? "In Stock" : "Unavailable"}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -190,7 +272,7 @@ const AdminShopDetails = () => {
                 <tr key={order.id} className="hover:bg-neutral-mid/50">
                   <td className="px-6 py-4 text-white">#{order.id}</td>
                   <td className="px-6 py-4 text-white">
-                    {order.User?.username}
+                    {order.User?.name || "N/A"}
                   </td>
                   <td className="px-6 py-4 text-white">₹{order.grand_total}</td>
                   <td className="px-6 py-4 text-neutral-light">

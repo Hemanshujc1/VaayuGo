@@ -91,30 +91,36 @@ const login = async (req, res, next) => {
     // Check for user email
     const user = await User.findOne({ where: { email } });
 
-    if (user && (await bcrypt.compare(password, user.password))) {
-      // Check if blocked
-      if (user.is_blocked) {
-        res.status(403);
-        throw new Error('Your account has been blocked. Please contact admin.');
-      }
-
-      res.status(200).json({
-        message: 'Login successful',
-        user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          name: user.name,
-          mobile_number: user.mobile_number,
-          address: user.address,
-          location: user.location,
-        },
-        token: generateToken(user),
-      });
-    } else {
+    if (!user) {
       res.status(401);
-      throw new Error('Invalid email or password');
+      throw new Error('User does not exist with this email');
     }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      res.status(401);
+      throw new Error('Incorrect password');
+    }
+
+    // Check if blocked
+    if (user.is_blocked) {
+      res.status(403);
+      throw new Error('Your account has been blocked. Please contact admin.');
+    }
+
+    res.status(200).json({
+      message: 'Login successful',
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        name: user.name,
+        mobile_number: user.mobile_number,
+        address: user.address,
+        location: user.location,
+      },
+      token: generateToken(user),
+    });
   } catch (error) {
     next(error);
   }

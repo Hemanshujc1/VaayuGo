@@ -43,6 +43,10 @@ const Shop = sequelize.define('Shop', {
   rating: {
     type: DataTypes.FLOAT,
     defaultValue: 0.0,
+  },
+  delivery_rating: {
+    type: DataTypes.FLOAT,
+    defaultValue: 0.0,
   }
 }, {
   timestamps: true,

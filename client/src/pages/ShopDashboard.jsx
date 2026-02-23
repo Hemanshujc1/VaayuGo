@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import api from "../api/axios";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 const ShopDashboard = () => {
   const [shop, setShop] = useState(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchShop();

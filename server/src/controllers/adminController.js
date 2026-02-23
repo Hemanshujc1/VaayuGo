@@ -35,7 +35,7 @@ const getShopDetails = async (req, res) => {
         const products = await sequelize.models.Product.findAll({ where: { shop_id: id } });
         const orders = await Order.findAll({ 
             where: { shop_id: id },
-            include: [{ model: User, attributes: ['username', 'email'] }],
+            include: [{ model: User, attributes: ['name', 'mobile_number', 'email'] }],
             order: [['createdAt', 'DESC']]
         });
 
@@ -135,7 +135,7 @@ const deleteSlot = async (req, res) => {
 const getUsers = async (req, res) => {
     try {
         const users = await User.findAll({
-            attributes: ['id', 'username', 'email', 'role', 'is_blocked', 'createdAt']
+            attributes: ['id', 'name', 'mobile_number', 'email', 'role', 'location', 'address', 'is_blocked', 'createdAt']
         });
         res.json(users);
     } catch (error) {
