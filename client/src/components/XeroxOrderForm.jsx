@@ -154,10 +154,18 @@ const XeroxOrderForm = ({ shop }) => {
 
         <button
           onClick={handleAddToCart}
-          disabled={uploading}
-          className={`w-full text-primary py-3 rounded font-bold transition-colors ${uploading ? "bg-neutral-light cursor-not-allowed" : "bg-accent hover:bg-secondary hover:text-white"}`}
+          disabled={uploading || (shop && !shop.is_open)}
+          className={`w-full text-primary py-3 rounded font-bold transition-colors ${
+            uploading || (shop && !shop.is_open)
+              ? "bg-neutral-light cursor-not-allowed"
+              : "bg-accent hover:bg-secondary hover:text-white"
+          }`}
         >
-          {uploading ? "Uploading..." : "Add Document to Basket"}
+          {uploading
+            ? "Uploading..."
+            : shop && !shop.is_open
+              ? "Shop Closed"
+              : "Add Document to Basket"}
         </button>
       </div>
     </div>

@@ -10,7 +10,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false
     },
     category: {
-      type: DataTypes.ENUM('grocery', 'food', 'medical', 'xerox', 'other'),
+      type: DataTypes.STRING,
       allowNull: false
     },
     min_order_type: {

@@ -35,32 +35,32 @@ const Penalty = require("./Penalty")(sequelize, DataTypes);
 // User has one Role -- STRIPPED (Using Enum)
 
 // User (Shopkeeper) has one Shop
-User.hasOne(Shop, { foreignKey: "owner_id" });
-Shop.belongsTo(User, { foreignKey: "owner_id" });
+User.hasOne(Shop, { foreignKey: "owner_id", onDelete: 'CASCADE' });
+Shop.belongsTo(User, { foreignKey: "owner_id", onDelete: 'CASCADE' });
 
 // Shop has many Products
-Shop.hasMany(Product, { foreignKey: "shop_id" });
-Product.belongsTo(Shop, { foreignKey: "shop_id" });
+Shop.hasMany(Product, { foreignKey: "shop_id", onDelete: 'CASCADE' });
+Product.belongsTo(Shop, { foreignKey: "shop_id", onDelete: 'CASCADE' });
 
 // User (Customer) has many Orders
-User.hasMany(Order, { foreignKey: "customer_id" });
-Order.belongsTo(User, { foreignKey: "customer_id" });
+User.hasMany(Order, { foreignKey: "customer_id", onDelete: 'CASCADE' });
+Order.belongsTo(User, { foreignKey: "customer_id", onDelete: 'CASCADE' });
 
 // Shop has many Orders
-Shop.hasMany(Order, { foreignKey: "shop_id" });
-Order.belongsTo(Shop, { foreignKey: "shop_id" });
+Shop.hasMany(Order, { foreignKey: "shop_id", onDelete: 'CASCADE' });
+Order.belongsTo(Shop, { foreignKey: "shop_id", onDelete: 'CASCADE' });
 
 // Order has many Items
-Order.hasMany(OrderItem, { foreignKey: "order_id" });
-OrderItem.belongsTo(Order, { foreignKey: "order_id" });
+Order.hasMany(OrderItem, { foreignKey: "order_id", onDelete: 'CASCADE' });
+OrderItem.belongsTo(Order, { foreignKey: "order_id", onDelete: 'CASCADE' });
 
 // Product in Order Items
-Product.hasMany(OrderItem, { foreignKey: "product_id" });
-OrderItem.belongsTo(Product, { foreignKey: "product_id" });
+Product.hasMany(OrderItem, { foreignKey: "product_id", onDelete: 'CASCADE' });
+OrderItem.belongsTo(Product, { foreignKey: "product_id", onDelete: 'CASCADE' });
 
 // Shop has many Penalties
-Shop.hasMany(Penalty, { foreignKey: "shop_id" });
-Penalty.belongsTo(Shop, { foreignKey: "shop_id" });
+Shop.hasMany(Penalty, { foreignKey: "shop_id", onDelete: 'CASCADE' });
+Penalty.belongsTo(Shop, { foreignKey: "shop_id", onDelete: 'CASCADE' });
 
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;

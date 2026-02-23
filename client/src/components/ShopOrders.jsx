@@ -125,7 +125,7 @@ const ShopOrders = () => {
                 ₹{order.grand_total}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-neutral-light text-sm">
-                {new Date(order.createdAt).toLocaleDateString()}
+                {new Date(order.createdAt).toLocaleDateString("en-GB")}
                 <br />
                 {new Date(order.createdAt).toLocaleTimeString()}
               </td>

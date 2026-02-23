@@ -26,6 +26,49 @@ const getAnalytics = async (req, res) => {
     }
 };
 
+const getShopDetails = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const shop = await Shop.findByPk(id, { include: User });
+        if (!shop) return res.status(404).json({ message: 'Shop not found' });
+
+        const products = await sequelize.models.Product.findAll({ where: { shop_id: id } });
+        const orders = await Order.findAll({ 
+            where: { shop_id: id },
+            include: [{ model: User, attributes: ['username', 'email'] }],
+            order: [['createdAt', 'DESC']]
+        });
+
+        const totalRevenue = orders
+            .filter(o => o.status === 'delivered')
+            .reduce((sum, o) => sum + (o.grand_total - o.platform_fee), 0); // Approximate shop revenue
+
+        res.json({ shop, products, orders, totalRevenue });
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching shop details', error });
+    }
+};
+
+const getCustomerDetails = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await User.findByPk(id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const orders = await Order.findAll({ 
+            where: { customer_id: id },
+            include: [{ model: Shop, attributes: ['name'] }],
+            order: [['createdAt', 'DESC']]
+        });
+
+        const totalSpent = orders.reduce((sum, o) => sum + o.grand_total, 0);
+
+        res.json({ user, orders, totalSpent });
+    } catch (error) {
+         res.status(500).json({ message: 'Error fetching customer details', error });
+    }
+};
+
 // --- Service Configuration ---
 
 const getConfigs = async (req, res) => {
@@ -214,5 +257,9 @@ module.exports = {
   updateShopStatus,
   getUsers,
   blockUser,
-  getAnalytics
+  getUsers,
+  blockUser,
+  getAnalytics,
+  getShopDetails,
+  getCustomerDetails
 };

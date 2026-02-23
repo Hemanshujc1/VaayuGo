@@ -7,7 +7,19 @@ const User = sequelize.define('User', {
     autoIncrement: true,
     primaryKey: true,
   },
-  username: {
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  mobile_number: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  address: {
+    type: DataTypes.TEXT,
+    allowNull: false,
+  },
+  location: {
     type: DataTypes.STRING,
     allowNull: false,
   },
@@ -19,7 +31,7 @@ const User = sequelize.define('User', {
       isEmail: true,
     },
   },
-  password_hash: {
+  password: {
     type: DataTypes.STRING,
     allowNull: false,
   },

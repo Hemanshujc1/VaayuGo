@@ -37,6 +37,10 @@ const Product = sequelize.define('Product', {
     defaultValue: 0,
     allowNull: false,
   },
+  images: {
+    type: DataTypes.JSON,
+    defaultValue: [],
+  },
 }, {
   timestamps: true,
 });

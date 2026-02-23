@@ -19,7 +19,7 @@ const getAllShops = async (req, res, next) => {
     
     const shops = await Shop.findAll({
       where: whereClause,
-      attributes: ['id', 'name', 'category', 'location_address', 'rating', 'image_url'], // sending safe fields
+      attributes: ['id', 'name', 'category', 'location_address', 'rating', 'image_url', 'images'], // sending safe fields
     });
 
     res.status(200).json(shops);
@@ -34,7 +34,7 @@ const getAllShops = async (req, res, next) => {
 const getShopById = async (req, res, next) => {
   try {
     const shop = await Shop.findByPk(req.params.id, {
-      attributes: ['id', 'name', 'category', 'location_address', 'rating', 'is_open', 'image_url', 'owner_id'],
+      attributes: ['id', 'name', 'category', 'location_address', 'rating', 'is_open', 'image_url', 'owner_id', 'images'],
     });
 
     if (!shop) {

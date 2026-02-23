@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 const AdminDashboard = () => {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -14,6 +15,7 @@ const AdminDashboard = () => {
         setAnalytics(res.data);
       } catch (error) {
         console.error("Error fetching analytics", error);
+        setError(error.message || "Failed to load data");
       } finally {
         setLoading(false);
       }
@@ -24,6 +26,20 @@ const AdminDashboard = () => {
   if (loading)
     return (
       <div className="text-white text-center mt-20">Loading Dashboard...</div>
+    );
+
+  if (error)
+    return (
+      <div className="text-danger text-center mt-20">
+        <h2 className="text-2xl font-bold">Error Loading Dashboard</h2>
+        <p>{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-4 bg-neutral-mid px-4 py-2 rounded text-white"
+        >
+          Retry
+        </button>
+      </div>
     );
 
   return (

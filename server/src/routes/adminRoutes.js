@@ -14,7 +14,9 @@ const {
     getAllShops,
     getUsers,
     blockUser,
-    getAnalytics
+    getAnalytics,
+    getShopDetails,
+    getCustomerDetails
 } = require('../controllers/adminController');
 const { authenticateToken, authorizeRole } = require('../middlewares/authMiddleware');
 
@@ -39,9 +41,11 @@ router.get('/shops/all', getAllShops);
 router.put('/shops/verify/:id', verifyShop);
 router.patch('/shops/:id/reject', rejectShop);
 router.patch('/shops/:id', updateShopStatus); // Generic Status Update
+router.get('/shops/:id', getShopDetails); // New Route
 
 // User Routes
 router.get('/users', getUsers);
+router.get('/customers/:id', getCustomerDetails); // New Route
 router.patch('/users/:id/block', blockUser);
 
 // Analytics Route

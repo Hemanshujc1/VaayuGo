@@ -19,6 +19,13 @@ import ProductManager from "./components/ProductManager";
 import AdminShops from "./pages/AdminShops";
 import AdminSettings from "./pages/AdminSettings";
 import AdminUsers from "./pages/AdminUsers";
+import AdminLayout from "./components/AdminLayout";
+import AdminProfile from "./pages/AdminProfile";
+import AdminCustomers from "./pages/AdminCustomers";
+import AdminShopDetails from "./pages/AdminShopDetails";
+import AdminCustomerDetails from "./pages/AdminCustomerDetails";
+import ShopProfile from "./pages/ShopProfile";
+import ShopLayout from "./components/ShopLayout";
 
 // Placeholder Dashboards
 // const Home = () => {
@@ -50,7 +57,6 @@ function App() {
         <Route path="/my-orders" element={<MyOrders />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-
         {/* Protected Routes */}
         {/* Customer Routes */}
         <Route element={<ProtectedRoute allowedRoles={["customer"]} />}>
@@ -58,47 +64,33 @@ function App() {
         </Route>
 
         {/* Shopkeeper Routes */}
-        <Route
-          path="/shop/dashboard"
-          element={
-            <ProtectedRoute allowedRoles={["shopkeeper"]}>
-              <ShopDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/shop/products"
-          element={
-            <ProtectedRoute allowedRoles={["shopkeeper"]}>
-              <ProductManager />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/shop/orders"
-          element={
-            <ProtectedRoute allowedRoles={["shopkeeper"]}>
-              <ShopOrders />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/shop/register"
-          element={
-            <ProtectedRoute allowedRoles={["shopkeeper"]}>
-              <ShopRegister />
-            </ProtectedRoute>
-          }
-        />
-
+        <Route element={<ProtectedRoute allowedRoles={["shopkeeper"]} />}>
+          <Route path="/shop" element={<ShopLayout />}>
+            <Route path="dashboard" element={<ShopDashboard />} />
+            <Route path="products" element={<ProductManager />} />
+            <Route path="orders" element={<ShopOrders />} />
+            <Route path="profile" element={<ShopProfile />} />
+            <Route path="register" element={<ShopRegister />} />
+            <Route index element={<Navigate to="dashboard" replace />} />
+          </Route>
+        </Route>
         {/* Admin Routes */}
         <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/shops" element={<AdminShops />} />
-          <Route path="/admin/users" element={<AdminUsers />} />
-          <Route path="/admin/settings" element={<AdminSettings />} />
+          <Route element={<AdminLayout />}>
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/shops" element={<AdminShops />} />
+            <Route path="/admin/shops/:id" element={<AdminShopDetails />} />
+            <Route path="/admin/customers" element={<AdminCustomers />} />
+            <Route
+              path="/admin/customers/:id"
+              element={<AdminCustomerDetails />}
+            />
+            <Route path="/admin/users" element={<AdminUsers />} />{" "}
+            {/* Keeping as fallback or removal candidate */}
+            <Route path="/admin/settings" element={<AdminSettings />} />
+            <Route path="/admin/profile" element={<AdminProfile />} />
+          </Route>
         </Route>
-
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

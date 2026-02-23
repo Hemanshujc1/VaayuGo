@@ -10,7 +10,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false
     },
     category: {
-      type: DataTypes.ENUM('grocery', 'food', 'medical', 'xerox', 'other'),
+      type: DataTypes.STRING,
       allowNull: false
     },
     location_address: {
@@ -28,7 +28,7 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: true
     },
     status: {
-      type: DataTypes.ENUM('pending', 'active', 'suspended', 'rejected'),
+      type: DataTypes.ENUM('pending', 'active', 'approved', 'suspended', 'rejected'),
       defaultValue: 'pending'
     },
     is_verified: {
@@ -41,6 +41,10 @@ module.exports = (sequelize, DataTypes) => {
     },
     image_url: {
       type: DataTypes.STRING
+    },
+    images: {
+      type: DataTypes.JSON,
+      defaultValue: [] // Array of image URLs
     }
   }, {
     timestamps: true

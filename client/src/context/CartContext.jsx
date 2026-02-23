@@ -11,10 +11,19 @@ export const CartProvider = ({ children }) => {
 
   // Persist cart
   useEffect(() => {
-    const savedCart = localStorage.getItem("vaayugo_cart");
-    const savedShop = localStorage.getItem("vaayugo_cart_shop");
-    if (savedCart) setCartItems(JSON.parse(savedCart));
-    if (savedShop) setCartShop(JSON.parse(savedShop));
+    try {
+      const savedCart = localStorage.getItem("vaayugo_cart");
+      const savedShop = localStorage.getItem("vaayugo_cart_shop");
+
+      if (savedCart && savedCart !== "undefined")
+        setCartItems(JSON.parse(savedCart));
+      if (savedShop && savedShop !== "undefined")
+        setCartShop(JSON.parse(savedShop));
+    } catch (e) {
+      console.error("Failed to parse cart from local storage", e);
+      localStorage.removeItem("vaayugo_cart");
+      localStorage.removeItem("vaayugo_cart_shop");
+    }
   }, []);
 
   useEffect(() => {
@@ -37,18 +46,24 @@ export const CartProvider = ({ children }) => {
 
     setCartShop(shop);
 
+    const isExisting = cartItems.find((item) => item.id === product.id);
+
     setCartItems((prev) => {
-      const existing = prev.find((item) => item.id === product.id);
-      if (existing) {
+      if (isExisting) {
         return prev.map((item) =>
           item.id === product.id
             ? { ...item, quantity: item.quantity + 1 }
             : item,
         );
       }
-      toast.success("Added to cart");
       return [...prev, { ...product, quantity: 1 }];
     });
+
+    if (!isExisting) {
+      toast.success("Added to cart");
+    } else {
+      toast.success("Quantity updated");
+    }
   };
 
   const removeFromCart = (productId) => {

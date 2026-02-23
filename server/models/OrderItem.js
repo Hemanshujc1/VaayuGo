@@ -30,6 +30,16 @@ module.exports = (sequelize, DataTypes) => {
     binding_type: {
       type: DataTypes.STRING, // e.g., 'spiral', 'hardcover', 'softcover', 'none'
       allowNull: true
+    },
+    createdAt: {
+      type: DataTypes.DATE,
+      defaultValue: sequelize.literal('CURRENT_TIMESTAMP'),
+      allowNull: false
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      defaultValue: sequelize.literal('CURRENT_TIMESTAMP'),
+      allowNull: false
     }
   }, {
     timestamps: true

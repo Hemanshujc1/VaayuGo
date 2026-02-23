@@ -17,7 +17,7 @@ const Shop = sequelize.define('Shop', {
     allowNull: false,
   },
   category: {
-    type: DataTypes.ENUM('Street Food', 'Grocery', 'Medical', 'Xerox'),
+    type: DataTypes.STRING,
     allowNull: false,
   },
   location_address: {
@@ -35,6 +35,10 @@ const Shop = sequelize.define('Shop', {
   image_url: {
     type: DataTypes.STRING,
     allowNull: true,
+  },
+  images: {
+    type: DataTypes.JSON, // Stores array of image URLs
+    defaultValue: [],
   },
   rating: {
     type: DataTypes.FLOAT,

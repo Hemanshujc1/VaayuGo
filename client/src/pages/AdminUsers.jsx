@@ -80,15 +80,24 @@ const AdminUsers = () => {
       {loading ? (
         <div className="text-center text-white">Loading users...</div>
       ) : (
-        <div className="bg-neutral-dark rounded shadow overflow-hidden border border-neutral-mid">
+        <div className="bg-neutral-dark rounded shadow overflow-x-auto border border-neutral-mid">
           <table className="min-w-full">
             <thead className="bg-neutral-mid">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-neutral-light uppercase tracking-wider">
-                  Username
+                  Mobile
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-neutral-light uppercase tracking-wider">
+                  Name
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-neutral-light uppercase tracking-wider">
                   Email
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-neutral-light uppercase tracking-wider">
+                  Location
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-neutral-light uppercase tracking-wider">
+                  Address
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-neutral-light uppercase tracking-wider">
                   Role
@@ -108,10 +117,22 @@ const AdminUsers = () => {
                   className="hover:bg-neutral-mid/50 transition-colors"
                 >
                   <td className="px-6 py-4 whitespace-nowrap text-white font-medium">
-                    {user.username}
+                    {user.mobile_number || "N/A"}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-neutral-light">
+                    {user.name || "N/A"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-neutral-light">
                     {user.email}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-neutral-light">
+                    {user.location || "N/A"}
+                  </td>
+                  <td
+                    className="px-6 py-4 whitespace-nowrap text-neutral-light truncate max-w-[150px]"
+                    title={user.address}
+                  >
+                    {user.address || "N/A"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-white">
                     <span
