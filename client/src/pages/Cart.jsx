@@ -1,15 +1,49 @@
 import { useCart } from "../context/CartContext";
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import api from "../api/axios";
+import toast from "react-hot-toast";
 
 const Cart = () => {
   const { cartItems, cartShop, updateQuantity, getCartTotal, clearCart } =
     useCart();
   const total = getCartTotal();
 
-  // Mock Fee Logic (To be enhanced with ServiceConfig)
-  const deliveryFee = 10;
-  const platformFee = 2;
-  const grandTotal = total + deliveryFee + platformFee;
+  const [calculation, setCalculation] = useState(null);
+  const [calcLoading, setCalcLoading] = useState(false);
+  const [calcError, setCalcError] = useState("");
+
+  useEffect(() => {
+    if (cartItems.length > 0 && cartShop) {
+      calculateCart();
+    }
+  }, [cartItems, cartShop]);
+
+  const calculateCart = async () => {
+    setCalcLoading(true);
+    setCalcError("");
+    try {
+      // The backend expects `location_name` to lookup the delivery rules dynamically
+      const res = await api.post("/cart/calculate", {
+        items: cartItems.map((i) => ({
+          id: i.id,
+          price: i.price,
+          quantity: i.quantity,
+          is_xerox: i.is_xerox,
+        })),
+        shop_id: cartShop.id,
+        category: cartShop.category,
+      });
+      setCalculation(res.data);
+    } catch (err) {
+      setCalcError(
+        err.response?.data?.error ||
+          "Error calculating cart total - Does this region deliver here?",
+      );
+    } finally {
+      setCalcLoading(false);
+    }
+  };
 
   if (cartItems.length === 0) {
     return (
@@ -82,20 +116,35 @@ const Cart = () => {
           <h2 className="text-lg font-bold mb-4 text-white">Bill Details</h2>
           <div className="flex justify-between mb-2 text-neutral-light">
             <span>Item Total</span>
-            <span>₹{total}</span>
+            <span>₹{total.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between mb-2 text-neutral-light">
-            <span>Delivery Fee</span>
-            <span>₹{deliveryFee}</span>
-          </div>
-          <div className="flex justify-between mb-4 text-neutral-light">
-            <span>Platform Fee</span>
-            <span>₹{platformFee}</span>
-          </div>
-          <div className="flex justify-between font-bold text-lg border-t border-neutral-mid pt-2 text-white">
-            <span>Grand Total</span>
-            <span>₹{grandTotal}</span>
-          </div>
+
+          {calcLoading ? (
+            <div className="text-accent italic text-sm my-4">
+              Calculating fees...
+            </div>
+          ) : calcError ? (
+            <div className="text-danger font-bold text-sm my-4 p-2 bg-red-500/10 rounded border border-red-500/20">
+              {calcError}
+            </div>
+          ) : calculation ? (
+            <>
+              <div className="flex justify-between mb-2 text-neutral-light">
+                <span>Delivery Fee</span>
+                <span>₹{calculation.delivery_fee}</span>
+              </div>
+              {calculation.is_small_order && (
+                <p className="text-xs text-orange-400 mb-4 bg-orange-400/10 p-2 rounded">
+                  ⚠️ A Small Order Delivery Fee has been applied because the
+                  order value does not meet the minimum requirement.
+                </p>
+              )}
+              <div className="flex justify-between font-bold text-lg border-t border-neutral-mid pt-2 text-white">
+                <span>Grand Total</span>
+                <span>₹{calculation.total_payable}</span>
+              </div>
+            </>
+          ) : null}
 
           <Link
             to="/checkout"

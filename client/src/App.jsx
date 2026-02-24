@@ -17,7 +17,9 @@ import MyOrders from "./pages/MyOrders";
 import ShopOrders from "./pages/ShopOrders";
 import ProductManager from "./components/ProductManager";
 import AdminShops from "./pages/AdminShops";
-import AdminSettings from "./pages/AdminSettings";
+import AdminLocations from "./pages/AdminLocations";
+import AdminDeliverySlots from "./pages/AdminDeliverySlots";
+import AdminGlobalRules from "./pages/AdminGlobalRules";
 import AdminUsers from "./pages/AdminUsers";
 import AdminLayout from "./components/AdminLayout";
 import AdminProfile from "./pages/AdminProfile";
@@ -94,8 +96,9 @@ function App() {
               element={<AdminCustomerDetails />}
             />
             <Route path="/admin/users" element={<AdminUsers />} />{" "}
-            {/* Keeping as fallback or removal candidate */}
-            <Route path="/admin/settings" element={<AdminSettings />} />
+            <Route path="/admin/locations" element={<AdminLocations />} />
+            <Route path="/admin/slots" element={<AdminDeliverySlots />} />
+            <Route path="/admin/rules" element={<AdminGlobalRules />} />
             <Route path="/admin/profile" element={<AdminProfile />} />
           </Route>
         </Route>

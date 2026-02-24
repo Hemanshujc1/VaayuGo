@@ -118,7 +118,7 @@ const CustomerProfile = () => {
                   <p className="text-sm font-semibold text-neutral-light mb-1 uppercase tracking-wider">
                     Registered Address
                   </p>
-                  <p className="text-lg font-medium text-white break-words">
+                  <p className="text-lg font-medium text-white wrap-break-words">
                     {profile?.address || "N/A"}
                   </p>
                 </div>

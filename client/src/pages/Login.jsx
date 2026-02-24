@@ -128,6 +128,57 @@ const Login = () => {
             </button>
           </form>
 
+          {/* Quick Login for Development */}
+          {import.meta.env.DEV && (
+            <div className="bg-neutral-dark/40 border border-neutral-mid p-4 rounded-lg">
+              <p className="text-xs text-neutral-light font-bold mb-3 uppercase tracking-wider">
+                Quick Login (Dev Only)
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail("admin@vaayugo.com");
+                    setPassword("admin123");
+                  }}
+                  className="px-3 py-1.5 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30 rounded text-sm font-medium transition-colors"
+                >
+                  Admin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail("guptastore@gmail.com");
+                    setPassword("shop@123");
+                  }}
+                  className="px-3 py-1.5 bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30 rounded text-sm font-medium transition-colors"
+                >
+                  Shopkeeper
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail("yatharath@gmail.com");
+                    setPassword("user@123");
+                  }}
+                  className="px-3 py-1.5 bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 border border-purple-500/30 rounded text-sm font-medium transition-colors"
+                >
+                  Customer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail("xerox@gmail.com");
+                    setPassword("shop@123");
+                  }}
+                  className="px-3 py-1.5 bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 border border-purple-500/30 rounded text-sm font-medium transition-colors"
+                >
+                  Xerox Shopkeeper
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="mt-8 text-center">
             <p className="text-sm text-neutral-light">
               Don't have an account?{" "}

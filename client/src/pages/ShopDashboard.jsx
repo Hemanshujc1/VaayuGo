@@ -4,21 +4,26 @@ import { Link } from "react-router-dom";
 
 const ShopDashboard = () => {
   const [shop, setShop] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchShop();
+    fetchShopAndAnalytics();
   }, []);
 
-  const fetchShop = async () => {
+  const fetchShopAndAnalytics = async () => {
     try {
-      const res = await api.get("/shop/my-shop");
-      setShop(res.data);
+      const [shopRes, analyticsRes] = await Promise.all([
+        api.get("/shop/my-shop"),
+        api.get("/shop/my-analytics"),
+      ]);
+      setShop(shopRes.data);
+      setAnalytics(analyticsRes.data);
     } catch (error) {
       if (error.response && error.response.status === 404) {
         setShop(null);
       } else {
-        console.error("Error fetching shop:", error);
+        console.error("Error fetching shop data:", error);
       }
     } finally {
       setLoading(false);
@@ -108,6 +113,91 @@ const ShopDashboard = () => {
             Your shop is currently under review. You can add products, but
             customers won't see your shop until it is approved.
           </p>
+        </div>
+      )}
+
+      {/* Analytics Overview */}
+      {shop.status === "approved" && analytics && (
+        <div className="mb-8">
+          <h2 className="text-xl font-bold text-white mb-4">
+            Earnings Overview
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
+            <div className="bg-neutral-dark p-6 rounded shadow border-l-4 border-accent">
+              <h3 className="text-neutral-light font-bold text-sm">
+                Total Orders
+              </h3>
+              <p className="text-2xl font-bold text-white mt-2">
+                {analytics.ordersCount}
+              </p>
+            </div>
+
+            <div className="bg-neutral-dark p-6 rounded shadow border-l-4 border-neutral-light/50">
+              <h3 className="text-neutral-light font-bold text-sm">
+                Total Order Value
+              </h3>
+              <p className="text-2xl font-bold text-white mt-2">
+                ₹{analytics.grossVolume}
+              </p>
+              <p className="text-xs text-neutral-light mt-1">
+                Value of goods sold
+              </p>
+            </div>
+
+            <div className="bg-neutral-dark p-6 rounded shadow border-l-4 border-danger">
+              <h3 className="text-neutral-light font-bold text-sm">
+                Total Commission
+              </h3>
+              <p className="text-2xl font-bold text-danger mt-2">
+                - ₹{analytics.totalCommissionPaid}
+              </p>
+              <p className="text-xs text-neutral-light mt-1">
+                Deducted automatically
+              </p>
+            </div>
+
+            <div className="bg-neutral-dark p-6 rounded shadow border-l-4 border-secondary">
+              <h3 className="text-neutral-light font-bold text-sm">
+                Total Delivery Share
+              </h3>
+              <p className="text-2xl font-bold text-secondary mt-2">
+                + ₹{analytics.deliveryEarnings}
+              </p>
+              <p className="text-xs text-neutral-light mt-1">
+                Your delivery cuts
+              </p>
+            </div>
+
+            <div className="bg-neutral-dark p-6 rounded shadow border-l-4 border-green-500">
+              <h3 className="text-neutral-light font-bold text-sm">
+                Net Earnings
+              </h3>
+              <p className="text-2xl font-bold text-green-400 mt-2">
+                ₹{analytics.netEarnings}
+              </p>
+              <p className="text-xs text-neutral-light mt-1">
+                Total withdrawable balance
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-neutral-dark p-4 rounded shadow border border-neutral-mid text-center mx-auto">
+            <h3 className="text-neutral-light font-bold text-sm mb-2 uppercase tracking-wide">
+              Shop Earnings Formula
+            </h3>
+            <div className="flex flex-wrap items-center justify-center gap-2 text-white font-mono text-sm sm:text-base">
+              <span className="text-green-400 font-bold">Net Earnings</span>
+              <span className="text-neutral-light">=</span>
+              <span>(</span>
+              <span className="text-neutral-light">Order Value</span>
+              <span className="text-danger font-bold">-</span>
+              <span className="text-danger">Commission</span>
+              <span>)</span>
+              <span className="text-secondary font-bold">+</span>
+              <span className="text-secondary">Delivery Share</span>
+            </div>
+          </div>
         </div>
       )}
 

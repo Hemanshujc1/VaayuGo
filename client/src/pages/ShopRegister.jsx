@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -11,6 +11,25 @@ const ShopRegister = () => {
   });
 
   const navigate = useNavigate();
+  const [locations, setLocations] = useState([]);
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const res = await api.get("/public/locations");
+        setLocations(res.data);
+        if (res.data.length > 0) {
+          setFormData((prev) => ({
+            ...prev,
+            location_address: res.data[0].name,
+          }));
+        }
+      } catch (err) {
+        console.error("Error fetching locations", err);
+      }
+    };
+    fetchLocations();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -77,18 +96,25 @@ const ShopRegister = () => {
           {/* Address */}
           <div>
             <label className="block text-neutral-light text-sm font-semibold mb-2">
-              Address
+              Delivery Zone (Location)
             </label>
-            <textarea
-              rows="3"
+            <select
               value={formData.location_address}
               onChange={(e) =>
                 setFormData({ ...formData, location_address: e.target.value })
               }
-              placeholder="Enter full shop address"
-              className="w-full px-4 py-3 rounded-lg border border-neutral-mid bg-neutral-mid text-white placeholder-neutral-light focus:outline-none focus:ring-2 focus:ring-accent transition resize-none"
+              className="w-full px-4 py-3 rounded-lg border border-neutral-mid bg-neutral-mid text-white focus:outline-none focus:ring-2 focus:ring-accent transition"
               required
-            />
+            >
+              <option value="" disabled>
+                Select a location
+              </option>
+              {locations.map((loc) => (
+                <option key={loc.id} value={loc.name}>
+                  {loc.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Button */}

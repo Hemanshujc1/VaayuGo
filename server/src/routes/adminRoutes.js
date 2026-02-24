@@ -16,8 +16,15 @@ const {
     blockUser,
     getAnalytics,
     getShopDetails,
-    getCustomerDetails
+    getCustomerDetails,
+    addLocation
 } = require('../controllers/adminController');
+const {
+    getDeliveryRules,
+    createDeliveryRule,
+    updateDeliveryRule,
+    deleteDeliveryRule
+} = require('../controllers/adminRulesController');
 const { authenticateToken, authorizeRole } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
@@ -50,6 +57,14 @@ router.patch('/users/:id/block', blockUser);
 
 // Analytics Route
 router.get('/analytics', getAnalytics); // New analytics route
+
+router.get('/delivery-rules', getDeliveryRules);
+router.post('/delivery-rules', createDeliveryRule);
+router.put('/delivery-rules/:id', updateDeliveryRule);
+router.delete('/delivery-rules/:id', deleteDeliveryRule);
+
+// Locations Route
+router.post('/locations', addLocation);
 
 
 module.exports = router;

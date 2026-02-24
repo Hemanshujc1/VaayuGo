@@ -1,4 +1,5 @@
-const Shop = require('../models/Shop');
+const { Shop, Order, OrderRevenueLog } = require('../models');
+const { Op } = require('sequelize');
 
 const registerShop = async (req, res) => {
   try {
@@ -60,6 +61,51 @@ const toggleShopStatus = async (req, res) => {
         res.json({ message: `Shop is now ${shop.is_open ? 'Open' : 'Closed'}`, is_open: shop.is_open });
     } catch (error) {
         res.status(500).json({ message: 'Error toggling shop status', error });
+    }
+};
+
+const getMyShopAnalytics = async (req, res) => {
+    try {
+        const shop = await Shop.findOne({ where: { owner_id: req.user.id } });
+        if (!shop) return res.status(404).json({ message: 'Shop not found' });
+
+        const ordersCount = await Order.count({ where: { shop_id: shop.id, status: 'delivered' } });
+        
+        const revenueLogs = await OrderRevenueLog.findAll({
+            where: { shop_id: shop.id },
+            include: [{
+                model: Order,
+                attributes: [],
+                where: { status: 'delivered' }
+            }],
+            raw: true
+        });
+
+        let smallOrdersCount = 0;
+        let revenueSum = 0;
+        let grossSum = 0;
+        let commSum = 0;
+        let deliverySum = 0;
+
+        revenueLogs.forEach(log => {
+            if (log.is_small_order) smallOrdersCount++;
+            revenueSum += Number(log.shop_final_earning || 0);
+            grossSum += Number(log.order_value || 0);
+            commSum += Number(log.commission_amount || 0);
+            deliverySum += Number(log.shop_delivery_earned || 0);
+        });
+        
+        res.json({
+            ordersCount: ordersCount || 0,
+            smallOrdersCount: smallOrdersCount || 0,
+            netEarnings: revenueSum || 0,
+            grossVolume: grossSum || 0,
+            totalCommissionPaid: commSum || 0,
+            deliveryEarnings: deliverySum || 0
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching shop analytics', error });
     }
 };
 
@@ -182,4 +228,4 @@ const deleteShopImage = async (req, res) => {
     }
 };
 
-module.exports = { registerShop, getMyShop, getPublicShops, toggleShopStatus, uploadShopImages, deleteShopImage };
+module.exports = { registerShop, getMyShop, getPublicShops, toggleShopStatus, uploadShopImages, deleteShopImage, getMyShopAnalytics };

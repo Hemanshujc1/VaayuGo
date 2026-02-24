@@ -1,6 +1,7 @@
 const Shop = require('../models/Shop');
 const Product = require('../models/Product');
 const User = require('../models/User'); // Import User
+const Location = require('../models/Location');
 const { Op } = require('sequelize');
 
 const getAllShops = async (req, res) => {
@@ -68,4 +69,13 @@ const searchShops = async (req, res) => {
     }
 };
 
-module.exports = { getAllShops, getShopDetails, searchShops };
+const getAllLocations = async (req, res) => {
+    try {
+        const locations = await Location.findAll();
+        res.json(locations);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching locations', error });
+    }
+};
+
+module.exports = { getAllShops, getShopDetails, searchShops, getAllLocations };

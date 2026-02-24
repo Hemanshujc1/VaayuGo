@@ -8,7 +8,8 @@ const ShopOrders = () => {
   const fetchOrders = async () => {
     try {
       const res = await api.get("/orders/shop-orders");
-      setOrders(res.data);
+      // The API returns { orders: [...], smallOrdersCount: X }
+      setOrders(res.data.orders || []);
     } catch (error) {
       console.error("Error fetching orders", error);
     } finally {
@@ -68,6 +69,12 @@ const ShopOrders = () => {
                   </p>
                   <p className="text-sm font-bold mt-1 text-accent">
                     Total: ₹{order.grand_total}
+                  </p>
+                  <p className="text-sm font-bold mt-1 text-green-400">
+                    Your Earning:{" "}
+                    {order.status === "delivered"
+                      ? `₹${order.OrderRevenueLog?.shop_final_earning ?? 0}`
+                      : "Pending"}
                   </p>
                   <p className="text-sm mt-1 text-white">
                     Addr: {order.delivery_address}

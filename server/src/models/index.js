@@ -6,6 +6,9 @@ const ServiceConfig = require('./ServiceConfig');
 const DeliverySlot = require('./DeliverySlot');
 const Order = require('./Order');
 const OrderItem = require('./OrderItem');
+const DeliveryRule = require('./DeliveryRule');
+const OrderRevenueLog = require('./OrderRevenueLog');
+const Location = require('./Location');
 
 // Defines relationships
 User.hasOne(Shop, { foreignKey: 'owner_id' });
@@ -16,6 +19,13 @@ Product.belongsTo(Shop, { foreignKey: 'shop_id' });
 
 Shop.hasOne(ServiceConfig, { foreignKey: 'shop_id' });
 ServiceConfig.belongsTo(Shop, { foreignKey: 'shop_id' });
+
+// DeliveryRule relationships
+Shop.hasMany(DeliveryRule, { foreignKey: 'shop_id', onDelete: 'CASCADE' });
+DeliveryRule.belongsTo(Shop, { foreignKey: 'shop_id', onDelete: 'CASCADE' });
+
+Location.hasMany(DeliveryRule, { foreignKey: 'location_id', onDelete: 'CASCADE' });
+DeliveryRule.belongsTo(Location, { foreignKey: 'location_id', onDelete: 'CASCADE' });
 
 // Order relationships
 User.hasMany(Order, { foreignKey: 'customer_id' });
@@ -30,6 +40,13 @@ OrderItem.belongsTo(Order, { foreignKey: 'order_id' });
 Product.hasMany(OrderItem, { foreignKey: 'product_id' });
 OrderItem.belongsTo(Product, { foreignKey: 'product_id' });
 
+// OrderRevenueLog relationships
+Order.hasOne(OrderRevenueLog, { foreignKey: 'order_id', onDelete: 'CASCADE' });
+OrderRevenueLog.belongsTo(Order, { foreignKey: 'order_id', onDelete: 'CASCADE' });
+
+Shop.hasMany(OrderRevenueLog, { foreignKey: 'shop_id', onDelete: 'CASCADE' });
+OrderRevenueLog.belongsTo(Shop, { foreignKey: 'shop_id', onDelete: 'CASCADE' });
+
 module.exports = {
   connectDB,
   sequelize,
@@ -39,5 +56,8 @@ module.exports = {
   ServiceConfig,
   DeliverySlot,
   Order,
-  OrderItem
+  OrderItem,
+  DeliveryRule,
+  OrderRevenueLog,
+  Location
 };

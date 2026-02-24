@@ -7,7 +7,11 @@ import toast from "react-hot-toast";
 const Checkout = () => {
   const { cartItems, cartShop, getCartTotal, clearCart } = useCart();
   const [address, setAddress] = useState("Fetching registered address...");
+  const [userLocation, setUserLocation] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [calculation, setCalculation] = useState(null);
+  const [calcLoading, setCalcLoading] = useState(true);
+  const [calcError, setCalcError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -15,6 +19,7 @@ const Checkout = () => {
       try {
         const res = await api.get("/auth/me");
         setAddress(res.data.address || "No address found on profile.");
+        setUserLocation(res.data.location || null);
       } catch (error) {
         console.error("Failed to load profile", error);
         setAddress("Failed to load address.");
@@ -23,10 +28,38 @@ const Checkout = () => {
     fetchProfile();
   }, []);
 
+  useEffect(() => {
+    if (cartItems.length > 0 && cartShop && userLocation) {
+      calculateCart();
+    }
+  }, [cartItems, cartShop, userLocation]);
+
+  const calculateCart = async () => {
+    if (!userLocation) return;
+    setCalcLoading(true);
+    setCalcError("");
+    try {
+      const res = await api.post("/cart/calculate", {
+        items: cartItems.map((i) => ({
+          id: i.id,
+          price: i.price,
+          quantity: i.quantity,
+          is_xerox: i.is_xerox,
+        })),
+        shop_id: cartShop.id,
+        category: cartShop.category,
+      });
+      setCalculation(res.data);
+    } catch (err) {
+      setCalcError(
+        err.response?.data?.error || "Error calculating cart total.",
+      );
+    } finally {
+      setCalcLoading(false);
+    }
+  };
+
   const total = getCartTotal();
-  const deliveryFee = 10;
-  const platformFee = 2;
-  const grandTotal = total + deliveryFee + platformFee;
 
   const handlePlaceOrder = async () => {
     if (!address.trim()) {
@@ -38,6 +71,7 @@ const Checkout = () => {
     try {
       const orderData = {
         shop_id: cartShop.id,
+        category: cartShop.category,
         items: cartItems.map((item) => ({
           id: item.id,
           quantity: item.quantity,
@@ -97,20 +131,34 @@ const Checkout = () => {
           <div className="border-t border-neutral-mid pt-2 space-y-1 text-sm">
             <div className="flex justify-between text-neutral-light">
               <span>Item Total</span>
-              <span>₹{total}</span>
+              <span>₹{total.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-neutral-light">
-              <span>Delivery Fee</span>
-              <span>₹{deliveryFee}</span>
-            </div>
-            <div className="flex justify-between text-neutral-light">
-              <span>Platform Fee</span>
-              <span>₹{platformFee}</span>
-            </div>
-            <div className="flex justify-between font-bold text-lg pt-2 border-t border-neutral-mid mt-2 text-white">
-              <span>To Pay</span>
-              <span>₹{grandTotal}</span>
-            </div>
+
+            {calcLoading ? (
+              <div className="text-accent italic text-sm my-4">
+                Calculating fees...
+              </div>
+            ) : calcError ? (
+              <div className="text-danger font-bold text-sm my-4 p-2 bg-red-500/10 rounded border border-red-500/20">
+                {calcError}
+              </div>
+            ) : calculation ? (
+              <>
+                <div className="flex justify-between text-neutral-light">
+                  <span>Delivery Fee</span>
+                  <span>₹{calculation.delivery_fee}</span>
+                </div>
+                {calculation.is_small_order && (
+                  <p className="text-xs text-orange-400 my-2">
+                    (Small Order Delivery Fee applied)
+                  </p>
+                )}
+                <div className="flex justify-between font-bold text-lg pt-2 border-t border-neutral-mid mt-2 text-white">
+                  <span>To Pay</span>
+                  <span>₹{calculation.total_payable}</span>
+                </div>
+              </>
+            ) : null}
           </div>
         </div>
 
@@ -139,10 +187,14 @@ const Checkout = () => {
 
           <button
             onClick={handlePlaceOrder}
-            disabled={loading}
-            className={`w-full text-primary py-3 rounded font-bold transition-colors ${loading ? "bg-neutral-light cursor-not-allowed" : "bg-secondary hover:bg-white hover:text-secondary"}`}
+            disabled={loading || calcLoading || !!calcError}
+            className={`w-full text-primary py-3 rounded font-bold transition-colors ${loading || calcLoading || !!calcError ? "bg-neutral-light cursor-not-allowed" : "bg-secondary hover:bg-white hover:text-secondary"}`}
           >
-            {loading ? "Placing Order..." : `Place Order (₹${grandTotal})`}
+            {loading
+              ? "Placing Order..."
+              : calcLoading
+                ? "Calculating..."
+                : `Place Order (₹${calculation ? calculation.total_payable : "-"})`}
           </button>
         </div>
       </div>

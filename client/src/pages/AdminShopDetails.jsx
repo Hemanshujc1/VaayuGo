@@ -27,7 +27,8 @@ const AdminShopDetails = () => {
   if (!shopData)
     return <div className="text-white text-center mt-10">Shop not found</div>;
 
-  const { shop, products, orders, totalRevenue } = shopData;
+  const { shop, products, orders, totalRevenue, shopEarned, vaayugoEarned } =
+    shopData;
 
   const handleBlockUnblock = async () => {
     const newStatus = shop.status === "suspended" ? "approved" : "suspended";
@@ -95,9 +96,31 @@ const AdminShopDetails = () => {
           </div>
         </div>
 
-        <div className="text-right">
-          <p className="text-neutral-light">Total Revenue generated</p>
-          <p className="text-3xl font-bold text-accent">₹{totalRevenue}</p>
+        <div className="flex gap-8 text-right bg-primary p-4 rounded border border-neutral-mid shrink-0">
+          <div>
+            <p className="text-xs text-neutral-light uppercase font-bold tracking-wider mb-1">
+              Total Order Volume
+            </p>
+            <p className="text-2xl font-bold text-white">
+              ₹{totalRevenue || 0}
+            </p>
+          </div>
+          <div className="border-l border-neutral-mid pl-6">
+            <p className="text-xs text-neutral-light uppercase font-bold tracking-wider mb-1">
+              Shop Net Earned
+            </p>
+            <p className="text-2xl font-bold text-green-400">
+              ₹{shopEarned || 0}
+            </p>
+          </div>
+          <div className="border-l border-neutral-mid pl-6">
+            <p className="text-xs text-neutral-light uppercase font-bold tracking-wider mb-1">
+              VaayuGo Profit
+            </p>
+            <p className="text-2xl font-bold text-blue-400">
+              ₹{vaayugoEarned || 0}
+            </p>
+          </div>
         </div>
       </div>
 

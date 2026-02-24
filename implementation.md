@@ -1,220 +1,453 @@
-# Implementation Plan: VaayuGo (Detailed)
+# VaayuGo Revenue & Rule Engine Implementation Plan (Detailed)
 
-This document outlines the step-by-step plan to build the VaayuGo Hyperlocal Scheduled-Commerce Platform, strictly adhering to the "Scheduled Delivery" model and extensive Admin controls.
+This document outlines the detailed step-by-step implementation plan for the updated VaayuGo Revenue and Rule Engine, which introduces Minimum Order Logic and flexible small-order handling.
 
-## Phase 1: Foundation & Architecture Setup
-
-**Goal:** Establish a solid technical base capable of handling configurable rules and scheduled batches.
-
-### 1.1 Project Structure
-
-- [x] Initialize Git Repository.
-- [x] Set up directory structure:
-  - `/client` (React + Vite)
-  - `/server` (Node.js + Express)
-  - `/shared` (Types/Constants for Slots, Statuses, roles)
-
-### 1.2 Database (MySQL) Design & ERD
-
-**Core Entities:**
-
-- [x] `Users`
-  - `id`, `email`, `password_hash`, `role` (customer, shopkeeper, admin), `is_blocked`, `created_at`
-- [x] `Shops`
-  - `id`, `owner_id`, `name`, `category` (Attributes: Street Food, Grocery, Medical, Xerox), `location` (lat/long + address), `status` (pending, approved, rejected, suspended), `is_open`, `rating`
-- [x] `ServiceConfig` (Admin Controlled Rules per Shop/Category)
-  - `id`, `shop_id` (nullable, if global), `category` (nullable, if global), `min_order_value`, `delivery_fee`, `commission_rate`, `delivery_revenue_share` (Shop vs VaayuGo split), `is_prepaid_only` (bool, e.g., true for Xerox)
-- [x] `DeliverySlots`
-  - `id`, `name` (Lunch, Evening, Night), `start_time`, `end_time`, `cutoff_time`, `is_active`
-- [x] `Products`
-  - `id`, `shop_id`, `name`, `price`, `description`, `image_url`, `is_available`
-- [x] `Orders`
-  - `id`, `customer_id`, `shop_id`, `slot_id` (FK to DeliverySlots), `status` (Placed, Accepted, Preparing, Out_for_Delivery, Delivered, Cancelled), `order_type` (Normal, Xerox), `total_amount`, `delivery_fee`, `commission_amount`, `shop_earnings`, `platform_earnings`, `payment_method` (COD, Online), `payment_status`, `document_url` (for Xerox)
-- [x] `OrderItems`
-  - `id`, `order_id`, `product_id`, `quantity`, `price_at_order`
-- [x] `CommissionLogs`
-  - `id`, `order_id`, `shop_id`, `amount`, `type` (Commission, DeliveryFeeShare), `created_at`
-
-### 1.3 Backend Setup
-
-- [x] Initialize Express app clearly separating `admin` routes from `client` routes.
-- [x] Configure `cors`, `helmet`, `dotenv`.
-- [x] Implement Global Error Handling.
-- [x] Set up MySQL connection (Sequelize or similar ORM recommended for complex relationships).
+**Important Note:** The required database tables (`DeliveryRule` and `OrderRevenueLog`) do **not** currently exist in the database or the native Sequelize models. This plan covers creating them from scratch.
 
 ---
 
-## Phase 2: Core Services - Authentication & Role Management
+## [x] Phase 1: Database & Schema Creation
 
-**Goal:** Secure access with specific flows for Shopkeeper approval and Admin checks.
+Since the tables do not exist, we must create new Sequelize models and establish relationships in `server/models/index.js`.
 
-### 2.1 Backend (Auth)
+### [x] 1.1 Create `DeliveryRule` Model
 
-- [x] `POST /api/auth/register`:
-  - Customers: Auto-active.
-  - Shopkeepers: Created as `pending`.
-  - Admins: Only created by other Admins (seed first admin).
-- [x] `POST /api/auth/login`: JWT Token with Role payload.
-- [x] Middleware:
-  - `authenticateToken`: Verify JWT.
-  - `authorizeRole(['admin', 'shopkeeper'])`: Role-based access control.
-  - `checkShopStatus`: Middleware to block actions if shop is suspended.
+Create a new file: `server/models/DeliveryRule.js`
 
-### 2.2 Frontend (Auth)
+**Schema Definition:**
 
-- [x] Login Page with Role separation if needed (or unified login).
-- [x] Registration Page:
-  - Customer Flow: Phone/Email + Password.
-  - Shopkeeper Flow: Shop Name, Category, Location, Owner Details.
-- [x] Context/State: `useAuth` hook storing user info and role.
+```javascript
+module.exports = (sequelize, DataTypes) => {
+  const DeliveryRule = sequelize.define(
+    "DeliveryRule",
+    {
+      id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
+      },
+      location_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false, // Every rule must at least belong to a location
+      },
+      category: {
+        type: DataTypes.STRING,
+        allowNull: true, // Null means it applies to all categories in the location
+      },
+      shop_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true, // Null means it applies to all shops in the category/location
+      },
+      delivery_fee: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+        defaultValue: 0.0,
+      },
+      shop_delivery_share: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+        defaultValue: 0.0,
+      },
+      vaayugo_delivery_share: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+        defaultValue: 0.0,
+      },
+      commission_percent: {
+        type: DataTypes.DECIMAL(5, 2),
+        allowNull: false,
+        defaultValue: 0.0,
+      },
+      min_order_value: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true, // Null means no minimum order constraint
+      },
+      small_order_delivery_fee: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true, // Null means strict mode (block if below min_order_value)
+      },
+      is_active: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+      },
+    },
+    {
+      timestamps: true,
+      tableName: "delivery_rules",
+    },
+  );
+
+  return DeliveryRule;
+};
+```
+
+### [x] 1.2 Create `OrderRevenueLog` Model
+
+Create a new file: `server/models/OrderRevenueLog.js`
+
+**Schema Definition:**
+
+```javascript
+module.exports = (sequelize, DataTypes) => {
+  const OrderRevenueLog = sequelize.define(
+    "OrderRevenueLog",
+    {
+      id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
+      },
+      order_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      shop_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+      },
+      order_value: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+      },
+      is_small_order: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
+      applied_delivery_fee: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+      },
+      applied_min_order_value: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true,
+      },
+      commission_amount: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+      },
+      shop_delivery_earned: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+      },
+      vaayugo_delivery_earned: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+      },
+      shop_final_earning: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+      },
+      vaayugo_final_earning: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+      },
+    },
+    {
+      timestamps: true,
+      tableName: "order_revenue_logs",
+    },
+  );
+
+  return OrderRevenueLog;
+};
+```
+
+### [x] 1.3 Update `server/models/index.js`
+
+Register the new models and establish associations.
+
+```javascript
+const DeliveryRule = require("./DeliveryRule")(sequelize, DataTypes);
+const OrderRevenueLog = require("./OrderRevenueLog")(sequelize, DataTypes);
+
+// Associations for DeliveryRule
+Location.hasMany(DeliveryRule, { foreignKey: "location_id" });
+DeliveryRule.belongsTo(Location, { foreignKey: "location_id" });
+
+Shop.hasMany(DeliveryRule, { foreignKey: "shop_id" });
+DeliveryRule.belongsTo(Shop, { foreignKey: "shop_id" });
+
+// Associations for OrderRevenueLog
+Order.hasOne(OrderRevenueLog, { foreignKey: "order_id" });
+OrderRevenueLog.belongsTo(Order, { foreignKey: "order_id" });
+
+Shop.hasMany(OrderRevenueLog, { foreignKey: "shop_id" });
+OrderRevenueLog.belongsTo(Shop, { foreignKey: "shop_id" });
+
+db.DeliveryRule = DeliveryRule;
+db.OrderRevenueLog = OrderRevenueLog;
+```
 
 ---
 
-## Phase 3: Admin Configuration & Control (The "Brain")
+## [x] Phase 2: Core Rule Engine Service Implementation
 
-**Goal:** Enable the "Admin-First" control model for fees, slots, and approvals.
+Create a new service file `server/services/RuleEngineService.js`.
 
-### 3.1 Global & Granular Configuration
+### [x] 2.1 Implement `getApplicableRule(location_id, category, shop_id)`
 
-- [x] **Backend**:
-  - `POST /api/admin/config`: Create/Update rules for `delivery_fee`, `commission_rate` based on `category` or specific `shop_id`.
-  - `GET /api/admin/config`: Fetch current active rules.
-  - `POST /api/admin/slots`: Create/Update Delivery Slots (e.g., Lunch 12:00-14:00, Cutoff 11:00).
-- [x] **Frontend**:
-  - **Master Rules Engine**: UI to set default fees/commissions per category.
-  - **Slot Manager**: UI to add/remove delivery slots and set cutoff times.
-  - **Shop Overrides**: UI to set specific rules for a specific shop if needed.
+Ensure the lookup follows strict priority resolution utilizing Sequelize.
 
-### 3.2 Shop & User Validation
+```javascript
+const { DeliveryRule } = require("../models");
 
-- [x] **Backend**:
-  - `PATCH /api/admin/shops/:id/approve`: Approve pending shop.
-  - `PATCH /api/admin/shops/:id/reject`: Reject shop.
-  - `PATCH /api/admin/users/:id/block`: Block a user (customer or shop).
-- [x] **Frontend**:
-  - **Shop Verification Queue**: List of pending shops with "Approve/Reject" actions.
-  - **User Management**: Searchable list of users to block/unblock.
+async function getApplicableRule(location_id, category, shop_id) {
+  // Priority 1: Shop-Level Rule
+  if (shop_id) {
+    const shopRule = await DeliveryRule.findOne({
+      where: { shop_id, is_active: true },
+    });
+    if (shopRule) return shopRule;
+  }
 
----
+  // Priority 2: Category-Level Rule
+  if (category) {
+    const categoryRule = await DeliveryRule.findOne({
+      where: { location_id, category, shop_id: null, is_active: true },
+    });
+    if (categoryRule) return categoryRule;
+  }
 
-## Phase 4: Shopkeeper Supply Side
+  // Priority 3: Location-Level Rule
+  const locationRule = await DeliveryRule.findOne({
+    where: { location_id, category: null, shop_id: null, is_active: true },
+  });
+  if (locationRule) return locationRule;
 
-**Goal:** Simple interface for batch acceptance and status updates.
+  throw new Error("No active delivery rule configured for this region.");
+}
+```
 
-### 4.1 Onboarding & Dashboard
+### [x] 2.2 Implement `validateOrderAgainstRule(order_value, rule)`
 
-- [x] **Backend**:
-  - `GET /api/shop/profile`: Get shop details + current active Admin Rules (fees/commissions applying to them).
-  - `PATCH /api/shop/status`: Toggle Open/Closed.
-- [x] **Frontend**:
-  - Shop Profile Setup (Upload Image, Set Location).
-  - Dashboard Header: "Open/Closed" toggle.
+Add a utility function to evaluate the order against the minimum order logic.
 
-### 4.2 Product Management
+```javascript
+function validateOrderAgainstRule(orderValue, rule) {
+  // If no minimum order is configured, return normal fee
+  if (!rule.min_order_value || orderValue >= rule.min_order_value) {
+    return {
+      isValid: true,
+      isSmallOrder: false,
+      deliveryFee: Number(rule.delivery_fee),
+    };
+  }
 
-- [x] **Backend**:
-  - CRUD Products.
-  - `POST /api/shop/products`: Add item (Name, Price, Image, Stock Quantity).
-  - `PUT /api/shop/products/:id`: Update item details and stock.
-  - `PUT /api/shop/products/:id/availability`: Toggle stock (Auto-sets stock to 0 if unavailable).
-- [x] **Frontend**:
-  - Product List with "In Stock" toggles and Stock Quantity display.
-  - Edit Product form with Stock Management.
+  // Small order condition
+  if (rule.small_order_delivery_fee) {
+    // Flexible Mode: Apply higher delivery fee
+    return {
+      isValid: true,
+      isSmallOrder: true,
+      deliveryFee: Number(rule.small_order_delivery_fee),
+    };
+  } else {
+    // Strict Mode: Block the order
+    throw new Error(
+      `Minimum order value of ₹${rule.min_order_value} is not satisfied.`,
+    );
+  }
+}
 
-### 4.3 Batch Order Management
-
-- [x] **Backend**:
-  - `GET /api/shop/orders`: Filter by `slot_id` (e.g., "Show me Lunch Batch").
-  - `PATCH /api/shop/orders/:id/status`: Update status (Accept -> Preparing -> Out for Delivery).
-- [x] **Frontend**:
-  - **Batch View**: Group orders by Delivery Slot (Lunch, Evening).
-  - **Action**: "Accept Batch" or individual "Accept".
-  - **Print View**: Simple list for packing.
-
----
-
-## Phase 5: Customer Demand Side
-
-**Goal:** Scheduled ordering flow with strict slot enforcing.
-
-### 5.1 Discovery & Selection
-
-- [x] **Backend**:
-  - `GET /api/shops`: List shops (Apply filters: Category, Location).
-  - `GET /api/config/slots`: distinct list of available slots derived from Admin config.
-- [x] **Frontend**:
-  - **Home**: List Categories (Street Food, Xerox, etc.).
-  - **Shop List**: Show "Next Slot: Lunch (Order within 30 mins)".
-  - **Shop Detail**: Menu + "Minimum Order Value" banner.
-
-### 5.2 Cart, Logic & Uploads
-
-- [x] **Backend**:
-  - `POST /api/cart/calculate`: Dynamic pricing endpoint.
-    - Input: Items, ShopID.
-    - Logic: Fetch Admin Rule for Shop -> Apply Delivery Fee -> Calculate Total.
-  - `POST /api/upload`: Multer middleware for PDF uploads (Xerox only).
-- [x] **Frontend**:
-  - **Cart**: Show Item Total + Delivery Fee (Explicitly).
-  - **Xerox Flow**: If Category == Xerox -> Show File Upload Input (Limit: PDF only).
-  - **Slot Selection**: Dropdown of Available Slots (Filter out slots where `CurrentTime > CutoffTime`).
-
-### 5.3 Checkout & Order Placement
-
-- [x] **Backend**:
-  - `POST /api/orders`:
-    - Valdiate Slot Cutoff again.
-    - Validate Min Order Value.
-    - If Xerox: Check `payment_status` (Must be Prepaid - Mock/Integration).
-    - Save Order with calculated `commission_amount` and `shop_earnings` snapshots.
-- [x] **Frontend**:
-  - **Payment Options**:
-    - General: COD or Online.
-    - Xerox: Online Only (Banner: "Xerox orders are prepaid/no-refund").
-  - **Confirmation**: Show "Delivered in [Slot Name] Slot".
+module.exports = { getApplicableRule, validateOrderAgainstRule };
+```
 
 ---
 
-## Phase 6: Financials & Analytics
+## [x] Phase 3: Cart Calculation Logic (`POST /api/cart/calculate`)
 
-**Goal:** Enable revenue tracking and splits.
+Update the cart checkout calculation endpoint (`server/controllers/cartController.js`).
 
-### 6.1 Earnings Calculation (Backend)
+**Action Plan:**
 
-- [x] Logic on Order Completion (`Delivered`):
-  - Update `CommissionLogs`.
-  - Calculate `Net Earnings` = `Order Value` - `Commission` + `Shop Delivery Share`.
-  - Store this in a daily/monthly aggregate table for speed.
-
-### 6.2 Visualizations
-
-- [x] **Shopkeeper Dashboard**:
-  - "Today's Earnings": Total Orders | Net Payout.
-  - "Delivery Earnings": Specifically from the Delivery Fee Split.
-- [x] **Admin Analytics**:
-  - Revenue Graphs (Chart.js/Recharts).
-  - Filters: "Last 7 Days", "By Category".
-  - "Top Shops" List.
-  - Export Button: Generate CSV/PDF of the data table.
+1. Calculate the base `order_value` (sum of item prices \* quantities).
+2. Fetch the rule via `RuleEngineService.getApplicableRule(location_id, category, shop_id)`.
+3. Validate the order: `const validation = RuleEngineService.validateOrderAgainstRule(order_value, rule);`
+   - If an error is thrown (Strict Mode), catch it and return `res.status(400).json({ error: err.message })`.
+4. Set `delivery_fee = validation.deliveryFee`.
+5. Calculate `commission_amount = order_value * (rule.commission_percent / 100)`.
+6. Calculate `grand_total = order_value + delivery_fee`.
+7. Return the detailed JSON response:
+   ```json
+   {
+     "order_value": 80,
+     "delivery_fee": 20,
+     "is_small_order": true,
+     "commission_percent": 3,
+     "total_payable": 100
+   }
+   ```
 
 ---
 
-## Phase 7: Deployment & Polish
+## [x] Phase 4: Order Placement & Revenue Splitting (`POST /api/orders`)
 
-### 7.1 Testing
+During order creation (`server/controllers/orderController.js`), apply the exact financial splits and save the log in the newly created `OrderRevenueLog` table.
 
-- [x] **Unit Tests**: Fee Calculation Logic (Critical).
-- **Integration Tests**: Order Flow (Place -> Accept -> Deliver).
-- **Edge Cases**:
-  - Order placed 1 min before cutoff.
-  - Shop rejected by Admin while active orders exist.
+### [x] 4.1 Commission Calculation
 
-### 7.2 Scalability Checks
+```javascript
+const commissionAmount = orderValue * (rule.commission_percent / 100);
+```
 
-- [ ] Database Indexing on `orders(shop_id, status)` and `orders(slot_id)`.
-- [ ] Rate Limiting (prevent spam orders).
+### [x] 4.2 Delivery Fee Split Logic
 
-### 7.3 Final Launch Prep
+Determine how the delivery fee is shared between the Shop and VaayuGo.
 
-- [x] Seed Default Admin Config (Slots: Lunch/Dinner, Fee: 10, Comm: 3%).
-- [x] Environment Variables setup for Production.
+```javascript
+const isSmallOrder = validation.isSmallOrder;
+let shop_delivery_earned = Number(rule.shop_delivery_share);
+let vaayugo_delivery_earned = Number(rule.vaayugo_delivery_share);
+
+if (isSmallOrder) {
+  // Proportional Split for higher small order delivery fee
+  const totalNormalDelivery = shop_delivery_earned + vaayugo_delivery_earned;
+  if (totalNormalDelivery > 0) {
+    const shopRatio = shop_delivery_earned / totalNormalDelivery;
+    shop_delivery_earned = Number(rule.small_order_delivery_fee) * shopRatio;
+    vaayugo_delivery_earned =
+      Number(rule.small_order_delivery_fee) * (1 - shopRatio);
+  } else {
+    // Fallback 50/50 split if standard delivery is inexplicably 0
+    shop_delivery_earned = Number(rule.small_order_delivery_fee) * 0.5;
+    vaayugo_delivery_earned = Number(rule.small_order_delivery_fee) * 0.5;
+  }
+}
+```
+
+### [x] 4.3 Final Net Earnings
+
+- `shop_final_earning = (orderValue - commissionAmount) + shop_delivery_earned`
+- `vaayugo_final_earning = commissionAmount + vaayugo_delivery_earned`
+
+### [x] 4.4 Persist Data
+
+After saving the `Order`, create an entry in the `OrderRevenueLog`:
+
+```javascript
+await OrderRevenueLog.create(
+  {
+    order_id: newOrder.id,
+    shop_id: shop_id,
+    order_value: orderValue,
+    is_small_order: isSmallOrder,
+    applied_delivery_fee: validation.deliveryFee,
+    applied_min_order_value: rule.min_order_value,
+    commission_amount: commissionAmount,
+    shop_delivery_earned: shop_delivery_earned,
+    vaayugo_delivery_earned: vaayugo_delivery_earned,
+    shop_final_earning: shop_final_earning,
+    vaayugo_final_earning: vaayugo_final_earning,
+  },
+  { transaction },
+);
+```
+
+---
+
+## [x] Phase 5: Build API endpoints for Admin Rules Config
+
+Create `server/routes/adminRulesRoutes.js` and corresponding controller.
+
+**Endpoints:**
+
+1. `GET /api/admin/delivery-rules` - Fetch all rules with Location and Shop joins.
+2. `POST /api/admin/delivery-rules` - Create a new DeliveryRule.
+   - Validation: `small_order_delivery_fee >= delivery_fee` (if provided).
+   - Validation: `delivery_fee == shop_delivery_share + vaayugo_delivery_share`.
+3. `PUT /api/admin/delivery-rules/:id` - Update an existing DeliveryRule.
+4. `DELETE /api/admin/delivery-rules/:id` - Soft delete or Hard delete.
+
+---
+
+## [x] Phase 6: Frontend Implementation Flow (Admin, Customer, Shopkeeper)
+
+This phase details how the new rule engine is exposed to the different user roles in the application.
+
+### [x] 6.1 Admin Flow (Rule Configuration)
+
+Admins are responsible for defining the rules. These set rules dictate the entire flow.
+
+1. **Dashboard Entry:** In `AdminRevenueRules.jsx`, the Admin clicks "Create Rule" or "Edit Rule".
+2. **Form Inputs:** The Admin fills out the following configuration:
+   - **Scope:** Location (Required), Category (Optional), Shop (Optional). This defines priority.
+   - **Financials:** Delivery Fee, Shop Share, VaayuGo Share.
+   - **Constraints:** Commission Percent, Min Order Value (₹), and Small Order Delivery Fee (₹).
+3. **Submission:** Upon saving, the frontend validates the inputs (e.g., ensuring standard delivery = shop share + vaayugo share) and sends a `POST/PUT /api/admin/delivery-rules` request to persist the rule in the database.
+
+### [x] 6.2 Customer Flow (Automatic Rule Application)
+
+Customers never manually interact with the rule engine; it applies automatically behind the scenes.
+
+1. **Cart Interaction:** A customer adds items to their cart in the app/website.
+2. **Checkout Calculation (`CartCheckout.jsx`):**
+   - When the checkout page loads, the frontend calls `POST /api/cart/calculate`.
+   - The backend silently resolves the highest priority `DeliveryRule` for that specific location, category, or shop.
+3. **Warning Display:** If the customer's cart is below the `min_order_value`:
+   - **Strict Mode:** The API returns a 400 error. The frontend displays a warning banner: _"Please add ₹X more to checkout."_ and disables the "Place Order" button.
+   - **Flexible Mode:** The API returns `is_small_order: true` and applies the higher `small_order_delivery_fee`. The frontend displays an info banner: _"A small order delivery fee of ₹Y is applied. Add ₹X more for standard delivery."_
+4. **Order Placement:** The user accepts the final `total_payable` and clicks "Place Order". The system automatically handles the complex revenue splits on the backend based on the applied rule.
+
+### [x] 6.3 Shopkeeper Flow (Financial Transparency)
+
+Shopkeepers need to see exactly how much they earned and if a small order fee impacted their payout.
+
+1. **Earnings Summary (`ShopDashboard.jsx`):** The shopkeeper views their dashboard cards, showing their **Net Earnings** and a new **Small Orders Count** badge.
+2. **Detailed Order List:** When viewing the list of recent orders, they see:
+   - The **Item Total** (what the customer paid for food/products).
+   - An **"Is Small Order"** indicator flag if applicable.
+   - Their final **Delivery Share Earned** (which may be higher than normal if it was a proportional split of a small order fee).
+   - The **Commission Deducted** (which is strictly based on the order value, protecting shop profits on small orders).
+   - **Final Net Earned** per order.
+3. **Formula Tooltip:** A help icon on the table explicitly states: `"Net Earnings = (Order Value − Commission) + Delivery Share"`, providing total financial clarity.
+
+---
+
+## [x] Phase 7: Admin Dashboard Metrics
+
+Update the Admin Dashboard API (`server/controllers/adminDashboardController.js`) to aggregate the new table.
+
+**Queries Using `OrderRevenueLog`:**
+
+- **Small Orders Count:** `const smallOrders = await OrderRevenueLog.count({ where: { is_small_order: true } });`
+- **Total Revenue from Small Orders:** Sum of `applied_delivery_fee` where `is_small_order: true`.
+- **Minimum Order Impact:**
+  - Extra delivery collected: `SUM(applied_delivery_fee - DeliveryRule.delivery_fee)`
+
+---
+
+## [x] Phase 8: Xerox Category Bypass Logic
+
+Xerox orders follow a different paradigm and should bypass normal small order constraints.
+
+**Implementation Plan:**
+
+1. Create a **Category-Level DeliveryRule** specifically for `category = 'Xerox'` via the new Admin UI.
+2. Configuration:
+   - `min_order_value = 0` (or leave empty/null)
+   - `small_order_delivery_fee = null`
+   - `commission_percent = 5` (as required).
+3. The existing `getApplicableRule` priority logic will automatically pick this category rule when a Xerox order is placed, ensuring smooth prepaid processing without blocking small values.
+
+---
+
+## Phase 9: Testing Strategy
+
+### Test Case 1: Database Migration
+
+- Restart the server. Verify Sequelize syncs/creates `delivery_rules` and `order_revenue_logs` tables correctly in the database.
+
+### Test Case 2: Normal Order
+
+- **Scenario:** Order = ₹250, Min Order = ₹100, Base Delivery = ₹12 (Shop ₹8 / VG ₹4), Comm = 4%
+- **Expect:** Order succeeds, `isSmallOrder` = false. Log shows correct splits (Shop Net = ₹248, VG Net = ₹14).
+
+### Test Case 3: Small Order - Flexible Mode
+
+- **Scenario:** Order = ₹60, Min Order = ₹100, Base Delivery = ₹10, Small Delivery = ₹20, Comm = 3%
+- **Expect:** Order succeeds, `deliveryFee` applied = ₹20, `isSmallOrder` = true. Splits are calculated proportionally based on ₹20.
+
+### Test Case 4: Small Order - Strict Mode
+
+- **Scenario:** Order = ₹60, Min Order = ₹100, Small Delivery = `null`.
+- **Expect:** Cart API throws `400 Bad Request` with "Minimum order value not satisfied." Checkout is blocked.

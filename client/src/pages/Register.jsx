@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 
@@ -9,7 +10,7 @@ const Register = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    location: "IIIT Trichy",
+    location: "",
     address: "",
     role: "customer",
     // Shopkeeper specific fields
@@ -19,6 +20,22 @@ const Register = () => {
 
   const { register } = useAuth();
   const [error, setError] = useState("");
+  const [locations, setLocations] = useState([]);
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const res = await api.get("/public/locations");
+        setLocations(res.data);
+        if (res.data.length > 0) {
+          setFormData((prev) => ({ ...prev, location: res.data[0].name }));
+        }
+      } catch (err) {
+        console.error("Error fetching locations", err);
+      }
+    };
+    fetchLocations();
+  }, []);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -161,15 +178,22 @@ const Register = () => {
                 <label className="block text-neutral-light text-sm font-semibold ml-1">
                   Location Zone
                 </label>
-                <input
-                  type="text"
+                <select
                   name="location"
                   value={formData.location}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-neutral-mid rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent bg-neutral-dark text-neutral-500 cursor-not-allowed transition-colors"
+                  className="w-full px-4 py-3 border border-neutral-mid rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent bg-neutral-dark text-white transition-colors"
                   required
-                  disabled
-                />
+                >
+                  <option value="" disabled>
+                    Select a location
+                  </option>
+                  {locations.map((loc) => (
+                    <option key={loc.id} value={loc.name}>
+                      {loc.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-1">

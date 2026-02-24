@@ -25,6 +25,7 @@ const publicRoutes = require('./src/routes/publicRoutes');
 const orderRoutes = require('./src/routes/orderRoutes');
 const uploadRoutes = require('./src/routes/uploadRoutes');
 const contactRoutes = require('./src/routes/contactRoutes');
+const cartRoutes = require('./src/routes/cartRoutes');
 
 
 // Database Connection
@@ -39,6 +40,7 @@ app.use('/api/public', publicRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/files', uploadRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/cart', cartRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {
@@ -47,7 +49,7 @@ app.get('/', (req, res) => {
 
 // Sync Database (Force: false to prevent data loss)
 // In development, you might use { force: true } or { alter: true } initially to update schema, but be careful.
-sequelize.sync({ alter: true }).then(() => {
+sequelize.sync().then(() => {
   console.log('Database Synced');
 }).catch((err) => {
   console.error('Database Sync Error:', err);
