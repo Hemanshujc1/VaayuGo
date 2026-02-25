@@ -32,7 +32,7 @@ const Order = sequelize.define('Order', {
     allowNull: false,
   },
   status: {
-    type: DataTypes.ENUM('pending', 'accepted', 'preparing', 'ready', 'out_for_delivery', 'delivered', 'cancelled'),
+    type: DataTypes.ENUM('pending', 'accepted', 'out_for_delivery', 'delivered', 'failed', 'cancelled'),
     defaultValue: 'pending',
   },
   delivery_address: {
@@ -52,6 +52,38 @@ const Order = sequelize.define('Order', {
     allowNull: true,
   },
   is_rated: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  delivery_otp: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  delivered_at: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  failed_at: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  failure_reason: {
+    type: DataTypes.ENUM('Delivery attempt was made', 'Customer was unavailable', 'Customer refused order', 'Other'),
+    allowNull: true,
+  },
+  cancelled_at: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  cancelled_by: {
+    type: DataTypes.ENUM('customer', 'shop', 'admin'),
+    allowNull: true,
+  },
+  cancel_reason: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  final_status_locked: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },

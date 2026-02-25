@@ -1,4 +1,4 @@
-const { sequelize, ServiceConfig, DeliverySlot, Shop, User, Order, OrderRevenueLog, Location } = require('../models/index');
+const { sequelize, ServiceConfig, DeliverySlot, Shop, User, Order, OrderRevenueLog, Location, Penalty, Category, ShopCategory } = require('../models/index');
 
 const getAnalytics = async (req, res) => {
     try {
@@ -147,6 +147,65 @@ const getCustomerDetails = async (req, res) => {
     }
 };
 
+// --- Penalties ---
+
+const createPenalty = async (req, res) => {
+    try {
+        const { user_id, amount, reason } = req.body;
+        const admin_id = req.user.id;
+
+        if (!user_id || !amount || !reason) {
+            return res.status(400).json({ message: 'user_id, amount, and reason are required' });
+        }
+
+        const user = await User.findByPk(user_id);
+        if (!user) return res.status(404).json({ message: 'Target user not found' });
+
+        const penalty = await Penalty.create({
+            user_id,
+            admin_id,
+            amount,
+            reason
+        });
+
+        res.status(201).json({ message: 'Penalty issued successfully', penalty });
+    } catch (error) {
+        res.status(500).json({ message: 'Error issuing penalty', error: error.message });
+    }
+};
+
+const getPenaltiesByUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const penalties = await Penalty.findAll({
+            where: { user_id: userId },
+            include: [
+                { model: User, as: 'admin', attributes: ['name', 'email'] }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+        
+        res.json(penalties);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching penalties', error: error.message });
+    }
+};
+
+const getAllPenalties = async (req, res) => {
+    try {
+        const penalties = await Penalty.findAll({
+            include: [
+                { model: User, as: 'user', attributes: ['name', 'email', 'role'] },
+                { model: User, as: 'admin', attributes: ['name'] }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+        res.json(penalties);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching all penalties', error: error.message });
+    }
+};
+
 // --- Service Configuration ---
 
 const getConfigs = async (req, res) => {
@@ -254,6 +313,55 @@ const blockUser = async (req, res) => {
     }
 };
 
+// --- Phase 12: Admin Order Override ---
+
+const overrideOrderStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status, reason } = req.body;
+
+        if (!reason) {
+            return res.status(400).json({ message: 'A reason must be provided for an admin override.' });
+        }
+
+        const validStatuses = ['pending', 'accepted', 'out_for_delivery', 'delivered', 'failed', 'cancelled'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ message: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
+        }
+
+        const order = await Order.findByPk(id);
+        if (!order) return res.status(404).json({ message: 'Order not found' });
+
+        // Audit Trail Setup (We'll use cancel_reason optionally to store the override reason if we don't have a dedicated audit table yet)
+        order.cancel_reason = `ADMIN OVERRIDE by User ID ${req.user.id}: ${reason}`;
+
+        // Unlock it conditionally, or just force the state
+        order.status = status;
+        
+        // Re-lock if the new state is a final state
+        if (['delivered', 'failed', 'cancelled'].includes(status)) {
+            order.final_status_locked = true;
+            if (status === 'delivered') order.delivered_at = new Date();
+            if (status === 'failed') order.failed_at = new Date();
+            if (status === 'cancelled') {
+                order.cancelled_at = new Date();
+                order.cancelled_by = 'admin';
+            }
+        } else {
+            // Unlocking because it's moved back to an active state
+            order.final_status_locked = false;
+        }
+
+        await order.save();
+        
+        console.log(`[AUDIT] Admin ${req.user.id} overrode Order ${id} to status ${status}. Reason: ${reason}`);
+
+        res.json({ message: `Order forcibly updated to ${status} via Admin Override.`, order });
+    } catch (error) {
+        res.status(500).json({ message: 'Error performing admin override', error: error.message });
+    }
+};
+
 // --- Shop Logic ---
 
 const getPendingShops = async (req, res) => {
@@ -334,6 +442,45 @@ const getServiceConfig = async (req, res) => {
     }
 };
 
+// --- Category Management ---
+
+const getAllCategories = async (req, res) => {
+    try {
+        const categories = await Category.findAll({ order: [['name', 'ASC']] });
+        res.json(categories);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching categories', error });
+    }
+};
+
+const createCategory = async (req, res) => {
+    try {
+        const { name, icon_url } = req.body;
+        if (!name) return res.status(400).json({ message: 'Category name is required' });
+        
+        const category = await Category.create({ name, icon_url });
+        res.status(201).json(category);
+    } catch (error) {
+        if (error.name === 'SequelizeUniqueConstraintError') {
+            return res.status(400).json({ message: 'Category already exists' });
+        }
+        res.status(500).json({ message: 'Error creating category', error });
+    }
+};
+
+const deleteCategory = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const category = await Category.findByPk(id);
+        if (!category) return res.status(404).json({ message: 'Category not found' });
+        
+        await category.destroy();
+        res.json({ message: 'Category deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error deleting category', error });
+    }
+};
+
 module.exports = {
   getConfigs,
   upsertConfig,
@@ -352,5 +499,12 @@ module.exports = {
   getAnalytics,
   getShopDetails,
   getCustomerDetails,
-  addLocation
+  addLocation,
+  overrideOrderStatus,
+  createPenalty,
+  getPenaltiesByUser,
+  getAllPenalties,
+  getAllCategories,
+  createCategory,
+  deleteCategory
 };

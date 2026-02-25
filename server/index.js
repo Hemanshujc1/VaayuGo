@@ -12,8 +12,8 @@ const PORT = process.env.APP_PORT || 3001;
 // Middleware
 app.use(helmet({ crossOriginResourcePolicy: false })); // Allow serving static files
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use('/uploads', express.static('uploads'));
 
 
@@ -49,11 +49,13 @@ app.get('/', (req, res) => {
 
 // Sync Database (Force: false to prevent data loss)
 // In development, you might use { force: true } or { alter: true } initially to update schema, but be careful.
-sequelize.sync().then(() => {
-  console.log('Database Synced');
-}).catch((err) => {
-  console.error('Database Sync Error:', err);
-});
+sequelize.query("UPDATE Orders SET status = 'accepted' WHERE status IN ('preparing', 'ready')")
+  .then(() => sequelize.sync())
+  .then(() => {
+    console.log('Database Synced');
+  }).catch((err) => {
+    console.error('Database Sync Error:', err);
+  });
 
 // Start Server
 app.listen(PORT, () => {

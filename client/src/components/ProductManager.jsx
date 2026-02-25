@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "../api/axios";
+import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import ProductCard from "./ProductCard";
 
@@ -160,7 +161,16 @@ const ProductManager = () => {
 
   return (
     <div className="mt-8 bg-neutral-dark p-6 rounded shadow border border-neutral-mid">
-      <h2 className="text-xl font-bold mb-4 text-white">Product Management</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold text-white">Product Management</h2>
+        <Link
+          to="/shop/bulk-upload"
+          className="bg-neutral-mid text-white px-4 py-2 rounded-lg hover:bg-neutral-light transition-colors flex items-center gap-2 text-sm font-bold"
+        >
+          <span>📤</span>
+          Bulk Upload
+        </Link>
+      </div>
 
       {/* Add/Edit Product Form */}
       <form

@@ -9,13 +9,24 @@ const OrderItem = require('./OrderItem');
 const DeliveryRule = require('./DeliveryRule');
 const OrderRevenueLog = require('./OrderRevenueLog');
 const Location = require('./Location');
+const Penalty = require('./Penalty');
+const Category = require('./Category');
+const ShopCategory = require('./ShopCategory');
 
 // Defines relationships
 User.hasOne(Shop, { foreignKey: 'owner_id' });
 Shop.belongsTo(User, { foreignKey: 'owner_id' });
 
+User.hasMany(Penalty, { foreignKey: 'user_id', as: 'penalties' });
+Penalty.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+Penalty.belongsTo(User, { foreignKey: 'admin_id', as: 'admin' });
+
 Shop.hasMany(Product, { foreignKey: 'shop_id' });
 Product.belongsTo(Shop, { foreignKey: 'shop_id' });
+
+// Many-to-Many Category Relationship
+Shop.belongsToMany(Category, { through: ShopCategory, foreignKey: 'shop_id' });
+Category.belongsToMany(Shop, { through: ShopCategory, foreignKey: 'category_id' });
 
 Shop.hasOne(ServiceConfig, { foreignKey: 'shop_id' });
 ServiceConfig.belongsTo(Shop, { foreignKey: 'shop_id' });
@@ -59,5 +70,8 @@ module.exports = {
   OrderItem,
   DeliveryRule,
   OrderRevenueLog,
-  Location
+  Location,
+  Penalty,
+  Category,
+  ShopCategory
 };

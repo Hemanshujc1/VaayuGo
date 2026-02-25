@@ -174,22 +174,104 @@ const getShopOrders = async (req, res) => {
 const updateOrderStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        const { status } = req.body;
+        const { status, delivery_otp, failure_reason, cancel_reason } = req.body;
         
         const order = await Order.findByPk(id);
         if (!order) return res.status(404).json({ message: 'Order not found' });
 
-        // Verify shop ownership
-        const shop = await Shop.findOne({ where: { owner_id: req.user.id } });
-        if (!shop || shop.id !== order.shop_id) {
+        // Phase 11.2: Final Status Locking
+        if (order.final_status_locked) {
+            return res.status(403).json({ message: 'Order status is locked and cannot be changed.' });
+        }
+
+        const isShopOwner = async () => {
+            const shop = await Shop.findOne({ where: { owner_id: req.user.id } });
+            return shop && shop.id === order.shop_id;
+        };
+
+        const isCustomer = order.customer_id === req.user.id;
+        const isAdmin = req.user.role === 'admin';
+
+        if (!await isShopOwner() && !isCustomer && !isAdmin) {
             return res.status(403).json({ message: 'Unauthorized' });
+        }
+
+        // Phase 11.1: State Transitions & Logic
+        const validStatuses = ['pending', 'accepted', 'out_for_delivery', 'delivered', 'failed', 'cancelled'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ message: `Invalid status. Must be one of: ${validStatuses.join(', ')}` });
+        }
+
+        // 1. Pending to Accepted
+        if (status === 'accepted' && order.status !== 'pending') {
+            return res.status(400).json({ message: 'Can only accept pending orders.' });
+        }
+
+        // 2. Accepted to Out For Delivery (OTP Generation)
+        if (status === 'out_for_delivery') {
+            if (order.status !== 'accepted') {
+                return res.status(400).json({ message: 'Order must be accepted before being out for delivery.' });
+            }
+            // Generate 4 digit OTP
+            order.delivery_otp = Math.floor(1000 + Math.random() * 9000).toString();
+        }
+
+        // 3. Out For Delivery to Delivered (OTP Validation)
+        if (status === 'delivered') {
+            if (order.status !== 'out_for_delivery') {
+                return res.status(400).json({ message: 'Order must be out for delivery to be delivered.' });
+            }
+            if (!delivery_otp || String(delivery_otp) !== String(order.delivery_otp)) {
+                return res.status(400).json({ message: 'Invalid or missing Delivery OTP.' });
+            }
+            order.delivered_at = new Date();
+            order.final_status_locked = true;
+        }
+
+        // 4. Failed Logic
+        if (status === 'failed') {
+            if (order.status !== 'out_for_delivery') {
+                return res.status(400).json({ message: 'Only orders out for delivery can be marked as failed.' });
+            }
+            if (!failure_reason) {
+                return res.status(400).json({ message: 'A failure reason is required.' });
+            }
+            order.failure_reason = failure_reason;
+            order.failed_at = new Date();
+            order.final_status_locked = true;
+        }
+
+        // 5. Cancellation Logic
+        if (status === 'cancelled') {
+            if (!cancel_reason) {
+                return res.status(400).json({ message: 'Cancellation reason is required.' });
+            }
+
+            if (isCustomer) {
+                const orderAgeMinutes = (Date.now() - new Date(order.createdAt).getTime()) / 60000;
+                if (orderAgeMinutes > 10) {
+                    return res.status(400).json({ message: 'Customers can only cancel within 10 minutes of placing the order.' });
+                }
+                order.cancelled_by = 'customer';
+            } else if (await isShopOwner()) {
+                order.cancelled_by = 'shop';
+            } else if (isAdmin) {
+                order.cancelled_by = 'admin';
+            }
+
+            order.cancel_reason = cancel_reason;
+            order.cancelled_at = new Date();
+            order.final_status_locked = true;
         }
 
         order.status = status;
         await order.save();
-        res.json({ message: 'Order status updated', order });
+        
+        // Return without OTP for security if not needed, but for MVP returning full object is fine
+        res.json({ message: `Order status updated to ${status}`, order });
     } catch (error) {
-        res.status(500).json({ message: 'Error updating order', error });
+        console.error("Update Status Error:", error);
+        res.status(500).json({ message: 'Error updating order', error: error.message });
     }
 };
 

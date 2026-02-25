@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useAuth } from "./context/AuthContext";
 import LoadingSpinner from "./components/LoadingSpinner";
@@ -31,6 +32,9 @@ import ShopLayout from "./components/ShopLayout";
 import CustomerProfile from "./pages/CustomerProfile";
 import CompanyOverview from "./pages/CompanyOverview";
 import CustomerLayout from "./components/CustomerLayout";
+import ShopBulkUpload from "./pages/ShopBulkUpload";
+import AdminBulkUpload from "./pages/AdminBulkUpload";
+import AdminCategories from "./pages/AdminCategories";
 
 // Placeholder Dashboards
 // const Home = () => {
@@ -57,6 +61,7 @@ function App() {
         {/* Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Customer Routes (Public & Protected mixed for layout) */}
         <Route element={<CustomerLayout />}>
@@ -81,6 +86,7 @@ function App() {
             <Route path="profile" element={<ShopProfile />} />
             <Route path="support" element={<CompanyOverview />} />
             <Route path="register" element={<ShopRegister />} />
+            <Route path="bulk-upload" element={<ShopBulkUpload />} />
             <Route index element={<Navigate to="dashboard" replace />} />
           </Route>
         </Route>
@@ -99,6 +105,8 @@ function App() {
             <Route path="/admin/locations" element={<AdminLocations />} />
             <Route path="/admin/slots" element={<AdminDeliverySlots />} />
             <Route path="/admin/rules" element={<AdminGlobalRules />} />
+            <Route path="/admin/bulk-upload" element={<AdminBulkUpload />} />
+            <Route path="/admin/categories" element={<AdminCategories />} />
             <Route path="/admin/profile" element={<AdminProfile />} />
           </Route>
         </Route>

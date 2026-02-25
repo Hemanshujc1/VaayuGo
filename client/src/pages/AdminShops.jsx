@@ -2,12 +2,22 @@ import { useState, useEffect } from "react";
 import api from "../api/axios";
 import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
+import SearchBar from "../components/common/SearchBar";
+import FilterDropdown from "../components/common/FilterDropdown";
+import SortDropdown from "../components/common/SortDropdown";
+import Pagination from "../components/common/Pagination";
 
 const AdminShops = () => {
   const [shops, setShops] = useState([]);
-  const [filter, setFilter] = useState("all"); // 'all', 'pending', 'approved'
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  // Data Table States
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filter, setFilter] = useState("");
+  const [sortOrder, setSortOrder] = useState("newest");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchAllShops();
@@ -69,40 +79,80 @@ const AdminShops = () => {
     }
   };
 
-  const filteredShops =
-    filter === "all" ? shops : shops.filter((s) => s.status === filter);
+  // 1. Filter
+  let processedData = shops.filter((shop) => {
+    if (filter && shop.status !== filter) return false;
+    // 2. Search
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      const matchesName = shop.name?.toLowerCase().includes(term);
+      const matchesOwner = shop.User?.username?.toLowerCase().includes(term);
+      const matchesEmail = shop.User?.email?.toLowerCase().includes(term);
+      return matchesName || matchesOwner || matchesEmail;
+    }
+    return true;
+  });
+
+  // 3. Sort
+  processedData.sort((a, b) => {
+    if (sortOrder === "newest") {
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    } else if (sortOrder === "oldest") {
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    } else if (sortOrder === "name_asc") {
+      return a.name.localeCompare(b.name);
+    } else if (sortOrder === "name_desc") {
+      return b.name.localeCompare(a.name);
+    }
+    return 0;
+  });
+
+  // 4. Paginate
+  const totalPages = Math.ceil(processedData.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedShops = processedData.slice(
+    startIndex,
+    startIndex + itemsPerPage,
+  );
+
+  // Reset page if data changes dramatically
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filter, sortOrder]);
 
   return (
     <div className="p-8 bg-primary min-h-screen text-primary-text">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <h1 className="text-3xl font-bold text-white">Manage Shops</h1>
 
-        {/* Tabs */}
-        <div className="flex bg-neutral-dark rounded p-1 border border-neutral-mid">
-          <button
-            onClick={() => setFilter("all")}
-            className={`px-4 py-1 rounded transition-colors ${filter === "all" ? "bg-accent text-primary font-bold" : "text-neutral-light hover:text-white"}`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setFilter("pending")}
-            className={`px-4 py-1 rounded transition-colors ${filter === "pending" ? "bg-accent text-primary font-bold" : "text-neutral-light hover:text-white"}`}
-          >
-            Pending
-          </button>
-          <button
-            onClick={() => setFilter("approved")}
-            className={`px-4 py-1 rounded transition-colors ${filter === "approved" ? "bg-accent text-primary font-bold" : "text-neutral-light hover:text-white"}`}
-          >
-            Active
-          </button>
-          <button
-            onClick={() => setFilter("suspended")}
-            className={`px-4 py-1 rounded transition-colors ${filter === "suspended" ? "bg-accent text-primary font-bold" : "text-neutral-light hover:text-white"}`}
-          >
-            Blocked
-          </button>
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <SearchBar
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search shops or owners..."
+          />
+          <div className="flex gap-3">
+            <FilterDropdown
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder="All Statuses"
+              options={[
+                { label: "Pending", value: "pending" },
+                { label: "Active", value: "approved" },
+                { label: "Blocked", value: "suspended" },
+              ]}
+            />
+            <SortDropdown
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              options={[
+                { label: "Newest First", value: "newest" },
+                { label: "Oldest First", value: "oldest" },
+                { label: "Name (A-Z)", value: "name_asc" },
+                { label: "Name (Z-A)", value: "name_desc" },
+              ]}
+            />
+          </div>
         </div>
       </div>
 
@@ -110,13 +160,13 @@ const AdminShops = () => {
         <div className="text-center text-white">Loading...</div>
       ) : (
         <div className="grid gap-6">
-          {filteredShops.length === 0 && (
-            <div className="text-center text-neutral-light">
-              No shops found.
+          {paginatedShops.length === 0 && (
+            <div className="text-center text-neutral-light py-10 bg-neutral-dark rounded border border-neutral-mid">
+              No shops match your criteria.
             </div>
           )}
 
-          {filteredShops.map((shop) => (
+          {paginatedShops.map((shop) => (
             <div
               key={shop.id}
               className="bg-neutral-dark p-6 rounded shadow border border-neutral-mid flex flex-col md:flex-row justify-between items-start md:items-center"
@@ -187,6 +237,14 @@ const AdminShops = () => {
               </div>
             </div>
           ))}
+
+          {paginatedShops.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          )}
         </div>
       )}
     </div>

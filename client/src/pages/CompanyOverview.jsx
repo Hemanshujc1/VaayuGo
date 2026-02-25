@@ -116,7 +116,7 @@ const CompanyOverview = () => {
         {/* Contact Us Form */}
         <div className="bg-neutral-dark rounded-3xl shadow-2xl overflow-hidden border border-neutral-light/20">
           <div className="grid grid-cols-1 lg:grid-cols-5">
-            <div className="lg:col-span-2 bg-linear-to-br from-primary to-accent p-10 text-white flex flex-col justify-between relative overflow-hidden">
+            <div className="lg:col-span-2 bg-neutral-dark p-10 text-white flex flex-col justify-between relative overflow-hidden border-r border-neutral-light/10">
               <div className="absolute inset-0 bg-black/10 mix-blend-overlay"></div>
               <div className="relative z-10">
                 <h3 className="text-3xl font-bold mb-4">Get in Touch</h3>

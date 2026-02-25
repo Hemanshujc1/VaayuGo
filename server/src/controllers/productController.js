@@ -2,6 +2,8 @@ const mult = require('multer');
 const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs');
+const AdmZip = require('adm-zip');
+const csv = require('csv-parser');
 
 const Product = require('../models/Product');
 const Shop = require('../models/Shop');
@@ -75,8 +77,12 @@ const deleteProduct = async (req, res) => {
 const storage = mult.memoryStorage();
 const upload = mult({ 
     storage,
-    limits: { fileSize: 5 * 1024 * 1024 } // 5MB input limit, will compress
-}).array('images', 2);
+    limits: { fileSize: 50 * 1024 * 1024 } // 50MB for bulk uploads
+}).fields([
+    { name: 'images', maxCount: 2 },
+    { name: 'csv', maxCount: 1 },
+    { name: 'imagesZip', maxCount: 1 }
+]);
 
 const uploadProductImages = (req, res) => {
     upload(req, res, async (err) => {
@@ -224,4 +230,147 @@ const deleteProductImage = async (req, res) => {
     }
 };
 
-module.exports = { getMyProducts, addProduct, updateProduct, deleteProduct, uploadProductImages, deleteProductImage };
+const bulkUploadProducts = async (req, res) => {
+    upload(req, res, async (err) => {
+        if (err) return res.status(400).json({ message: 'Upload error', error: err });
+        
+        const csvFile = req.files.find(f => f.fieldname === 'csv');
+        const zipFile = req.files.find(f => f.fieldname === 'imagesZip');
+
+        if (!csvFile || !zipFile) {
+            return res.status(400).json({ message: 'Both CSV and ZIP files are required' });
+        }
+
+        let targetShopId;
+        try {
+            if (req.user.role === 'admin') {
+                targetShopId = req.body.target_shop_id;
+                if (!targetShopId) return res.status(400).json({ message: 'target_shop_id is required for admins' });
+            } else {
+                const shop = await Shop.findOne({ where: { owner_id: req.user.id } });
+                if (!shop) return res.status(404).json({ message: 'Shop not found' });
+                targetShopId = shop.id;
+            }
+
+            const zip = new AdmZip(zipFile.buffer);
+            const zipEntries = zip.getEntries();
+            const imageMap = {};
+            zipEntries.forEach(entry => {
+                if (!entry.isDirectory) {
+                    imageMap[entry.entryName] = entry.getData();
+                }
+            });
+
+            const results = [];
+            const errors = [];
+            let successCount = 0;
+
+            const stream = require('stream');
+            const bufferStream = new stream.PassThrough();
+            bufferStream.end(csvFile.buffer);
+
+            const parseCsv = () => {
+                return new Promise((resolve) => {
+                    const rows = [];
+                    bufferStream
+                        .pipe(csv())
+                        .on('data', (data) => rows.push(data))
+                        .on('end', () => resolve(rows));
+                });
+            };
+
+            const rows = await parseCsv();
+
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const rowNum = i + 1;
+                const { 
+                    'Product Name': name, 
+                    'Price': price, 
+                    'Stock Qty': stock_quantity, 
+                    'Description': description,
+                    'Image 1 Filename': img1,
+                    'Image 2 Filename': img2
+                } = row;
+
+                if (!name || !price) {
+                    errors.push(`Row ${rowNum}: Product Name and Price are required.`);
+                    continue;
+                }
+
+                try {
+                    const product = await Product.create({
+                        shop_id: targetShopId,
+                        name,
+                        price: parseFloat(price),
+                        description: description || '',
+                        stock_quantity: parseInt(stock_quantity) || 0,
+                        is_available: (parseInt(stock_quantity) || 0) > 0,
+                        images: []
+                    });
+
+                    const processedImages = [];
+                    const uploadDir = path.join(__dirname, `../../uploads/shops/${targetShopId}/products/${product.id}`);
+                    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+                    const imagesToProcess = [img1, img2].filter(Boolean);
+                    for (const imgName of imagesToProcess) {
+                        const imgBuffer = imageMap[imgName];
+                        if (!imgBuffer) {
+                            errors.push(`Row ${rowNum}: Image ${imgName} not found in ZIP.`);
+                            continue;
+                        }
+
+                        // Check size limit (150KB)
+                        if (imgBuffer.length > 150 * 1024) {
+                            // Try to compress
+                            let quality = 70;
+                            let compressed = await sharp(imgBuffer)
+                                .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+                                .webp({ quality })
+                                .toBuffer();
+                            
+                            if (compressed.length > 150 * 1024) {
+                                errors.push(`Row ${rowNum}: Image ${imgName} exceeds 150KB even after compression.`);
+                                continue;
+                            }
+                            const filename = `prod-${product.id}-${Date.now()}-${Math.round(Math.random() * 1000)}.webp`;
+                            fs.writeFileSync(path.join(uploadDir, filename), compressed);
+                            processedImages.push(`/uploads/shops/${targetShopId}/products/${product.id}/${filename}`);
+                        } else {
+                            // Convert to webp anyway for consistency
+                            const compressed = await sharp(imgBuffer)
+                                .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+                                .webp({ quality: 80 })
+                                .toBuffer();
+                            const filename = `prod-${product.id}-${Date.now()}-${Math.round(Math.random() * 1000)}.webp`;
+                            fs.writeFileSync(path.join(uploadDir, filename), compressed);
+                            processedImages.push(`/uploads/shops/${targetShopId}/products/${product.id}/${filename}`);
+                        }
+                    }
+
+                    product.images = processedImages;
+                    if (processedImages.length > 0) product.image_url = processedImages[0];
+                    await product.save();
+                    successCount++;
+
+                } catch (rowErr) {
+                    errors.push(`Row ${rowNum}: Internal error - ${rowErr.message}`);
+                }
+            }
+
+            res.json({
+                message: `Bulk upload completed. ${successCount} products added.`,
+                successCount,
+                errorCount: errors.length,
+                errors
+            });
+
+        } catch (error) {
+            res.status(500).json({ message: 'Error processing bulk upload', error: error.message });
+        }
+    });
+};
+
+module.exports = { getMyProducts, addProduct, updateProduct, deleteProduct, uploadProductImages, deleteProductImage, bulkUploadProducts };
+

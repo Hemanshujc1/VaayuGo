@@ -6,30 +6,51 @@ import toast from "react-hot-toast";
 const ShopRegister = () => {
   const [formData, setFormData] = useState({
     name: "",
-    category: "Street Food",
     location_address: "",
+    categoryIds: [],
   });
 
   const navigate = useNavigate();
   const [locations, setLocations] = useState([]);
+  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
-    const fetchLocations = async () => {
+    const fetchInitialData = async () => {
       try {
-        const res = await api.get("/public/locations");
-        setLocations(res.data);
-        if (res.data.length > 0) {
+        const [locRes, catRes] = await Promise.all([
+          api.get("/public/locations"),
+          api.get("/public/categories"),
+        ]);
+
+        setLocations(locRes.data);
+        setCategories(catRes.data);
+
+        if (locRes.data.length > 0) {
           setFormData((prev) => ({
             ...prev,
-            location_address: res.data[0].name,
+            location_address: locRes.data[0].name,
           }));
         }
       } catch (err) {
-        console.error("Error fetching locations", err);
+        console.error("Error fetching registration data", err);
       }
     };
-    fetchLocations();
+    fetchInitialData();
   }, []);
+
+  const toggleCategory = (id) => {
+    setFormData((prev) => {
+      const currentIds = prev.categoryIds || [];
+      if (currentIds.includes(id)) {
+        return {
+          ...prev,
+          categoryIds: currentIds.filter((catId) => catId !== id),
+        };
+      } else {
+        return { ...prev, categoryIds: [...currentIds, id] };
+      }
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -74,23 +95,35 @@ const ShopRegister = () => {
             />
           </div>
 
-          {/* Category */}
+          {/* Category Multi-Select */}
           <div>
-            <label className="block text-neutral-light text-sm font-semibold mb-2">
-              Category
+            <label className="block text-neutral-light text-sm font-semibold mb-3">
+              Store Categories (Select Multiple)
             </label>
-            <select
-              value={formData.category}
-              onChange={(e) =>
-                setFormData({ ...formData, category: e.target.value })
-              }
-              className="w-full px-4 py-3 rounded-lg border border-neutral-mid bg-neutral-mid text-white focus:outline-none focus:ring-2 focus:ring-accent transition"
-            >
-              <option value="Street Food">Street Food</option>
-              <option value="Grocery">Grocery</option>
-              <option value="Medical">Medical</option>
-              <option value="Xerox">Xerox</option>
-            </select>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => toggleCategory(cat.id)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                    formData.categoryIds.includes(cat.id)
+                      ? "bg-accent border-accent text-primary shadow-lg shadow-accent/20"
+                      : "bg-neutral-mid border-neutral-light/20 text-neutral-light hover:border-neutral-light hover:text-white"
+                  }`}
+                >
+                  {cat.name}
+                  {formData.categoryIds.includes(cat.id) && (
+                    <span className="ml-2">✓</span>
+                  )}
+                </button>
+              ))}
+            </div>
+            {formData.categoryIds.length === 0 && (
+              <p className="text-[10px] text-danger/80 italic">
+                Please select at least one category
+              </p>
+            )}
           </div>
 
           {/* Address */}
@@ -120,7 +153,8 @@ const ShopRegister = () => {
           {/* Button */}
           <button
             type="submit"
-            className="w-full py-3 rounded-lg font-bold text-primary bg-accent hover:bg-secondary hover:text-white transition-all duration-300 shadow-lg hover:shadow-accent/40 active:scale-95"
+            disabled={formData.categoryIds.length === 0}
+            className="w-full py-3 rounded-lg font-bold text-primary bg-accent hover:bg-secondary hover:text-white transition-all duration-300 shadow-lg hover:shadow-accent/40 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Create Shop
           </button>

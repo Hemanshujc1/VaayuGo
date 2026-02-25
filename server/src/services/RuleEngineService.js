@@ -1,4 +1,4 @@
-const { DeliveryRule } = require("../models");
+const { DeliveryRule, Shop, Category } = require("../models");
 
 async function getApplicableRule(location_id, category = null, shop_id = null) {
   // Priority 1: Shop-Level Rule
@@ -10,11 +10,35 @@ async function getApplicableRule(location_id, category = null, shop_id = null) {
   }
 
   // Priority 2: Category-Level Rule
+  // If specific category provided, check it first
   if (category) {
     const categoryRule = await DeliveryRule.findOne({
       where: { location_id, category, shop_id: null, is_active: true },
     });
     if (categoryRule) return categoryRule;
+  }
+
+  // If shop_id is provided, check ALL categories associated with that shop
+  if (shop_id) {
+    const shop = await Shop.findByPk(shop_id, {
+        include: [{ model: Category, attributes: ['name'] }]
+    });
+    
+    if (shop && shop.Categories && shop.Categories.length > 0) {
+        const categoryNames = shop.Categories.map(c => c.name);
+        
+        // Find if any category has a rule. We take the first one or we could implement priority logic.
+        const categoryRule = await DeliveryRule.findOne({
+            where: { 
+                location_id, 
+                category: categoryNames, // Sequelize handles array as IN clause
+                shop_id: null, 
+                is_active: true 
+            },
+            order: [['delivery_fee', 'DESC']] // Pick highest delivery fee as "worst case" safe bet
+        });
+        if (categoryRule) return categoryRule;
+    }
   }
 
   // Priority 3: Location-Level Rule

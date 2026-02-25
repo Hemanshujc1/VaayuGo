@@ -1,385 +1,206 @@
-# 🔄 UPDATED: VaayuGo Revenue & Rule Engine Implementation Plan (With Min Order Logic)
+# 📦 VaayuGo – Order Lifecycle & Revenue Engine
+
+## 🎯 Objective
+
+This document defines the official order lifecycle, revenue calculation logic, and fraud-prevention rules for VaayuGo.
+
+The system ensures:
+
+* Revenue is calculated only from successfully delivered orders.
+* Fake deliveries are prevented using OTP verification.
+* Final order states are locked.
+* Cancellation rules are controlled.
+* Revenue is never manually added or subtracted.
 
 ---
 
-# ✅ PHASE 1: DATABASE UPDATES
+# 🛒 1. Order Lifecycle
+
+Every order must follow this controlled state machine:
+
+```
+Pending
+ACCEPTED
+OUT_FOR_DELIVERY
+DELIVERED
+FAILED
+CANCELLED
+```
 
 ---
 
-## 1.1 Update `delivery_rules` Table
+# 🔄 2. Status Definitions & Rules
 
-Add stronger support for minimum order handling.
+## 2.1 Pending
 
-### Updated Fields:
+* Created when customer places an order.
+* Customer may cancel:
+  * Within 10 minutes of placing the order.Even the shopkeeper have accepted the order then also.
+---
 
-* `id`
-* `location_id`
-* `category` (nullable)
-* `shop_id` (nullable)
-* `delivery_fee`
-* `shop_delivery_share`
-* `vaayugo_delivery_share`
-* `commission_percent`
-* `min_order_value` (Decimal, nullable)
-* `small_order_delivery_fee` (Decimal, nullable) ✅ NEW
-* `is_active`
-* `created_at`
-* `updated_at`
+## 2.2 ACCEPTED
+
+* Set when the shop confirms the order.
 
 ---
 
-## 🔎 What is `small_order_delivery_fee`?
+## 2.3 OUT_FOR_DELIVERY
 
-This field is optional.
+* Delivery process begins by the shopkeeper.
+* System generates a delivery OTP.
 
-If:
+---
 
-order_value < min_order_value
+## 2.4 DELIVERED (Final State – Locked)
+
+### Requirements:
+
+* OTP verification is mandatory.
+* Delivery partner must enter correct OTP.
+* If OTP(4 digit code) matches:
+
+  * Mark order as DELIVERED
+  * Set `delivered_at` timestamp
+  * Lock order permanently
+  * Revenue becomes eligible
+
+Without OTP → DELIVERED status is not allowed.
+---
+
+## 2.5 FAILED (Final State – Locked)
+
+Used when:
+
+* Delivery attempt was made.
+* Customer was unavailable.
+* Customer refused order.
+
+### Required Fields:
+
+* `failed_at`
+* `failure_reason` (make a option of * Delivery attempt was made.
+* Customer was unavailable.
+* Customer refused order. and also mark as other )
+
+Rules:
+
+* Status becomes immutable.
+* Revenue is NOT counted.
+
+---
+
+## 2.6 CANCELLED (Final State – Locked)
+
+Cancellation may happen in three ways:
+
+### 1️⃣ Customer Cancellation
+
+* Allowed within 10 minutes of PLACED.
+
+### 2️⃣ Shop Cancellation
+
+* Item unavailable.
+* Operational issue.
+
+### Required Fields:
+
+* `cancelled_at`
+* `cancelled_by` (customer / shop)
+* `cancel_reason`
+
+Revenue is NOT counted.
+
+---
+
+# 🔒 3. Final State Locking Rule
+
+If order status becomes:
+
+* DELIVERED
+* FAILED
+* CANCELLED
 
 Then:
 
-Instead of blocking order, system can:
-
-* Either reject the order
-* OR apply higher delivery charge
-
-You decide strategy per rule.
+* `final_status_locked = true`
+* No further status changes allowed.
+* Only admin override permitted.
+* Admin overrides must create an audit log entry.
 
 ---
 
-# ✅ PHASE 2: UPDATED RULE ENGINE LOGIC
+
+### Rules:
+
+* CANCELLED orders are ignored.
+* FAILED orders are ignored.
+* No subtraction logic exists.
+* Revenue depends only on verified completed orders.
 
 ---
 
-## 2.1 Updated `RuleEngineService`
+# 🛡 5. Fraud Prevention Rules
 
-### Function:
+To prevent fake delivery and revenue manipulation:
 
-```
-getApplicableRule(location_id, category, shop_id)
-```
-
-### Priority Order:
-
-1. Shop-Level
-2. Category-Level
-3. Location-Level
-4. Throw error if no rule exists
+* DELIVERED requires OTP verification.
+* Shops cannot directly mark orders as DELIVERED.
+* FAILED requires a reason and timestamp.
+* Final states are immutable.
+* Maintain audit logs for every status change.
+* Track shop cancellation rate for monitoring.
 
 ---
 
-## 2.2 NEW FUNCTION: Minimum Order Validator
+# 🗂 6. Required Order Table Fields
 
-Add new utility:
-
-```
-validateOrderAgainstRule(order_value, rule)
-```
-
----
-
-### Logic:
-
-IF rule.min_order_value IS NOT NULL:
+Minimum required columns in table:
 
 ```
-IF order_value >= min_order_value:
-    use normal delivery_fee
-
-ELSE:
-    IF rule.small_order_delivery_fee EXISTS:
-        use small_order_delivery_fee
-    ELSE:
-        throw error:
-        "Minimum order value not satisfied"
-```
-
-ELSE:
-use normal delivery_fee
-
----
-
-# 🧠 IMPORTANT BUSINESS DECISION
-
-You must choose ONE of these behaviors:
-
-### OPTION A (Strict Mode)
-
-Block order if minimum not satisfied.
-
-### OPTION B (Flexible Mode)
-
-Allow order but apply higher delivery fee.
-
-Example:
-
-Minimum order = ₹100
-Order placed = ₹60
-
-Normal delivery = ₹10
-Small order delivery = ₹20
-
-System auto applies ₹20.
-
-This encourages larger cart value.
-
----
-
-# ✅ PHASE 3: CART CALCULATION UPDATE
-
----
-
-## Update `POST /api/cart/calculate`
-
-### Updated Flow:
-
-1. Get applicable rule
-2. Calculate order_value
-3. Call `validateOrderAgainstRule`
-4. Determine delivery_fee:
-
-   * Normal OR Small-order
-5. Calculate grand_total
-6. Return breakdown:
-
-Response structure:
-
-```
-{
-  order_value: 80,
-  delivery_fee: 20,
-  is_small_order: true,
-  commission_percent: 3,
-  total_payable: 100
-}
+status
+delivery_otp
+delivered_at
+failed_at
+failure_reason
+cancelled_at
+cancelled_by
+cancel_reason
+final_status_locked
+created_at
+updated_at
 ```
 
 ---
 
-# ✅ PHASE 4: ORDER PLACEMENT UPDATE
+# 🧠 Core Business Principle
+
+Revenue represents:
+
+> Successfully completed and verified transactions only.
+
+It does NOT represent:
+
+* Temporary states
+* Status fluctuations
+* Manual adjustments
 
 ---
 
-## Update `POST /api/orders`
+# 🚀 Production Recommendations
 
-### Updated Calculation:
-
-Let:
-
-O = order_value
-D = delivery_fee (after validation logic)
-C = commission_percent
+* Always use transactions when updating order status.
+* Create audit logs for every state change.
+* Use server-side validation for status transitions.
+* Never allow frontend to directly control final state logic.
+* Implement OTP expiry (e.g., 10 minutes).
 
 ---
 
-### Commission Calculation:
-
-commission_amount = O × (C / 100)
-
----
-
-### Delivery Split Logic:
-
-If using normal delivery:
-use rule.shop_delivery_share
-use rule.vaayugo_delivery_share
-
-If using small_order_delivery_fee:
-YOU MUST DEFINE SPLIT LOGIC
-
-Recommended:
-
-Either:
-
-* Same split ratio
-  OR
-* Fixed 50/50 split for small orders
-
-Add logic clearly.
-
----
-
-### Final Earnings:
-
-shop_final_earning =
-(O - commission_amount) + shop_delivery_share
-
-vaayugo_final_earning =
-commission_amount + vaayugo_delivery_share
-
----
-
-### Save in `OrderRevenueLog`:
-
-Add extra fields:
-
-* `is_small_order` (boolean)
-* `applied_delivery_fee`
-* `applied_min_order_value`
-
----
-
-# ✅ PHASE 5: ADMIN RULE CONFIGURATION UPDATE
-
----
-
-## Update Admin Form (`AdminRevenueRules.jsx`)
-
-Add fields:
-
-* Minimum Order Value
-* Small Order Delivery Fee (optional)
-* Behavior Type:
-
-  * Block order
-  * Allow with higher delivery
-
----
-
-## Add Validation:
-
-* small_order_delivery_fee >= delivery_fee
-* delivery_fee = shop_delivery_share + vaayugo_delivery_share
-
----
-
-# ✅ PHASE 6: ADMIN DASHBOARD NUMBERS (UPDATED)
-
-Admin dashboard must now show:
-
----
-
-## 📊 Revenue Metrics
-
-* Total Orders
-* Total Order Value
-* Total Delivery Revenue
-* Total Commission Revenue
-* Total VaayuGo Revenue
-* Small Orders Count
-* Revenue from Small Orders
-* Average Order Value
-* Average Delivery Fee
-* Revenue per Location
-* Revenue per Category
-* Revenue per Shop
-
----
-
-## NEW IMPORTANT METRIC:
-
-Minimum Order Impact:
-
-* % of small orders
-* Extra delivery collected from small orders
-
----
-
-# ✅ PHASE 7: SHOPKEEPER DASHBOARD UPDATE
-
-Shopkeeper must see:
-
----
-
-## Earnings Summary:
-
-* Total Orders
-* Total Order Value
-* Total Commission Deducted
-* Delivery Earnings
-* Net Earnings
-* Small Order Count
-
----
-
-## Order Table Must Show:
-
-* Order ID
-* Order Value
-* Was Small Order? (Yes/No)
-* Commission Deducted
-* Delivery Share Earned
-* Final Net Earned
-
----
-
-## Display Formula Clearly:
-
-Net Earnings =
-(Order Value − Commission) + Delivery Share
-
----
-
-# ✅ PHASE 8: XEROX CATEGORY UPDATE
-
-For Xerox:
-
-* Always enforce min_order_value = 0
-* No small-order override needed
-* Always prepaid
-* Commission may be higher (5%)
-
-Handled via category-level rule.
-
----
-
-# ✅ PHASE 9: TEST CASES (UPDATED)
-
-You must test:
-
----
-
-### Test 1: Normal Order
-
-Order = ₹250
-Min Order = ₹100
-Delivery = ₹12
-Split = ₹8 / ₹4
-Commission = 4%
-
-Expected:
-Shop = ₹248
-VaayuGo = ₹14
-
----
-
-### Test 2: Small Order With Flexible Mode
-
-Order = ₹60
-Min Order = ₹100
-Normal Delivery = ₹10
-Small Delivery = ₹20
-Commission = 3%
-
-Expected:
-Delivery applied = ₹20
-Commission = ₹1.8
-
-Validate split correctly.
-
----
-
-### Test 3: Strict Mode
-
-Order = ₹60
-Min Order = ₹100
-No small_order_delivery_fee
-
-Expected:
-Order blocked.
-
----
-
-# 🎯 FINAL SYSTEM BEHAVIOR
-
-Your system now supports:
-
-✔ Multi-level rule engine
-✔ Minimum order per level
-✔ Small-order handling
-✔ Commission on item total only
-✔ Delivery split logic
-✔ Transparent dashboards
-✔ Scalable financial structure
-
----
+# 📌 Summary
+
+✔ OTP required for DELIVERED
+✔ Final states are locked
+✔ Revenue calculated only from DELIVERED
+✔ No subtraction-based accounting
+✔ Cancellation rules controlled
+✔ Fraud-resistant architecture

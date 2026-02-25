@@ -72,9 +72,7 @@ const ProductCard = ({
         {/* Status Badge (Shopkeeper Only) */}
         {isShopkeeper && (
           <div className="absolute top-2 right-2">
-            <button
-              onClick={() => product.is_available && onToggle(product)}
-              disabled={!product.is_available}
+            <span
               className={`px-2 py-1 rounded text-xs font-bold shadow-md backdrop-blur-sm ${
                 product.is_available
                   ? "bg-green-900/80 text-green-400 border border-green-700"
@@ -82,7 +80,7 @@ const ProductCard = ({
               }`}
             >
               {product.is_available ? "In Stock" : "Out of Stock"}
-            </button>
+            </span>
           </div>
         )}
       </div>
@@ -111,6 +109,15 @@ const ProductCard = ({
               </span>
 
               <div className="flex gap-2">
+                {product.is_available && (
+                  <button
+                    onClick={() => onToggle(product)}
+                    className="bg-neutral-dark hover:bg-warning/50 text-warning px-2 rounded transition-colors text-xs font-bold border border-warning/30"
+                    title="Quick mark as Out of Stock (sets Qty to 0)"
+                  >
+                    Set Out of Stock
+                  </button>
+                )}
                 <button
                   onClick={() => onEdit(product)}
                   className="bg-neutral-dark hover:bg-neutral-mid text-white p-2 rounded transition-colors"

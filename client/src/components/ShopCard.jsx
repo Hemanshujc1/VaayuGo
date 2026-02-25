@@ -69,7 +69,22 @@ const ShopCard = ({ shop }) => {
         <h2 className="text-xl font-bold text-white group-hover:text-accent transition-colors">
           {shop.name}
         </h2>
-        <p className="text-sm text-neutral-light mb-2">{shop.category}</p>
+        <div className="flex flex-wrap gap-1 mt-1 mb-2">
+          {(shop.Categories || []).length > 0 ? (
+            shop.Categories.map((cat) => (
+              <span
+                key={cat.id}
+                className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded border border-accent/20"
+              >
+                {cat.name}
+              </span>
+            ))
+          ) : (
+            <p className="text-xs text-neutral-light">
+              {shop.category || "General"}
+            </p>
+          )}
+        </div>
         <div className="flex justify-between items-center">
           <span className="bg-green-900/30 text-green-400 border border-green-800 text-xs px-2 py-1 rounded">
             {shop.rating > 0 ? `${shop.rating} ★` : "New"}

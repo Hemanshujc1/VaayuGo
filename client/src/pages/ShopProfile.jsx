@@ -8,16 +8,42 @@ const ShopProfile = () => {
   const [profile, setProfile] = useState(null);
   const [shop, setShop] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedCatIds, setSelectedCatIds] = useState([]);
+  const [formData, setFormData] = useState({
+    name: "",
+    mobile_number: "",
+    address: "",
+    shopName: "",
+  });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [profileRes, shopRes] = await Promise.all([
+        const [profileRes, shopRes, catRes] = await Promise.all([
           api.get("/auth/me").catch(() => null),
           api.get("/shop/my-shop").catch(() => null),
+          api.get("/public/categories").catch(() => []),
         ]);
-        if (profileRes && profileRes.data) setProfile(profileRes.data);
-        if (shopRes && shopRes.data) setShop(shopRes.data);
+        if (profileRes && profileRes.data) {
+          setProfile(profileRes.data);
+          setFormData((prev) => ({
+            ...prev,
+            name: profileRes.data.name,
+            mobile_number: profileRes.data.mobile_number,
+            address: profileRes.data.address,
+          }));
+        }
+        if (shopRes && shopRes.data) {
+          setShop(shopRes.data);
+          setSelectedCatIds((shopRes.data.Categories || []).map((c) => c.id));
+          setFormData((prev) => ({
+            ...prev,
+            shopName: shopRes.data.name,
+          }));
+        }
+        if (catRes && catRes.data) setCategories(catRes.data);
       } catch (err) {
         console.error("Failed to load dashboard data", err);
       } finally {
@@ -27,11 +53,55 @@ const ShopProfile = () => {
     fetchData();
   }, []);
 
+  const handleSaveProfile = async () => {
+    const toastId = toast.loading("Updating profile...");
+    try {
+      await api.put("/auth/profile", {
+        ...formData,
+        categoryIds: selectedCatIds,
+      });
+      toast.success("Profile updated successfully", { id: toastId });
+      setIsEditing(false);
+
+      // Refresh data
+      const [profileRes, shopRes] = await Promise.all([
+        api.get("/auth/me"),
+        api.get("/shop/my-shop"),
+      ]);
+      setProfile(profileRes.data);
+      setShop(shopRes.data);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to update profile", {
+        id: toastId,
+      });
+    }
+  };
+
+  const toggleCategory = (id) => {
+    if (selectedCatIds.includes(id)) {
+      setSelectedCatIds(selectedCatIds.filter((cid) => cid !== id));
+    } else {
+      setSelectedCatIds([...selectedCatIds, id]);
+    }
+  };
+
   if (loading) return <div className="text-white">Loading...</div>;
 
   return (
     <div className="text-primary-text max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold text-white mb-8">My Shop Profile</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-white">My Shop Profile</h1>
+        <button
+          onClick={() => setIsEditing(!isEditing)}
+          className={`px-4 py-2 rounded font-bold text-sm transition-all ${
+            isEditing
+              ? "bg-neutral-mid text-white hover:bg-neutral-light/20"
+              : "bg-accent text-primary hover:bg-white"
+          }`}
+        >
+          {isEditing ? "Cancel" : "Edit Profile"}
+        </button>
+      </div>
 
       {/* User Info Card */}
       <div className="bg-neutral-dark p-6 rounded shadow border border-neutral-mid mb-8">
@@ -41,9 +111,20 @@ const ShopProfile = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-neutral-light text-sm block">Name</label>
-            <p className="text-white font-medium">
-              {profile?.name || user?.name}
-            </p>
+            {isEditing ? (
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                className="w-full bg-primary/30 border border-neutral-mid rounded px-3 py-1.5 text-white focus:outline-none focus:border-accent mt-1"
+              />
+            ) : (
+              <p className="text-white font-medium">
+                {profile?.name || user?.name}
+              </p>
+            )}
           </div>
           <div>
             <label className="text-neutral-light text-sm block">Email</label>
@@ -71,9 +152,20 @@ const ShopProfile = () => {
             <label className="text-neutral-light text-sm block">
               Phone Number
             </label>
-            <p className="text-white font-medium">
-              {profile?.mobile_number || "N/A"}
-            </p>
+            {isEditing ? (
+              <input
+                type="text"
+                value={formData.mobile_number}
+                onChange={(e) =>
+                  setFormData({ ...formData, mobile_number: e.target.value })
+                }
+                className="w-full bg-primary/30 border border-neutral-mid rounded px-3 py-1.5 text-white focus:outline-none focus:border-accent mt-1"
+              />
+            ) : (
+              <p className="text-white font-medium">
+                {profile?.mobile_number || "N/A"}
+              </p>
+            )}
           </div>
           <div>
             <label className="text-neutral-light text-sm block">Location</label>
@@ -85,9 +177,19 @@ const ShopProfile = () => {
             <label className="text-neutral-light text-sm block">
               Registered Address
             </label>
-            <p className="text-white font-medium">
-              {profile?.address || "N/A"}
-            </p>
+            {isEditing ? (
+              <textarea
+                value={formData.address}
+                onChange={(e) =>
+                  setFormData({ ...formData, address: e.target.value })
+                }
+                className="w-full bg-primary/30 border border-neutral-mid rounded px-3 py-2 text-white focus:outline-none focus:border-accent mt-1 h-20 resize-none"
+              />
+            ) : (
+              <p className="text-white font-medium">
+                {profile?.address || "N/A"}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -113,15 +215,60 @@ const ShopProfile = () => {
                   <label className="text-neutral-light text-sm block">
                     Shop Name
                   </label>
-                  <p className="text-white font-bold text-lg">{shop.name}</p>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={formData.shopName}
+                      onChange={(e) =>
+                        setFormData({ ...formData, shopName: e.target.value })
+                      }
+                      className="w-full bg-primary/30 border border-neutral-mid rounded px-3 py-1.5 text-white focus:outline-none focus:border-accent mt-1"
+                    />
+                  ) : (
+                    <p className="text-white font-bold text-lg">{shop.name}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="text-neutral-light text-sm block">
-                    Category
+                  <label className="text-neutral-light text-sm block mb-1">
+                    Categories
                   </label>
-                  <p className="text-accent bg-neutral-mid px-2 py-1 rounded inline-block text-sm border border-neutral-mid">
-                    {shop.category}
-                  </p>
+
+                  {isEditing ? (
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap gap-1.5 p-3 bg-primary/30 rounded border border-neutral-mid/50">
+                        {categories.map((cat) => (
+                          <button
+                            key={cat.id}
+                            onClick={() => toggleCategory(cat.id)}
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-all ${
+                              selectedCatIds.includes(cat.id)
+                                ? "bg-accent border-accent text-primary"
+                                : "bg-neutral-mid border-neutral-light/10 text-neutral-light"
+                            }`}
+                          >
+                            {cat.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {(shop.Categories || []).length > 0 ? (
+                        shop.Categories.map((cat) => (
+                          <span
+                            key={cat.id}
+                            className="text-accent bg-neutral-mid px-2 py-1 rounded inline-block text-xs border border-neutral-mid"
+                          >
+                            {cat.name}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-neutral-light text-xs italic">
+                          No categories assigned
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="md:col-span-2">
                   <label className="text-neutral-light text-sm block">
@@ -181,6 +328,23 @@ const ShopProfile = () => {
                 </div>
               </div>
             </div>
+
+            {isEditing && (
+              <div className="mt-8 pt-6 border-t border-neutral-mid flex justify-end gap-4">
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="px-6 py-2 rounded font-bold text-sm bg-neutral-mid text-white hover:bg-neutral-light/20 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveProfile}
+                  className="px-6 py-2 rounded font-bold text-sm bg-accent text-primary hover:bg-white transition-all shadow-[0_0_15px_rgba(0,229,255,0.3)]"
+                >
+                  Save All Changes
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="text-center py-8">

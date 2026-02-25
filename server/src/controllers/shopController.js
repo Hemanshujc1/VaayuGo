@@ -1,9 +1,9 @@
-const { Shop, Order, OrderRevenueLog } = require('../models');
+const { Shop, Order, OrderRevenueLog, Category, ShopCategory } = require('../models');
 const { Op } = require('sequelize');
 
 const registerShop = async (req, res) => {
   try {
-    const { name, category, location_address } = req.body;
+    const { name, category, location_address, categoryIds } = req.body;
     const owner_id = req.user.id; // From Auth Middleware
 
     // Check if user already has a shop? (Optional: 1 shop per user logic)
@@ -15,10 +15,19 @@ const registerShop = async (req, res) => {
     const newShop = await Shop.create({
       owner_id,
       name,
-      category,
+      category: category || (categoryIds && categoryIds.length > 0 ? 'Multi' : 'General'), // Legacy fallback
       location_address,
       status: 'pending'
     });
+
+    // Handle Multiple Categories
+    if (categoryIds && Array.isArray(categoryIds)) {
+        const associations = categoryIds.map(catId => ({
+            shop_id: newShop.id,
+            category_id: catId
+        }));
+        await ShopCategory.bulkCreate(associations);
+    }
 
     res.status(201).json({ message: 'Shop registered successfully. Waiting for Admin approval.', shop: newShop });
   } catch (error) {
@@ -28,7 +37,10 @@ const registerShop = async (req, res) => {
 
 const getMyShop = async (req, res) => {
     try {
-        const shop = await Shop.findOne({ where: { owner_id: req.user.id } });
+        const shop = await Shop.findOne({ 
+            where: { owner_id: req.user.id },
+            include: [Category]
+        });
         if (!shop) return res.status(404).json({ message: 'Shop not found' });
         res.json(shop);
     } catch (error) {
@@ -39,7 +51,10 @@ const getMyShop = async (req, res) => {
 const getPublicShops = async (req, res) => {
     try {
         // Enforce visibility rule: Only Approved shops
-        const shops = await Shop.findAll({ where: { status: 'approved' } });
+        const shops = await Shop.findAll({ 
+            where: { status: 'approved' },
+            include: [Category] 
+        });
         res.json(shops);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching shops', error });
@@ -228,4 +243,40 @@ const deleteShopImage = async (req, res) => {
     }
 };
 
-module.exports = { registerShop, getMyShop, getPublicShops, toggleShopStatus, uploadShopImages, deleteShopImage, getMyShopAnalytics };
+const updateShopProfile = async (req, res) => {
+    try {
+        const { name, location_address, categoryIds } = req.body;
+        const shop = await Shop.findOne({ where: { owner_id: req.user.id } });
+        if (!shop) return res.status(404).json({ message: 'Shop not found' });
+
+        if (name) shop.name = name;
+        if (location_address) shop.location_address = location_address;
+        
+        await shop.save();
+
+        if (categoryIds && Array.isArray(categoryIds)) {
+            // Sync categories: Delete old, Add new
+            await ShopCategory.destroy({ where: { shop_id: shop.id } });
+            const associations = categoryIds.map(catId => ({
+                shop_id: shop.id,
+                category_id: catId
+            }));
+            await ShopCategory.bulkCreate(associations);
+        }
+
+        res.json({ message: 'Profile updated successfully', shop });
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating shop profile', error });
+    }
+};
+
+module.exports = { 
+    registerShop, 
+    getMyShop, 
+    getPublicShops, 
+    toggleShopStatus, 
+    uploadShopImages, 
+    deleteShopImage, 
+    getMyShopAnalytics,
+    updateShopProfile 
+};

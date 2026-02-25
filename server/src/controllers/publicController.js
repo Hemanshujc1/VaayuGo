@@ -2,16 +2,23 @@ const Shop = require('../models/Shop');
 const Product = require('../models/Product');
 const User = require('../models/User'); // Import User
 const Location = require('../models/Location');
+const Category = require('../models/Category');
 const { Op } = require('sequelize');
 
 const getAllShops = async (req, res) => {
     try {
         const shops = await Shop.findAll({ 
             where: { status: 'approved' },
-            include: [{
-                model: User,
-                attributes: ['id', 'is_blocked'],
-            }],
+            include: [
+                {
+                    model: User,
+                    attributes: ['id', 'is_blocked'],
+                },
+                {
+                    model: Category,
+                    attributes: ['id', 'name']
+                }
+            ],
             attributes: ['id', 'name', 'category', 'location_address', 'image_url', 'rating', 'delivery_rating', 'is_open'] 
         });
         res.json(shops);
@@ -35,6 +42,10 @@ const getShopDetails = async (req, res) => {
                     model: User,
                     attributes: ['id', 'is_blocked'],
                     where: { is_blocked: false } // Ensure owner is not blocked
+                },
+                {
+                    model: Category,
+                    attributes: ['id', 'name']
                 }
             ]
         });
@@ -57,11 +68,17 @@ const searchShops = async (req, res) => {
                     { category: { [Op.like]: `%${query}%` } }
                 ]
             },
-            include: [{
-                model: User,
-                attributes: ['id', 'is_blocked'],
-                where: { is_blocked: false } // Only show result if owner is NOT blocked
-            }]
+            include: [
+                {
+                    model: User,
+                    attributes: ['id', 'is_blocked'],
+                    where: { is_blocked: false } // Only show result if owner is NOT blocked
+                },
+                {
+                    model: Category,
+                    attributes: ['id', 'name']
+                }
+            ]
         });
         res.json(shops);
     } catch (error) {
@@ -78,4 +95,13 @@ const getAllLocations = async (req, res) => {
     }
 };
 
-module.exports = { getAllShops, getShopDetails, searchShops, getAllLocations };
+const getAllCategories = async (req, res) => {
+    try {
+        const categories = await Category.findAll({ order: [['name', 'ASC']] });
+        res.json(categories);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching categories', error });
+    }
+};
+
+module.exports = { getAllShops, getShopDetails, searchShops, getAllLocations, getAllCategories };

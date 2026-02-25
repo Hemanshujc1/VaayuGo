@@ -2,11 +2,22 @@ import { useState, useEffect } from "react";
 import api from "../api/axios";
 import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
+import SearchBar from "../components/common/SearchBar";
+import FilterDropdown from "../components/common/FilterDropdown";
+import SortDropdown from "../components/common/SortDropdown";
+import Pagination from "../components/common/Pagination";
 
 const AdminCustomers = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  // Data Table States
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filter, setFilter] = useState("");
+  const [sortOrder, setSortOrder] = useState("newest");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchCustomers();
@@ -40,10 +51,82 @@ const AdminCustomers = () => {
     }
   };
 
+  // 1. Filter
+  let processedData = users.filter((user) => {
+    if (filter === "active" && user.is_blocked) return false;
+    if (filter === "blocked" && !user.is_blocked) return false;
+
+    // 2. Search
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      const matchesName = user.name?.toLowerCase().includes(term);
+      const matchesEmail = user.email?.toLowerCase().includes(term);
+      const matchesPhone = user.mobile_number?.includes(term);
+      return matchesName || matchesEmail || matchesPhone;
+    }
+    return true;
+  });
+
+  // 3. Sort
+  processedData.sort((a, b) => {
+    if (sortOrder === "newest") {
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    } else if (sortOrder === "oldest") {
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    } else if (sortOrder === "name_asc") {
+      return (a.name || "").localeCompare(b.name || "");
+    } else if (sortOrder === "name_desc") {
+      return (b.name || "").localeCompare(a.name || "");
+    }
+    return 0;
+  });
+
+  // 4. Paginate
+  const totalPages = Math.ceil(processedData.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedUsers = processedData.slice(
+    startIndex,
+    startIndex + itemsPerPage,
+  );
+
+  // Reset page if data changes dramatically
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filter, sortOrder]);
+
   return (
     <div className="p-8 bg-primary min-h-screen text-primary-text">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <h1 className="text-3xl font-bold text-white">Manage Customers</h1>
+
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <SearchBar
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by name, email, or mobile..."
+          />
+          <div className="flex gap-3">
+            <FilterDropdown
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder="All Statuses"
+              options={[
+                { label: "Active", value: "active" },
+                { label: "Blocked", value: "blocked" },
+              ]}
+            />
+            <SortDropdown
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              options={[
+                { label: "Newest First", value: "newest" },
+                { label: "Oldest First", value: "oldest" },
+                { label: "Name (A-Z)", value: "name_asc" },
+                { label: "Name (Z-A)", value: "name_desc" },
+              ]}
+            />
+          </div>
+        </div>
       </div>
 
       {loading ? (
@@ -77,7 +160,7 @@ const AdminCustomers = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-mid">
-              {users.map((user) => (
+              {paginatedUsers.map((user) => (
                 <tr
                   key={user.id}
                   className="hover:bg-neutral-mid/50 transition-colors"
@@ -131,10 +214,19 @@ const AdminCustomers = () => {
               ))}
             </tbody>
           </table>
-          {users.length === 0 && (
-            <div className="p-8 text-center text-neutral-light">
-              No customers found.
+
+          {paginatedUsers.length === 0 && (
+            <div className="p-8 text-center text-neutral-light border-b border-t border-neutral-mid">
+              No customers match your criteria.
             </div>
+          )}
+
+          {paginatedUsers.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
           )}
         </div>
       )}

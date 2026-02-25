@@ -17,7 +17,14 @@ const {
     getAnalytics,
     getShopDetails,
     getCustomerDetails,
-    addLocation
+    addLocation,
+    overrideOrderStatus, // Added for Phase 12
+    createPenalty,
+    getPenaltiesByUser,
+    getAllPenalties,
+    getAllCategories,
+    createCategory,
+    deleteCategory
 } = require('../controllers/adminController');
 const {
     getDeliveryRules,
@@ -55,8 +62,16 @@ router.get('/users', getUsers);
 router.get('/customers/:id', getCustomerDetails); // New Route
 router.patch('/users/:id/block', blockUser);
 
+// Order Override Route
+router.put('/orders/:id/override-status', overrideOrderStatus);
+
 // Analytics Route
 router.get('/analytics', getAnalytics); // New analytics route
+
+// Penalty Routes
+router.post('/penalties', createPenalty);
+router.get('/penalties', getAllPenalties);
+router.get('/users/:userId/penalties', getPenaltiesByUser);
 
 router.get('/delivery-rules', getDeliveryRules);
 router.post('/delivery-rules', createDeliveryRule);
@@ -66,5 +81,9 @@ router.delete('/delivery-rules/:id', deleteDeliveryRule);
 // Locations Route
 router.post('/locations', addLocation);
 
+// Category Routes
+router.get('/categories', getAllCategories);
+router.post('/categories', createCategory);
+router.delete('/categories/:id', deleteCategory);
 
 module.exports = router;

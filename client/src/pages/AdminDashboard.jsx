@@ -287,6 +287,24 @@ const AdminDashboard = () => {
             Go to Service Rules →
           </button>
         </div>
+        <div className="bg-neutral-dark p-6 rounded shadow border border-neutral-mid hover:border-secondary transition-colors">
+          <h2 className="text-lg font-bold mb-2 text-white">Product Imports</h2>
+          <button
+            onClick={() => navigate("/admin/bulk-upload")}
+            className="text-secondary text-sm hover:underline"
+          >
+            Bulk Upload Products →
+          </button>
+        </div>
+        <div className="bg-neutral-dark p-6 rounded shadow border border-neutral-mid hover:border-accent transition-colors">
+          <h2 className="text-lg font-bold mb-2 text-white">Categories</h2>
+          <button
+            onClick={() => navigate("/admin/categories")}
+            className="text-accent text-sm hover:underline"
+          >
+            Manage Shop Categories →
+          </button>
+        </div>
       </div>
     </div>
   );

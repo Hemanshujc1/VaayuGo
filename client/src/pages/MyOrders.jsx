@@ -8,6 +8,8 @@ const MyOrders = () => {
   const [ratingOrderId, setRatingOrderId] = useState(null);
   const [shopRating, setShopRating] = useState(0);
   const [deliveryRating, setDeliveryRating] = useState(0);
+  const [cancelingOrderId, setCancelingOrderId] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
 
   const submitRating = async (orderId) => {
     if (shopRating === 0 || deliveryRating === 0) {
@@ -36,6 +38,35 @@ const MyOrders = () => {
       setDeliveryRating(0);
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to submit rating");
+    }
+  };
+
+  const handleCancelOrder = async (orderId) => {
+    if (!cancelReason.trim()) {
+      return toast.error("Please provide a reason for cancellation.");
+    }
+    try {
+      await api.put(`/orders/${orderId}/status`, {
+        status: "cancelled",
+        cancel_reason: cancelReason,
+      });
+      toast.success("Order cancelled successfully");
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === orderId
+            ? {
+                ...o,
+                status: "cancelled",
+                cancel_reason: cancelReason,
+                cancelled_by: "customer",
+              }
+            : o,
+        ),
+      );
+      setCancelingOrderId(null);
+      setCancelReason("");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to cancel order");
     }
   };
 
@@ -94,6 +125,36 @@ const MyOrders = () => {
                         ))}
                       </ul>
                     </div>
+
+                    {order.status === "out_for_delivery" &&
+                      order.delivery_otp && (
+                        <div className="mt-4 p-3 bg-secondary/10 border border-secondary/50 rounded-lg max-w-sm">
+                          <p className="text-secondary font-bold text-xs uppercase tracking-wider">
+                            Delivery OTP
+                          </p>
+                          <p className="text-2xl font-mono text-white tracking-widest">
+                            {order.delivery_otp}
+                          </p>
+                          <p className="text-xs text-neutral-light mt-1">
+                            Share this code with the delivery partner.
+                          </p>
+                        </div>
+                      )}
+
+                    {order.status === "failed" && order.failure_reason && (
+                      <div className="mt-3 text-sm text-danger bg-danger/10 p-2 rounded inline-block">
+                        <span className="font-bold">Failure Reason:</span>{" "}
+                        {order.failure_reason}
+                      </div>
+                    )}
+                    {order.status === "cancelled" && order.cancel_reason && (
+                      <div className="mt-3 text-sm text-neutral-light bg-neutral-dark/80 p-2 rounded inline-block">
+                        <span className="font-bold capitalize">
+                          Cancelled By {order.cancelled_by}:
+                        </span>{" "}
+                        {order.cancel_reason}
+                      </div>
+                    )}
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-lg text-white">
@@ -110,6 +171,25 @@ const MyOrders = () => {
                     >
                       {order.status.toUpperCase()}
                     </span>
+
+                    {order.status !== "cancelled" &&
+                      order.status !== "delivered" &&
+                      order.status !== "failed" &&
+                      (Date.now() - new Date(order.createdAt).getTime()) /
+                        60000 <=
+                        10 && (
+                        <div className="mt-4">
+                          <button
+                            onClick={() => {
+                              setCancelingOrderId(order.id);
+                              setCancelReason("");
+                            }}
+                            className="text-xs bg-danger/10 border border-danger/50 text-danger px-3 py-1.5 rounded font-bold hover:bg-danger hover:text-white transition-colors"
+                          >
+                            Cancel Order
+                          </button>
+                        </div>
+                      )}
                     {order.status === "delivered" &&
                       !order.is_rated &&
                       ratingOrderId !== order.id && (
@@ -199,6 +279,38 @@ const MyOrders = () => {
                         className="px-4 py-2 rounded text-sm font-bold bg-accent text-primary hover:bg-secondary transition-colors shadow-lg shadow-accent/20"
                       >
                         Submit Feedback
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {cancelingOrderId === order.id && (
+                  <div className="mt-4 pt-4 border-t border-danger/20 bg-danger/5 p-4 rounded-xl">
+                    <h3 className="text-sm font-bold text-danger mb-4">
+                      Cancel Order
+                    </h3>
+                    <textarea
+                      value={cancelReason}
+                      onChange={(e) => setCancelReason(e.target.value)}
+                      placeholder="Why do you want to cancel?"
+                      className="w-full p-2 rounded bg-neutral-dark text-white border border-neutral-mid mb-4 text-sm"
+                      rows={2}
+                    />
+                    <div className="flex justify-end gap-3">
+                      <button
+                        onClick={() => {
+                          setCancelingOrderId(null);
+                          setCancelReason("");
+                        }}
+                        className="px-4 py-2 rounded text-sm font-medium text-neutral-light hover:text-white transition-colors"
+                      >
+                        Close
+                      </button>
+                      <button
+                        onClick={() => handleCancelOrder(order.id)}
+                        className="px-4 py-2 rounded text-sm font-bold bg-danger text-white hover:bg-red-600 transition-colors shadow-lg shadow-danger/20"
+                      >
+                        Confirm Cancel
                       </button>
                     </div>
                   </div>

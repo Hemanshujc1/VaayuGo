@@ -1,10 +1,14 @@
 const express = require('express');
-const { getMyProducts, addProduct, updateProduct, deleteProduct, uploadProductImages, deleteProductImage } = require('../controllers/productController');
+const { getMyProducts, addProduct, updateProduct, deleteProduct, uploadProductImages, deleteProductImage, bulkUploadProducts } = require('../controllers/productController');
 
 const { authenticateToken, authorizeRole } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
+// Bulk upload allows both shopkeepers and admins
+router.post('/bulk-upload', authenticateToken, authorizeRole(['shopkeeper', 'admin']), bulkUploadProducts);
+
+// Other routes remain strictly shopkeeper
 router.use(authenticateToken, authorizeRole(['shopkeeper']));
 
 router.get('/', getMyProducts);
