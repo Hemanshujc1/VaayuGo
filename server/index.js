@@ -2,7 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const dotenv = require('dotenv');
-const { connectDB, sequelize } = require('./src/models/index'); // Import from models/index to ensure associations are loaded
+const { connectDB, sequelize } = require('./models/index'); // Import from models/index to ensure associations are loaded
+const AppError = require('./utils/AppError');
+const globalErrorHandler = require('./middlewares/errorHandler');
 
 dotenv.config();
 
@@ -17,16 +19,16 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use('/uploads', express.static('uploads'));
 
 
-const authRoutes = require('./src/routes/authRoutes');
-const adminRoutes = require('./src/routes/adminRoutes');
-const shopRoutes = require('./src/routes/shopRoutes');
-const productRoutes = require('./src/routes/productRoutes');
-const publicRoutes = require('./src/routes/publicRoutes');
-const orderRoutes = require('./src/routes/orderRoutes');
-const uploadRoutes = require('./src/routes/uploadRoutes');
-const contactRoutes = require('./src/routes/contactRoutes');
-const cartRoutes = require('./src/routes/cartRoutes');
-
+const authRoutes = require('./routes/authRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const shopRoutes = require('./routes/shopRoutes');
+const productRoutes = require('./routes/productRoutes');
+const publicRoutes = require('./routes/publicRoutes');
+const orderRoutes = require('./routes/orderRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
+const contactRoutes = require('./routes/contactRoutes');
+const cartRoutes = require('./routes/cartRoutes');
+const discountRoutes = require('./routes/discountRoutes');
 
 // Database Connection
 connectDB();
@@ -41,16 +43,24 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/files', uploadRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/discounts', discountRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {
   res.send('VaayuGo Backend is Running');
 });
 
+// Unknown route handler
+app.use((req, res, next) => {
+  next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
+});
+
+// Global Error Handling Middleware
+app.use(globalErrorHandler);
+
 // Sync Database (Force: false to prevent data loss)
 // In development, you might use { force: true } or { alter: true } initially to update schema, but be careful.
-sequelize.query("UPDATE Orders SET status = 'accepted' WHERE status IN ('preparing', 'ready')")
-  .then(() => sequelize.sync())
+sequelize.sync({ alter: true })
   .then(() => {
     console.log('Database Synced');
   }).catch((err) => {

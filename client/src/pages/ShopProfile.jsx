@@ -119,6 +119,7 @@ const ShopProfile = () => {
                   setFormData({ ...formData, name: e.target.value })
                 }
                 className="w-full bg-primary/30 border border-neutral-mid rounded px-3 py-1.5 text-white focus:outline-none focus:border-accent mt-1"
+                maxLength={50}
               />
             ) : (
               <p className="text-white font-medium">
@@ -160,6 +161,10 @@ const ShopProfile = () => {
                   setFormData({ ...formData, mobile_number: e.target.value })
                 }
                 className="w-full bg-primary/30 border border-neutral-mid rounded px-3 py-1.5 text-white focus:outline-none focus:border-accent mt-1"
+                pattern="\d{10}"
+                maxLength={10}
+                minLength={10}
+                title="Mobile number must be exactly 10 digits"
               />
             ) : (
               <p className="text-white font-medium">
@@ -184,6 +189,7 @@ const ShopProfile = () => {
                   setFormData({ ...formData, address: e.target.value })
                 }
                 className="w-full bg-primary/30 border border-neutral-mid rounded px-3 py-2 text-white focus:outline-none focus:border-accent mt-1 h-20 resize-none"
+                maxLength={255}
               />
             ) : (
               <p className="text-white font-medium">
@@ -223,6 +229,8 @@ const ShopProfile = () => {
                         setFormData({ ...formData, shopName: e.target.value })
                       }
                       className="w-full bg-primary/30 border border-neutral-mid rounded px-3 py-1.5 text-white focus:outline-none focus:border-accent mt-1"
+                      maxLength={100}
+                      minLength={3}
                     />
                   ) : (
                     <p className="text-white font-bold text-lg">{shop.name}</p>

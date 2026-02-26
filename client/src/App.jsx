@@ -35,23 +35,8 @@ import CustomerLayout from "./components/CustomerLayout";
 import ShopBulkUpload from "./pages/ShopBulkUpload";
 import AdminBulkUpload from "./pages/AdminBulkUpload";
 import AdminCategories from "./pages/AdminCategories";
+import AdminDiscountRules from "./pages/AdminDiscountRules";
 
-// Placeholder Dashboards
-// const Home = () => {
-//   const { logout } = useAuth();
-//   return (
-//     <div className="p-8">
-//       <h1 className="text-2xl font-bold">Welcome directly to Customer Home</h1>
-//       <button
-//         onClick={logout}
-//         className="mt-4 bg-red-500 text-white px-4 py-2 rounded"
-//       >
-//         Logout
-//       </button>
-//     </div>
-//   );
-// };
-// const ShopDashboard = () => <h1>Shop Dashboard</h1>;
 
 function App() {
   return (
@@ -105,6 +90,7 @@ function App() {
             <Route path="/admin/locations" element={<AdminLocations />} />
             <Route path="/admin/slots" element={<AdminDeliverySlots />} />
             <Route path="/admin/rules" element={<AdminGlobalRules />} />
+            <Route path="/admin/discounts" element={<AdminDiscountRules />} />
             <Route path="/admin/bulk-upload" element={<AdminBulkUpload />} />
             <Route path="/admin/categories" element={<AdminCategories />} />
             <Route path="/admin/profile" element={<AdminProfile />} />

@@ -101,6 +101,7 @@ const AdminProfile = () => {
                       setFormData({ ...formData, name: e.target.value })
                     }
                     className="w-full text-white text-lg font-medium p-3 bg-primary/30 rounded border border-neutral-mid focus:outline-none focus:border-accent"
+                    maxLength={50}
                   />
                 ) : (
                   <div className="text-white text-lg font-medium p-3 bg-primary/50 rounded border border-neutral-mid">
@@ -133,6 +134,10 @@ const AdminProfile = () => {
                       })
                     }
                     className="w-full text-white text-lg font-medium p-3 bg-primary/30 rounded border border-neutral-mid focus:outline-none focus:border-accent"
+                    pattern="\d{10}"
+                    maxLength={10}
+                    minLength={10}
+                    title="Mobile number must be exactly 10 digits"
                   />
                 ) : (
                   <div className="text-white text-lg font-medium p-3 bg-primary/50 rounded border border-neutral-mid">

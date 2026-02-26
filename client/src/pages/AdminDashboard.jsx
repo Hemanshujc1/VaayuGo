@@ -59,13 +59,13 @@ const AdminDashboard = () => {
         </div>
         <div className="bg-neutral-dark p-6 rounded shadow border-l-4 border-white col-span-2">
           <h3 className="text-neutral-light font-bold text-sm">
-            Total Order Value
+            Gross Merchandise Value (GMV)
           </h3>
           <p className="text-2xl font-bold text-white mt-1">
-            ₹{analytics?.totalOrderValue || 0}
+            ₹{analytics?.gmv || 0}
           </p>
           <p className="text-xs text-neutral-light mt-1">
-            Gross sum of all products sold
+            Total sales before discounts
           </p>
         </div>
         <div className="bg-neutral-dark p-6 rounded shadow border-l-4 border-blue-400 col-span-1">
@@ -89,32 +89,64 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="bg-neutral-dark p-6 rounded shadow border-l-4 border-red-400">
+          <h3 className="text-neutral-light font-bold text-sm">
+            Shop Discounts
+          </h3>
+          <p className="text-2xl font-bold text-red-400 mt-2">
+            ₹{analytics?.totalShopDiscount || 0}
+          </p>
+          <p className="text-xs text-neutral-light mt-1">Marketing / Offers</p>
+        </div>
+        <div className="bg-neutral-dark p-6 rounded shadow border-l-4 border-orange-400">
+          <h3 className="text-neutral-light font-bold text-sm">
+            Platform Discounts
+          </h3>
+          <p className="text-2xl font-bold text-orange-400 mt-2">
+            ₹{analytics?.totalPlatformDiscount || 0}
+          </p>
+          <p className="text-xs text-neutral-light mt-1">
+            Customer Acquisition Cost
+          </p>
+        </div>
         <div className="bg-neutral-dark p-6 rounded shadow border-l-4 border-warning">
           <h3 className="text-neutral-light font-bold text-sm">
             Commission Revenue
           </h3>
-          <p className="text-3xl font-bold text-warning mt-2">
-            ₹{analytics?.totalCommissionRevenue || 0}
+          <p className="text-2xl font-bold text-warning mt-2">
+            ₹{analytics?.totalCommission || 0}
           </p>
           <p className="text-xs text-neutral-light mt-1">
-            Pure profit from order values
+            Base platform earnings
           </p>
         </div>
-        <div className="bg-neutral-dark p-6 rounded shadow border-l-4 border-green-500 lg:col-span-2">
+        <div className="bg-neutral-dark p-6 rounded shadow border-l-4 border-green-500">
           <h3 className="text-neutral-light font-bold text-sm">
-            Total VaayuGo Revenue
+            Net Platform Revenue
           </h3>
-          <p className="text-4xl font-bold text-green-400 mt-2">
-            ₹{analytics?.totalVaayugoRevenue || 0}
+          <p className="text-2xl font-bold text-green-400 mt-2">
+            ₹{analytics?.netPlatformRevenue || 0}
           </p>
-          <div className="flex items-center gap-2 mt-2 text-xs font-mono bg-primary/50 p-2 rounded text-neutral-light">
-            <span className="text-green-400 font-bold">VaayuGo Rev</span>
-            <span>=</span>
-            <span className="text-warning">Commission</span>
-            <span>+</span>
-            <span className="text-indigo-400">VaayuGo Delivery Share</span>
-          </div>
+          <p className="text-xs text-neutral-light mt-1">
+            Commission - Platform Discount
+          </p>
+        </div>
+      </div>
+
+      <div className="bg-neutral-dark p-6 rounded shadow border-l-4 border-green-500 mb-8">
+        <h3 className="text-neutral-light font-bold text-sm">
+          Total VaayuGo Revenue
+        </h3>
+        <p className="text-4xl font-bold text-green-400 mt-2">
+          ₹{analytics?.totalVaayugoRevenue || 0}
+        </p>
+        <div className="flex flex-wrap items-center gap-2 mt-2 text-xs font-mono bg-primary/50 p-2 rounded text-neutral-light">
+          <span className="text-green-400 font-bold">Total Rev</span>
+          <span>=</span>
+          <span className="text-warning">Net Platform Revenue</span>
+          <span>+</span>
+          <span className="text-indigo-400">VaayuGo Delivery Share</span>
         </div>
       </div>
 

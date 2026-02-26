@@ -231,7 +231,11 @@ const ShopOrders = () => {
                     {new Date(order.createdAt).toLocaleString()}
                   </p>
                   <p className="text-sm font-bold mt-1 text-accent">
-                    Total: ₹{order.grand_total}
+                    Final Payable: ₹{order.grand_total}
+                  </p>
+                  <p className="text-xs text-neutral-light">
+                    (Subtotal: ₹{order.subtotal_amount || order.items_total} |
+                    Shop Discount: -₹{order.shop_discount_amount || 0})
                   </p>
                   <p className="text-sm font-bold mt-1 text-green-400">
                     Your Earning:{" "}

@@ -145,6 +145,56 @@ const Checkout = () => {
             ) : calculation ? (
               <>
                 <div className="flex justify-between text-neutral-light">
+                  <span>Subtotal</span>
+                  <span>
+                    ₹
+                    {calculation.subtotal_amount?.toFixed(2) ||
+                      calculation.order_value?.toFixed(2) ||
+                      total.toFixed(2)}
+                  </span>
+                </div>
+                {calculation.shop_discount_amount > 0 && (
+                  <div className="flex justify-between text-green-400">
+                    <span className="flex items-center gap-1">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      {calculation.applied_rules?.shop?.name || "Shop Discount"}
+                    </span>
+                    <span>-₹{calculation.shop_discount_amount}</span>
+                  </div>
+                )}
+                {calculation.platform_discount_amount > 0 && (
+                  <div className="flex justify-between text-green-400">
+                    <span className="flex items-center gap-1">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      {calculation.applied_rules?.platform?.name ||
+                        "VaayuGo Discount"}
+                    </span>
+                    <span>-₹{calculation.platform_discount_amount}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-neutral-light">
                   <span>Delivery Fee</span>
                   <span>₹{calculation.delivery_fee}</span>
                 </div>
@@ -154,7 +204,7 @@ const Checkout = () => {
                   </p>
                 )}
                 <div className="flex justify-between font-bold text-lg pt-2 border-t border-neutral-mid mt-2 text-white">
-                  <span>To Pay</span>
+                  <span>Final Payable Amount</span>
                   <span>₹{calculation.total_payable}</span>
                 </div>
               </>

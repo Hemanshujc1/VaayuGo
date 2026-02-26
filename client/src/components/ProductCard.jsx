@@ -10,6 +10,8 @@ const ProductCard = ({
   shopIsOpen = true,
   cartItem,
   onUpdateQuantity,
+  onAddDiscount,
+  activeDiscount,
 }) => {
   const [currentImgIdx, setCurrentImgIdx] = useState(0);
   let images = [];
@@ -83,18 +85,52 @@ const ProductCard = ({
             </span>
           </div>
         )}
+
+        {/* Discount Badge */}
+        {activeDiscount && (
+          <div className="absolute top-2 left-2 z-10">
+            <span className="bg-accent text-primary px-2 py-1 rounded text-xs font-black shadow-[0_2px_10px_rgba(0,229,255,0.4)]">
+              {activeDiscount.type === "PERCENTAGE"
+                ? `${Math.round(activeDiscount.value)}% OFF`
+                : `₹${Math.round(activeDiscount.value)} OFF`}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Content Area */}
       <div className="p-4 flex-1 flex flex-col">
         <div className="flex justify-between items-start mb-2">
           <h3
-            className="font-bold text-white text-lg line-clamp-1"
+            className="font-bold text-white text-lg line-clamp-1 flex-1 pr-2"
             title={product.name}
           >
             {product.name}
           </h3>
-          <span className="text-accent font-bold">₹{product.price}</span>
+          <div className="flex flex-col items-end whitespace-nowrap">
+            {activeDiscount ? (
+              <>
+                <span className="text-neutral-500 line-through text-xs font-bold">
+                  ₹{product.price}
+                </span>
+                <span className="text-accent font-extrabold text-lg">
+                  ₹
+                  {activeDiscount.type === "PERCENTAGE"
+                    ? (
+                        product.price -
+                        (product.price * activeDiscount.value) / 100
+                      ).toFixed(2)
+                    : Math.max(0, product.price - activeDiscount.value).toFixed(
+                        2,
+                      )}
+                </span>
+              </>
+            ) : (
+              <span className="text-accent font-bold text-lg">
+                ₹{product.price}
+              </span>
+            )}
+          </div>
         </div>
 
         <p className="text-sm text-neutral-light mb-4 line-clamp-2 flex-1">
@@ -118,6 +154,13 @@ const ProductCard = ({
                     Set Out of Stock
                   </button>
                 )}
+                <button
+                  onClick={() => onAddDiscount(product)}
+                  className="bg-neutral-dark hover:bg-accent/20 text-accent p-2 rounded transition-colors"
+                  title="Create Offer / Discount for this Product"
+                >
+                  🏷️
+                </button>
                 <button
                   onClick={() => onEdit(product)}
                   className="bg-neutral-dark hover:bg-neutral-mid text-white p-2 rounded transition-colors"

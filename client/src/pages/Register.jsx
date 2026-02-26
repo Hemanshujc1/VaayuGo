@@ -142,6 +142,7 @@ const Register = () => {
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-neutral-mid rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent bg-neutral-dark text-white placeholder-neutral-500 transition-colors"
                   placeholder="John Doe"
+                  maxLength={50}
                   required
                 />
               </div>
@@ -157,6 +158,10 @@ const Register = () => {
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-neutral-mid rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent bg-neutral-dark text-white placeholder-neutral-500 transition-colors"
                   placeholder="9876543210"
+                  pattern="\d{10}"
+                  maxLength={10}
+                  minLength={10}
+                  title="Mobile number must be exactly 10 digits"
                   required
                 />
               </div>
@@ -331,6 +336,8 @@ const Register = () => {
                       onChange={handleChange}
                       className="w-full px-4 py-3 border border-neutral-mid rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent bg-neutral-dark text-white placeholder-neutral-500 transition-colors"
                       placeholder="My Store"
+                      maxLength={100}
+                      minLength={3}
                       required
                     />
                   </div>
@@ -371,6 +378,8 @@ const Register = () => {
                       : "e.g. Room 404, Boys Hostel"
                   }
                   rows={2}
+                  maxLength={255}
+                  minLength={10}
                   required
                 />
               </div>

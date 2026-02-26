@@ -184,19 +184,25 @@ const ShopDashboard = () => {
 
           <div className="bg-neutral-dark p-4 rounded shadow border border-neutral-mid text-center mx-auto">
             <h3 className="text-neutral-light font-bold text-sm mb-2 uppercase tracking-wide">
-              Shop Earnings Formula
+              Shop Settlement Formula
             </h3>
             <div className="flex flex-wrap items-center justify-center gap-2 text-white font-mono text-sm sm:text-base">
-              <span className="text-green-400 font-bold">Net Earnings</span>
+              <span className="text-green-400 font-bold">Net Settlement</span>
               <span className="text-neutral-light">=</span>
               <span>(</span>
-              <span className="text-neutral-light">Order Value</span>
+              <span className="text-neutral-light">Subtotal</span>
               <span className="text-danger font-bold">-</span>
-              <span className="text-danger">Commission</span>
+              <span className="text-danger">Shop Discount</span>
               <span>)</span>
+              <span className="text-danger font-bold">-</span>
+              <span className="text-danger">VaayuGo Commission</span>
               <span className="text-secondary font-bold">+</span>
               <span className="text-secondary">Delivery Share</span>
             </div>
+            <p className="text-xs text-neutral-light mt-4">
+              Note: Platform-funded discounts are fully absorbed by VaayuGo and
+              do not reduce your settlement.
+            </p>
           </div>
         </div>
       )}

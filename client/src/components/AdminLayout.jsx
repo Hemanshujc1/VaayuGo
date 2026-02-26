@@ -20,6 +20,7 @@ const AdminLayout = () => {
     { name: "Manage Shops", path: "/admin/shops", icon: "🏪" },
     { name: "Manage Customers", path: "/admin/customers", icon: "👥" },
     { name: "Service Rules", path: "/admin/rules", icon: "🛠️" },
+    { name: "Discount Rules", path: "/admin/discounts", icon: "🏷️" },
     { name: "Locations", path: "/admin/locations", icon: "📍" },
     { name: "Delivery Slots", path: "/admin/slots", icon: "⏱️" },
   ];
