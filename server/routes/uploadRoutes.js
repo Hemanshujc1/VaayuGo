@@ -1,10 +1,10 @@
 const express = require('express');
 const upload = require('../middlewares/uploadMiddleware');
-const { authenticateToken } = require('../middlewares/authMiddleware');
+const { authenticateToken, authorizeRole } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
-router.post('/upload', authenticateToken, upload.single('file'), (req, res) => {
+router.post('/upload', authenticateToken, authorizeRole(['customer', 'shopkeeper', 'admin']), upload.single('file'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ message: 'No file uploaded' });
     }

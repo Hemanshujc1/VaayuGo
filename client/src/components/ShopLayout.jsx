@@ -18,7 +18,6 @@ const ShopLayout = () => {
     { name: "Dashboard", path: "/shop/dashboard", icon: "📊" },
     { name: "Products", path: "/shop/products", icon: "📦" },
     { name: "Orders", path: "/shop/orders", icon: "📝" },
-    { name: "My Profile", path: "/shop/profile", icon: "🏪" },
     { name: "Support", path: "/shop/support", icon: "📞" },
   ];
 
@@ -82,6 +81,18 @@ const ShopLayout = () => {
               </p>
             </div>
           </div>
+
+          {/* Profile Link in Sidebar */}
+          <Link
+            to="/shop/profile"
+            onClick={() => setIsSidebarOpen(false)}
+            className={`flex items-center gap-3 px-4 py-2 rounded transition-all ${isActive(
+              "/shop/profile",
+            )} mb-2`}
+          >
+            <span className="text-xl">🏪</span>
+            <span>My Profile</span>
+          </Link>
 
           <button
             onClick={logout}

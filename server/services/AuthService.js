@@ -24,10 +24,13 @@ class AuthService {
     if (!name || name.trim() === '' || name.length > 50) throw new AppError('Name is required and must be under 50 characters', 400);
     if (!mobile_number || !isValidMobile(mobile_number)) throw new AppError('Mobile number must be exactly 10 digits', 400);
 
+    // Prevent direct Admin registration
+    const finalRole = (role === 'admin') ? 'customer' : (role || 'customer');
+
     const userExists = await User.findOne({ where: { email } });
     if (userExists) throw new AppError('User already exists', 400);
 
-    if (role === 'shopkeeper' && (!shopName || !category)) {
+    if (finalRole === 'shopkeeper' && (!shopName || !category)) {
       throw new AppError('Shop name and category are required for shopkeepers', 400);
     }
 
@@ -37,7 +40,7 @@ class AuthService {
     const user = await User.create({
       email,
       password: hashedPassword,
-      role: role || 'customer',
+      role: finalRole,
       name,
       mobile_number,
       address,
@@ -141,6 +144,9 @@ class AuthService {
 
     await user.save();
 
+    // Explicitly lock role updates - never allow role change through profile update
+    // (Already safe because 'role' isn't destructured from 'data' above, but good for defense-in-depth)
+    
     const shop = await Shop.findOne({ where: { owner_id: user.id } });
     if (shop) {
       if (shopName) shop.name = shopName;

@@ -37,7 +37,6 @@ import AdminBulkUpload from "./pages/AdminBulkUpload";
 import AdminCategories from "./pages/AdminCategories";
 import AdminDiscountRules from "./pages/AdminDiscountRules";
 
-
 function App() {
   return (
     <>
@@ -52,11 +51,11 @@ function App() {
         <Route element={<CustomerLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/shop/:id" element={<ShopDetails />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/checkout" element={<Checkout />} />
           <Route path="/company" element={<CompanyOverview />} />
 
           <Route element={<ProtectedRoute allowedRoles={["customer"]} />}>
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/checkout" element={<Checkout />} />
             <Route path="/my-orders" element={<MyOrders />} />
             <Route path="/profile" element={<CustomerProfile />} />
           </Route>
