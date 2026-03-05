@@ -1,41 +1,67 @@
 const { sequelize, Shop, User, Order, OrderRevenueLog } = require('../models/index');
+const Decimal = require('decimal.js');
 
 class AnalyticsService {
     static async getPlatformMetrics() {
         const totalUsers = await User.count({ where: { role: 'customer' } });
-        const totalShops = await Shop.count({ where: { status: 'approved' } });
-        const totalOrders = await Order.count({ where: { status: 'delivered' } });
-
-        const orderRevLogMetrics = await OrderRevenueLog.findAll({
-            include: [{
-                model: Order,
-                attributes: [],
-                where: { status: 'delivered' }
-            }],
-            attributes: [
-                [sequelize.fn('SUM', sequelize.col('subtotal')), 'gmv'],
-                [sequelize.fn('SUM', sequelize.col('shop_discount')), 'totalShopDiscount'],
-                [sequelize.fn('SUM', sequelize.col('platform_discount')), 'totalPlatformDiscount'],
-                [sequelize.fn('SUM', sequelize.col('commission_amount')), 'totalCommission'],
-                [sequelize.fn('SUM', sequelize.col('net_platform_revenue')), 'netPlatformRevenue'],
-                [sequelize.fn('SUM', sequelize.col('applied_delivery_fee')), 'totalDeliveryRevenue'],
-                [sequelize.fn('SUM', sequelize.col('vaayugo_delivery_earned')), 'totalVaayugoDeliveryShare'],
-            ],
-            raw: true
+        const totalShops = await Shop.count();
+        const activeShops = await Shop.count({ where: { status: 'approved' } });
+        
+        const allOrders = await Order.findAll({
+            include: [{ model: OrderRevenueLog }]
         });
-        const orderRevMetrics = orderRevLogMetrics[0] || {};
+        
+        const totalOrders = allOrders.length;
+        
+        let completedOrders = 0;
+        let cancelledOrders = 0;
+        let failedOrders = 0;
 
-        // Calculate decompositions via JavaScript to avoid SQLite Dialect GROUP BY Prefix issues
+        let gmv = new Decimal(0);
+        let netGmv = new Decimal(0);
+        let totalCommission = new Decimal(0);
+        let extraCharges = new Decimal(0);
+        let deliveryRevenue = new Decimal(0);
+        let platformDiscount = new Decimal(0);
+        let smallOrderCount = 0;
+
+        for (const order of allOrders) {
+            if (order.status === 'cancelled') cancelledOrders++;
+            else if (order.status === 'failed') failedOrders++;
+            else if (order.status === 'delivered') {
+                completedOrders++;
+                const log = order.OrderRevenueLog;
+                if (log) {
+                    const subtotal = new Decimal(log.subtotal || 0);
+                    const prodDisc = new Decimal(log.product_discount_amount || 0);
+                    const shopDisc = new Decimal(log.shop_discount_amount || 0);
+                    const platDisc = new Decimal(log.platform_discount_amount || 0);
+
+                    gmv = gmv.plus(subtotal.minus(prodDisc));
+                    netGmv = netGmv.plus(subtotal.minus(prodDisc).minus(shopDisc).minus(platDisc));
+                    
+                    totalCommission = totalCommission.plus(log.commission_deducted || 0);
+                    extraCharges = extraCharges.plus(log.platform_small_order_share || 0);
+                    deliveryRevenue = deliveryRevenue.plus(log.platform_delivery_share || 0);
+                    platformDiscount = platformDiscount.plus(log.platform_discount_amount || 0);
+                    
+                    if (log.is_small_order) smallOrderCount++;
+                }
+            }
+        }
+
+        const grossRevenue = totalCommission.plus(deliveryRevenue).plus(extraCharges);
+        const netRevenue = grossRevenue.minus(platformDiscount);
+        
+        const round2 = (val) => val.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber();
+
+        const aov = completedOrders > 0 ? round2(netGmv.dividedBy(completedOrders)) : 0;
+
+        // JS Decomposition for top charts
         const rawLogs = await OrderRevenueLog.findAll({
             include: [
-                {
-                    model: Order,
-                    where: { status: 'delivered' }
-                },
-                {
-                    model: Shop,
-                    include: [{ model: User }]
-                }
+                { model: Order, where: { status: 'delivered' } },
+                { model: Shop, include: [{ model: User }] }
             ]
         });
 
@@ -45,7 +71,7 @@ class AnalyticsService {
         const dayMap = {};
 
         rawLogs.forEach(log => {
-            const revenue = Number(log.vaayugo_final_earning || 0);
+            const revenue = Number(log.platform_net_revenue || 0);
             const shopName = log.Shop?.name || 'Unknown';
             const category = log.Shop?.category || 'General';
             const location = log.Shop?.User?.location || 'Unknown';
@@ -75,18 +101,26 @@ class AnalyticsService {
 
         return {
             users: totalUsers,
-            shops: totalShops,
-            orders: totalOrders,
-            gmv: orderRevMetrics.gmv || 0,
-            totalShopDiscount: orderRevMetrics.totalShopDiscount || 0,
-            totalPlatformDiscount: orderRevMetrics.totalPlatformDiscount || 0,
-            totalCommission: orderRevMetrics.totalCommission || 0,
-            netPlatformRevenue: orderRevMetrics.netPlatformRevenue || 0,
-            totalDeliveryRevenue: orderRevMetrics.totalDeliveryRevenue || 0,
-            totalVaayugoDeliveryShare: orderRevMetrics.totalVaayugoDeliveryShare || 0,
-            totalVaayugoRevenue: (Number(orderRevMetrics.netPlatformRevenue) || 0) + (Number(orderRevMetrics.totalVaayugoDeliveryShare) || 0),
-            avgOrderValue: totalOrders > 0 ? ((orderRevMetrics.gmv || 0) / totalOrders).toFixed(2) : 0,
-            revenuePerOrder: totalOrders > 0 ? (((Number(orderRevMetrics.netPlatformRevenue) || 0) + (Number(orderRevMetrics.totalVaayugoDeliveryShare) || 0)) / totalOrders).toFixed(2) : 0,
+            totalShops: totalShops,
+            activeShops: activeShops,
+            
+            totalOrders: totalOrders,
+            completedOrders: completedOrders,
+            cancelledOrders: cancelledOrders,
+            failedOrders: failedOrders,
+            smallOrderCount: smallOrderCount,
+
+            gmv: round2(gmv),
+            netGmv: round2(netGmv),
+            totalCommission: round2(totalCommission),
+            extraCharges: round2(extraCharges),
+            deliveryRevenue: round2(deliveryRevenue),
+            grossRevenue: round2(grossRevenue),
+            platformDiscount: round2(platformDiscount),
+            netRevenue: round2(netRevenue),
+            
+            aov: aov,
+
             revenueByShop,
             revenueByCategory,
             revenueByLocation,

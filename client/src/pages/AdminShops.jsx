@@ -192,7 +192,12 @@ const AdminShops = () => {
                   <p>
                     Owner: {shop.User?.username} ({shop.User?.email})
                   </p>
-                  <p>Category: {shop.category}</p>
+                  <p>
+                    Category:{" "}
+                    {(shop.Categories || []).length > 0
+                      ? shop.Categories.map((c) => c.name).join(", ")
+                      : shop.category || "General"}
+                  </p>
                   <p>Location: {shop.location_address || "N/A"}</p>
                 </div>
               </div>

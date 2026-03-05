@@ -284,7 +284,14 @@ const AdminCustomerDetails = () => {
             <tbody className="divide-y divide-neutral-mid">
               {paginatedOrders.map((order) => (
                 <tr key={order.id} className="hover:bg-neutral-mid/50">
-                  <td className="px-6 py-4 text-white">#{order.id}</td>
+                  <td className="px-6 py-4">
+                    <Link
+                      to={`/admin/orders/${order.id}`}
+                      className="text-accent hover:underline font-bold"
+                    >
+                      #{order.id}
+                    </Link>
+                  </td>
                   <td className="px-6 py-4 text-white">
                     {order.Shop?.name || "Unknown Shop"}
                   </td>

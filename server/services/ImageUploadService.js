@@ -16,7 +16,7 @@ class ImageUploadService {
         if (!files || files.length === 0) return [];
         
         const processedImages = [];
-        const uploadDir = path.join(__dirname, `../../uploads/${dirName}`);
+        const uploadDir = path.join(__dirname, `../uploads/${dirName}`);
 
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });
@@ -47,7 +47,7 @@ class ImageUploadService {
     static deleteImage(imageUrl, dirName) {
         if (!imageUrl) return;
         const relativePath = imageUrl.replace(`/uploads/${dirName}/`, '');
-        const filePath = path.join(__dirname, `../../uploads/${dirName}`, relativePath);
+        const filePath = path.join(__dirname, `../uploads/${dirName}`, relativePath);
         
         fs.unlink(filePath, (err) => {
             if (err) console.error("Failed to delete local file:", err.message);

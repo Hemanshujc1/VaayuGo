@@ -2,6 +2,7 @@ const { sequelize, Order, OrderItem, Product, Shop, User, OrderRevenueLog, Locat
 const { getApplicableRule, validateOrderAgainstRule } = require('../services/RuleEngineService');
 const { resolveDiscounts } = require('../services/DiscountService');
 const AppError = require('../utils/AppError');
+const Decimal = require('decimal.js');
 
 class OrderService {
     static async createOrderTransaction(customer_id, data) {
@@ -22,21 +23,27 @@ class OrderService {
             const location_id = loc.id;
 
             // 2. Validate Items & Calculate Total
-            let items_total = 0;
+            let subtotal_amount = new Decimal(0);
             const orderItemsData = [];
+
+            const rule = await getApplicableRule(location_id, category || null, shop_id);
+            const commission_rate = new Decimal(rule.commission_percent || 0).dividedBy(100);
+
+            let total_commission = new Decimal(0);
 
             for (const item of items) {
                 let product = null;
-                let price = 0;
+                let price = new Decimal(0);
 
                 if (item.is_xerox) {
-                    price = item.price;
-                    items_total += price * item.quantity;
+                    price = new Decimal(item.price || 0);
+                    const item_gross = price.times(item.quantity);
+                    subtotal_amount = subtotal_amount.plus(item_gross);
                     
                     orderItemsData.push({
                         product_id: null,
                         quantity: item.quantity,
-                        price_at_time: price,
+                        price_at_time: price.toNumber(),
                         name: item.name || "Xerox Document",
                         file_url: item.file_url,
                         options: item.options
@@ -45,70 +52,110 @@ class OrderService {
                     product = await Product.findByPk(item.id);
                     if (!product) throw new AppError(`Product ${item.id} not found`, 404);
                     
-                    price = product.price;
-                    items_total += price * item.quantity;
+                    price = new Decimal(product.price);
+                    const item_gross = price.times(item.quantity);
+                    subtotal_amount = subtotal_amount.plus(item_gross);
 
                     orderItemsData.push({
                         product_id: product.id,
                         quantity: item.quantity,
-                        price_at_time: price,
+                        price_at_time: price.toNumber(),
                         name: product.name
                     });
                 }
             }
 
-            // 3. Rule Engine Validation & Splits
-            const rule = await getApplicableRule(location_id, category || null, shop_id);
-            const validation = validateOrderAgainstRule(items_total, rule);
+            // 3. Resolve Discounts (needed for commission and min order check)
+            // Pass enriched items (with price and id) for discount calculation
+            const enrichedItems = items.map(item => {
+                const product = orderItemsData.find(oid => oid.product_id === (item.id || item.product_id) || (item.is_xerox && oid.name === item.name));
+                return {
+                    ...item,
+                    price: product ? product.price_at_time : 0
+                };
+            });
 
-            const delivery_fee = validation.deliveryFee;
-            const subtotal_amount = items_total;
+            const discountData = await resolveDiscounts(location_id, shop_id, category, subtotal_amount.toNumber(), enrichedItems);
             
-            const discountData = await resolveDiscounts(location_id, shop_id, category, subtotal_amount, items);
-            const shop_discount_amount = discountData.shop_discount_amount;
-            const platform_discount_amount = discountData.platform_discount_amount;
+            const shop_discount_amount = new Decimal(discountData.shop_discount_amount || 0);
+            const platform_discount_amount = new Decimal(discountData.platform_discount_amount || 0);
+            const product_discount_amount = new Decimal(discountData.product_discount_amount || 0);
 
-            const final_payable_amount = Math.max(0, subtotal_amount - shop_discount_amount - platform_discount_amount);
-            const commission_base = subtotal_amount - shop_discount_amount;
-            const commissionAmount = commission_base * (rule.commission_percent / 100);
-            const shop_settlement_amount = (subtotal_amount - shop_discount_amount) - commissionAmount;
+            // 4. Rule Engine Validation & Splits
+            // Use subtotal minus product discounts for min order check
+            const validation = validateOrderAgainstRule(subtotal_amount.minus(product_discount_amount).toNumber(), rule);
 
-            let shop_delivery_earned = Number(rule.shop_delivery_share);
-            let vaayugo_delivery_earned = Number(rule.vaayugo_delivery_share);
+            // Calculate commission item by item
+            if (discountData.itemBreakdown) {
+                total_commission = discountData.itemBreakdown.reduce((sum, item) => {
+                    const base = item.gross - item.product_discount - item.shop_discount;
+                    return sum.plus(new Decimal(base).times(commission_rate));
+                }, new Decimal(0));
+            } else {
+                total_commission = subtotal_amount.minus(product_discount_amount).minus(shop_discount_amount).times(commission_rate);
+            }
+            
+            // Ensure precision
+            total_commission = new Decimal(total_commission.toDecimalPlaces(2, Decimal.ROUND_HALF_UP));
+
+            const net_item_total = subtotal_amount.minus(shop_discount_amount).minus(platform_discount_amount).minus(product_discount_amount);
+            
+            // Format splits as strict Decimals
+            let platform_delivery_share = new Decimal(rule.vaayugo_delivery_share || 0);
+            let shop_delivery_share = new Decimal(rule.shop_delivery_share || 0);
+            const applied_delivery_fee = platform_delivery_share.plus(shop_delivery_share);
+
+            let small_order_fee_applied = new Decimal(0);
+            let platform_small_order_share = new Decimal(0);
+            let shop_small_order_share = new Decimal(0);
 
             if (validation.isSmallOrder) {
-                const totalNormalDelivery = shop_delivery_earned + vaayugo_delivery_earned;
-                if (totalNormalDelivery > 0) {
-                    const shopRatio = shop_delivery_earned / totalNormalDelivery;
-                    shop_delivery_earned = Number(rule.small_order_delivery_fee) * shopRatio;
-                    vaayugo_delivery_earned = Number(rule.small_order_delivery_fee) * (1 - shopRatio);
-                } else {
-                    shop_delivery_earned = Number(rule.small_order_delivery_fee) * 0.5;
-                    vaayugo_delivery_earned = Number(rule.small_order_delivery_fee) * 0.5;
-                }
+                small_order_fee_applied = new Decimal(rule.small_order_delivery_fee || 0);
+                platform_small_order_share = new Decimal(rule.small_order_platform_share || 0);
+                shop_small_order_share = new Decimal(rule.small_order_shop_share || 0);
             }
 
-            const shop_final_earning = shop_settlement_amount + shop_delivery_earned;
-            const vaayugo_final_earning = commissionAmount + vaayugo_delivery_earned;
+            // Calculations based on EXACT sheet formulas
+            // Shop Net Settlement = (Shop Gross Sale) - (Total Shop Discounts) - (Commission Deducted) + (Delivery Revenue Shop Share) + (Extra Charges Shop small order)
+            const shop_final_settlement = subtotal_amount
+                .minus(shop_discount_amount)
+                .minus(total_commission)
+                .plus(shop_delivery_share)
+                .plus(shop_small_order_share);
 
-            const platform_fee = 0;
-            const grand_total = final_payable_amount + delivery_fee + platform_fee;
+            // Platform Net Revenue = (Commission) + (Delivery Platform Share) + (Extra Charges Platform small order) - (Platform Discount)
+            const platform_net_revenue = total_commission
+                .plus(platform_delivery_share)
+                .plus(platform_small_order_share)
+                .minus(platform_discount_amount);
+
+            // Total Customer Pays = subtotal - shop_discount - platform_discount + normal_delivery_fee + small_order_fee
+            const total_payable = subtotal_amount
+                .minus(shop_discount_amount)
+                .minus(platform_discount_amount)
+                .minus(product_discount_amount)
+                .plus(applied_delivery_fee)
+                .plus(small_order_fee_applied);
+
+            // Round to precisely 2 decimals
+            const round2 = (d) => d.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber();
 
             // 4. Create Order
             const order = await Order.create({
                 customer_id,
                 shop_id,
-                items_total,
-                subtotal_amount,
-                shop_discount_amount,
-                platform_discount_amount,
-                final_payable_amount,
+                items_total: round2(subtotal_amount),
+                subtotal_amount: round2(subtotal_amount),
+                shop_discount_amount: round2(shop_discount_amount),
+                platform_discount_amount: round2(platform_discount_amount),
+                product_discount_amount: round2(product_discount_amount),
+                final_payable_amount: round2(total_payable),
                 commission_rate: rule.commission_percent,
-                commission_amount: commissionAmount,
-                shop_settlement_amount,
-                delivery_fee,
-                platform_fee,
-                grand_total,
+                commission_amount: round2(total_commission),
+                shop_settlement_amount: round2(shop_final_settlement),
+                delivery_fee: round2(applied_delivery_fee.plus(small_order_fee_applied)), // what customer pays total for delivery
+                platform_fee: 0,
+                grand_total: round2(total_payable),
                 delivery_address,
                 status: 'pending'
             }, { transaction });
@@ -117,19 +164,29 @@ class OrderService {
             const itemsToCreate = orderItemsData.map(item => ({ ...item, order_id: order.id }));
             await OrderItem.bulkCreate(itemsToCreate, { transaction });
 
-            // 6. Create Revenue Log
+            // 6. Create Revenue Log (exact exact fields)
             await OrderRevenueLog.create({
                 order_id: order.id,
                 shop_id: shop_id,
-                order_value: items_total,
+                
+                subtotal: round2(subtotal_amount),
+                shop_discount_amount: round2(shop_discount_amount),
+                platform_discount_amount: round2(platform_discount_amount),
+                product_discount_amount: round2(product_discount_amount),
+                net_item_total: round2(net_item_total),
+                
+                applied_delivery_fee: round2(applied_delivery_fee),
+                platform_delivery_share: round2(platform_delivery_share),
+                shop_delivery_share: round2(shop_delivery_share),
+                
                 is_small_order: validation.isSmallOrder,
-                applied_delivery_fee: delivery_fee,
-                applied_min_order_value: rule.min_order_value,
-                commission_amount: commissionAmount,
-                shop_delivery_earned: shop_delivery_earned,
-                vaayugo_delivery_earned: vaayugo_delivery_earned,
-                shop_final_earning: shop_final_earning,
-                vaayugo_final_earning: vaayugo_final_earning
+                small_order_fee_applied: round2(small_order_fee_applied),
+                platform_small_order_share: round2(platform_small_order_share),
+                shop_small_order_share: round2(shop_small_order_share),
+                
+                commission_deducted: round2(total_commission),
+                shop_final_settlement: round2(shop_final_settlement),
+                platform_net_revenue: round2(platform_net_revenue)
             }, { transaction });
 
             await transaction.commit();

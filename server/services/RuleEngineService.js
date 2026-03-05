@@ -61,12 +61,13 @@ function validateOrderAgainstRule(orderValue, rule) {
   }
 
   // Small order condition
-  if (rule.small_order_delivery_fee) {
-    // Flexible Mode: Apply higher delivery fee
+  if (rule.small_order_delivery_fee !== null && rule.small_order_delivery_fee !== undefined) {
+    // Flexible Mode: Apply extra charge PLUS normal delivery fee
     return {
       isValid: true,
       isSmallOrder: true,
-      deliveryFee: Number(rule.small_order_delivery_fee),
+      deliveryFee: Number(rule.delivery_fee),
+      extraCharge: Number(rule.small_order_delivery_fee),
     };
   } else {
     // Strict Mode: Block the order

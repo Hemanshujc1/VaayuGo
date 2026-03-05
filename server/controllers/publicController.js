@@ -4,6 +4,7 @@ const User = require('../models/User'); // Import User
 const Location = require('../models/Location');
 const Category = require('../models/Category');
 const DeliverySlot = require('../models/DeliverySlot');
+const DiscountRule = require('../models/DiscountRule');
 const { Op } = require('sequelize');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/AppError');
@@ -49,7 +50,29 @@ const getShopDetails = catchAsync(async (req, res, next) => {
     });
 
     if (!shop) return next(new AppError('Shop not found', 404));
-    res.json(shop);
+
+    // Fetch active discounts for this shop and its products
+    const productIds = shop.Products ? shop.Products.map(p => p.id) : [];
+    const discounts = await DiscountRule.findAll({
+        where: {
+            is_active: true,
+            [Op.or]: [
+                { target_type: 'SHOP', target_id: shop.id },
+                { target_type: 'PRODUCT', target_id: { [Op.in]: productIds } }
+            ],
+            // Only current valid discounts
+            [Op.and]: [
+                { [Op.or]: [{ valid_from: { [Op.lte]: new Date() } }, { valid_from: null }] },
+                { [Op.or]: [{ valid_until: { [Op.gte]: new Date() } }, { valid_until: null }] }
+            ]
+        }
+    });
+
+    // Attach discounts to the response
+    const shopJson = shop.toJSON();
+    shopJson.Discounts = discounts;
+
+    res.json(shopJson);
 });
 
 const searchShops = catchAsync(async (req, res, next) => {

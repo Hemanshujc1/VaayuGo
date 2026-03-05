@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import SearchBar from "../components/common/SearchBar";
 import FilterDropdown from "../components/common/FilterDropdown";
@@ -9,6 +10,7 @@ import ExportWidget from "../components/common/ExportWidget";
 const ShopOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   // Data Table States
   const [searchTerm, setSearchTerm] = useState("");
@@ -217,9 +219,17 @@ const ShopOrders = () => {
             >
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h2 className="font-bold text-lg text-white">
-                    Order #{order.id}
-                  </h2>
+                  <div className="flex items-center gap-3 mb-1">
+                    <h2 className="font-bold text-lg text-white">
+                      Order #{order.id}
+                    </h2>
+                    <button
+                      onClick={() => navigate(`/shop/orders/${order.id}`)}
+                      className="text-xs bg-neutral-mid hover:bg-neutral-light text-white px-2 py-1 rounded"
+                    >
+                      View Details
+                    </button>
+                  </div>
                   <p className="text-sm text-neutral-light">
                     From: {order.User?.name || "N/A"} (
                     {order.User?.mobile_number

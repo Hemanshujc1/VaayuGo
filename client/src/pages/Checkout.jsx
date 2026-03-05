@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 const Checkout = () => {
-  const { cartItems, cartShop, getCartTotal, clearCart } = useCart();
+  const { cartItems, cartShop, clearCart } = useCart();
   const [address, setAddress] = useState("Fetching registered address...");
   const [userLocation, setUserLocation] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -58,8 +58,6 @@ const Checkout = () => {
       setCalcLoading(false);
     }
   };
-
-  const total = getCartTotal();
 
   const handlePlaceOrder = async () => {
     if (!address.trim()) {
@@ -114,26 +112,50 @@ const Checkout = () => {
           <h2 className="text-lg font-bold mb-4 text-accent">Order Summary</h2>
           <p className="mb-2 font-medium text-white">{cartShop.name}</p>
           <div className="space-y-2 mb-4 max-h-60 overflow-y-auto">
-            {cartItems.map((item) => (
-              <div
-                key={item.id}
-                className="flex justify-between text-sm text-neutral-light"
-              >
-                <span>
-                  {item.quantity} x {item.name}
-                </span>
-                <span className="text-white">
-                  ₹{item.price * item.quantity}
-                </span>
-              </div>
-            ))}
+            {cartItems.map((item) => {
+              let discountedPrice = item.price;
+              if (item.activeDiscount && item.activeDiscount.is_active) {
+                if (item.activeDiscount.type === "PERCENTAGE") {
+                  discountedPrice =
+                    item.price - (item.price * item.activeDiscount.value) / 100;
+                } else {
+                  discountedPrice = Math.max(
+                    0,
+                    item.price - item.activeDiscount.value,
+                  );
+                }
+              }
+              return (
+                <div
+                  key={item.id}
+                  className="flex justify-between text-sm text-neutral-light"
+                >
+                  <span className="flex flex-col">
+                    <span>
+                      {item.quantity} x {item.name}
+                    </span>
+                    {item.price !== discountedPrice && (
+                      <span className="text-[10px] text-accent font-bold">
+                        Deducted: ₹{(item.price - discountedPrice).toFixed(2)} /
+                        unit
+                      </span>
+                    )}
+                  </span>
+                  <div className="text-right">
+                    {item.price !== discountedPrice && (
+                      <div className="text-[10px] line-through opacity-50 text-white">
+                        ₹{(item.price * item.quantity).toFixed(2)}
+                      </div>
+                    )}
+                    <span className="text-white font-bold">
+                      ₹{(discountedPrice * item.quantity).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
           <div className="border-t border-neutral-mid pt-2 space-y-1 text-sm">
-            <div className="flex justify-between text-neutral-light">
-              <span>Item Total</span>
-              <span>₹{total.toFixed(2)}</span>
-            </div>
-
             {calcLoading ? (
               <div className="text-accent italic text-sm my-4">
                 Calculating fees...
@@ -145,12 +167,25 @@ const Checkout = () => {
             ) : calculation ? (
               <>
                 <div className="flex justify-between text-neutral-light">
+                  <span>Item Total</span>
+                  <span>₹{calculation.subtotal_amount?.toFixed(2)}</span>
+                </div>
+                {calculation.product_discount_amount > 0 && (
+                  <div className="flex justify-between text-accent font-bold">
+                    <span>Product Discount</span>
+                    <span>
+                      -₹{calculation.product_discount_amount.toFixed(2)}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between mb-2 pt-2 border-t border-neutral-mid font-medium text-white">
                   <span>Subtotal</span>
                   <span>
                     ₹
-                    {calculation.subtotal_amount?.toFixed(2) ||
-                      calculation.order_value?.toFixed(2) ||
-                      total.toFixed(2)}
+                    {(
+                      calculation.subtotal_amount -
+                      calculation.product_discount_amount
+                    ).toFixed(2)}
                   </span>
                 </div>
                 {calculation.shop_discount_amount > 0 && (
@@ -170,7 +205,9 @@ const Checkout = () => {
                       </svg>
                       {calculation.applied_rules?.shop?.name || "Shop Discount"}
                     </span>
-                    <span>-₹{calculation.shop_discount_amount}</span>
+                    <span>
+                      -₹{calculation.shop_discount_amount?.toFixed(2)}
+                    </span>
                   </div>
                 )}
                 {calculation.platform_discount_amount > 0 && (
@@ -191,21 +228,24 @@ const Checkout = () => {
                       {calculation.applied_rules?.platform?.name ||
                         "VaayuGo Discount"}
                     </span>
-                    <span>-₹{calculation.platform_discount_amount}</span>
+                    <span>
+                      -₹{calculation.platform_discount_amount?.toFixed(2)}
+                    </span>
                   </div>
                 )}
                 <div className="flex justify-between text-neutral-light">
                   <span>Delivery Fee</span>
-                  <span>₹{calculation.delivery_fee}</span>
+                  <span>₹{calculation.delivery_fee?.toFixed(2)}</span>
                 </div>
                 {calculation.is_small_order && (
-                  <p className="text-xs text-orange-400 my-2">
-                    (Small Order Delivery Fee applied)
-                  </p>
+                  <div className="flex justify-between text-orange-400">
+                    <span>Min Order Extra Charge</span>
+                    <span>₹{calculation.extra_charge?.toFixed(2)}</span>
+                  </div>
                 )}
                 <div className="flex justify-between font-bold text-lg pt-2 border-t border-neutral-mid mt-2 text-white">
                   <span>Final Payable Amount</span>
-                  <span>₹{calculation.total_payable}</span>
+                  <span>₹{calculation.total_payable?.toFixed(2)}</span>
                 </div>
               </>
             ) : null}
@@ -244,7 +284,7 @@ const Checkout = () => {
               ? "Placing Order..."
               : calcLoading
                 ? "Calculating..."
-                : `Place Order (₹${calculation ? calculation.total_payable : "-"})`}
+                : `Place Order (₹${calculation ? calculation.total_payable?.toFixed(2) : "-"})`}
           </button>
         </div>
       </div>

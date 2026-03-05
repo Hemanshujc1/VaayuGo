@@ -271,8 +271,8 @@ const ShopProfile = () => {
                           </span>
                         ))
                       ) : (
-                        <span className="text-neutral-light text-xs italic">
-                          No categories assigned
+                        <span className="text-accent bg-neutral-mid px-2 py-1 rounded inline-block text-xs border border-neutral-mid">
+                          {shop.category || "General"}
                         </span>
                       )}
                     </div>

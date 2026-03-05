@@ -79,45 +79,69 @@ const Cart = () => {
             </button>
           </div>
 
-          {cartItems.map((item) => (
-            <div
-              key={item.id}
-              className="flex justify-between items-center py-3 border-b border-neutral-mid last:border-0"
-            >
-              <div>
-                <p className="font-semibold text-white">{item.name}</p>
-                <p className="text-sm text-neutral-light">
-                  ₹{item.price} x {item.quantity}
-                </p>
+          {cartItems.map((item) => {
+            let discountedPrice = item.price;
+            if (item.activeDiscount && item.activeDiscount.is_active) {
+              if (item.activeDiscount.type === "PERCENTAGE") {
+                discountedPrice =
+                  item.price - (item.price * item.activeDiscount.value) / 100;
+              } else {
+                discountedPrice = Math.max(
+                  0,
+                  item.price - item.activeDiscount.value,
+                );
+              }
+            }
+            return (
+              <div
+                key={item.id}
+                className="flex justify-between items-center py-3 border-b border-neutral-mid last:border-0"
+              >
+                <div>
+                  <p className="font-semibold text-white">{item.name}</p>
+                  <div className="text-sm text-neutral-light">
+                    {item.price !== discountedPrice ? (
+                      <span className="flex gap-2 items-center flex-wrap">
+                        <span className="line-through opacity-50">
+                          ₹{item.price}
+                        </span>
+                        <span className="text-accent font-bold">
+                          ₹{discountedPrice.toFixed(2)}
+                        </span>
+                        <span>x {item.quantity}</span>
+                      </span>
+                    ) : (
+                      <span>
+                        ₹{item.price} x {item.quantity}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => updateQuantity(item.id, -1)}
+                    className="bg-neutral-mid text-white px-2 rounded hover:bg-neutral-light"
+                  >
+                    -
+                  </button>
+                  <span className="text-white">{item.quantity}</span>
+                  <button
+                    onClick={() => updateQuantity(item.id, 1)}
+                    className="bg-neutral-mid text-white px-2 rounded hover:bg-neutral-light"
+                  >
+                    +
+                  </button>
+                  <p className="font-bold w-20 text-right text-white">
+                    ₹{(discountedPrice * item.quantity).toFixed(2)}
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => updateQuantity(item.id, -1)}
-                  className="bg-neutral-mid text-white px-2 rounded hover:bg-neutral-light"
-                >
-                  -
-                </button>
-                <span className="text-white">{item.quantity}</span>
-                <button
-                  onClick={() => updateQuantity(item.id, 1)}
-                  className="bg-neutral-mid text-white px-2 rounded hover:bg-neutral-light"
-                >
-                  +
-                </button>
-                <p className="font-bold w-16 text-right text-white">
-                  ₹{item.price * item.quantity}
-                </p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="bg-neutral-dark p-6 rounded shadow border border-neutral-mid">
           <h2 className="text-lg font-bold mb-4 text-white">Bill Details</h2>
-          <div className="flex justify-between mb-2 text-neutral-light">
-            <span>Item Total</span>
-            <span>₹{total.toFixed(2)}</span>
-          </div>
 
           {calcLoading ? (
             <div className="text-accent italic text-sm my-4">
@@ -130,18 +154,61 @@ const Cart = () => {
           ) : calculation ? (
             <>
               <div className="flex justify-between mb-2 text-neutral-light">
+                <span>Item Total</span>
+                <span>₹{calculation.subtotal_amount.toFixed(2)}</span>
+              </div>
+              {calculation.product_discount_amount > 0 && (
+                <div className="flex justify-between mb-2 text-accent">
+                  <span>Product Discount</span>
+                  <span>
+                    - ₹{calculation.product_discount_amount.toFixed(2)}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between mb-4 pt-2 border-t border-neutral-mid font-medium text-white">
+                <span>Subtotal</span>
+                <span>
+                  ₹
+                  {(
+                    calculation.subtotal_amount -
+                    calculation.product_discount_amount
+                  ).toFixed(2)}
+                </span>
+              </div>
+
+              {calculation.shop_discount_amount > 0 && (
+                <div className="flex justify-between mb-2 text-accent">
+                  <span>Shop Discount</span>
+                  <span>- ₹{calculation.shop_discount_amount.toFixed(2)}</span>
+                </div>
+              )}
+              {calculation.platform_discount_amount > 0 && (
+                <div className="flex justify-between mb-2 text-accent">
+                  <span>Platform Discount</span>
+                  <span>
+                    - ₹{calculation.platform_discount_amount.toFixed(2)}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between mb-2 text-neutral-light">
                 <span>Delivery Fee</span>
-                <span>₹{calculation.delivery_fee}</span>
+                <span>₹{calculation.delivery_fee?.toFixed(2)}</span>
               </div>
               {calculation.is_small_order && (
-                <p className="text-xs text-orange-400 mb-4 bg-orange-400/10 p-2 rounded">
-                  ⚠️ A Small Order Delivery Fee has been applied because the
-                  order value does not meet the minimum requirement.
-                </p>
+                <>
+                  <div className="flex justify-between mb-2 text-orange-400">
+                    <span>Min Order Extra Charge</span>
+                    <span>₹{calculation.extra_charge?.toFixed(2)}</span>
+                  </div>
+                  <p className="text-xs text-orange-400 mb-4 bg-orange-400/10 p-2 rounded">
+                    ⚠️ An extra charge applies because the order value does not
+                    meet the minimum requirement.
+                  </p>
+                </>
               )}
               <div className="flex justify-between font-bold text-lg border-t border-neutral-mid pt-2 text-white">
                 <span>Grand Total</span>
-                <span>₹{calculation.total_payable}</span>
+                <span>₹{calculation.total_payable?.toFixed(2)}</span>
               </div>
             </>
           ) : null}

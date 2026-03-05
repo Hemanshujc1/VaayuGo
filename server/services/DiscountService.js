@@ -23,56 +23,135 @@ async function resolveDiscounts(location_id, shop_id, category, subtotal_amount,
     let bestShopDiscount = null;
     let bestPlatformDiscount = null;
 
-    let shop_discount_amount = 0;
-    let platform_discount_amount = 0;
+    let total_shop_discount = 0;
+    let total_platform_discount = 0;
+    let total_product_discount = 0;
 
-    for (const rule of rules) {
-        // Check min order value against total cart abstract value
-        if (rule.min_order_value && subtotal_amount < Number(rule.min_order_value)) {
-            continue;
+    // 1. Calculate Product-Specific Discounts First
+    let itemBreakdown = items.map(item => {
+        const itemGross = item.price * item.quantity;
+        return {
+            id: item.id || item.product_id,
+            price: item.price,
+            quantity: item.quantity,
+            gross: itemGross,
+            product_discount: 0,
+            shop_discount: 0,
+            platform_discount: 0,
+            net_after_product: itemGross
+        };
+    });
+
+    for (const rule of rules.filter(r => r.target_type === 'PRODUCT')) {
+        for (let breakdown of itemBreakdown.filter(i => i.id === rule.target_id || rule.target_id === null)) {
+            let runAmount = 0;
+            if (rule.type === 'FLAT') {
+                runAmount = Number(rule.value);
+                if (runAmount > breakdown.gross) runAmount = breakdown.gross;
+            } else if (rule.type === 'PERCENTAGE') {
+                runAmount = breakdown.gross * (Number(rule.value) / 100);
+                if (rule.max_discount_amount && runAmount > Number(rule.max_discount_amount)) {
+                    runAmount = Number(rule.max_discount_amount);
+                }
+            }
+            breakdown.product_discount += runAmount;
+            breakdown.net_after_product = breakdown.gross - breakdown.product_discount;
+            total_product_discount += runAmount;
         }
+    }
+
+    // 2. Determine Best Shop Discount
+    const newSubtotalAfterProductDiscounts = itemBreakdown.reduce((sum, item) => sum + item.net_after_product, 0);
+
+    for (const rule of rules.filter(r => r.creator_type === 'SHOP' && r.target_type !== 'PRODUCT')) {
+        if (rule.min_order_value && subtotal_amount < Number(rule.min_order_value)) continue;
 
         let runAmount = 0;
-        let applicable_amount = subtotal_amount;
-        
-        // If it's a product-specific rule, the discount only applies to that product's line total
-        if (rule.target_type === 'PRODUCT') {
-            const item = items.find(i => i.id === rule.target_id);
-            if (item) {
-                applicable_amount = item.price * item.quantity;
-            } else {
-                continue; // Should not trigger due to Op.in, but safety first
-            }
-        }
-
         if (rule.type === 'FLAT') {
             runAmount = Number(rule.value);
-            if (runAmount > applicable_amount) runAmount = applicable_amount; // Cap flat discount to item/cart value
+            if (runAmount > newSubtotalAfterProductDiscounts) runAmount = newSubtotalAfterProductDiscounts;
         } else if (rule.type === 'PERCENTAGE') {
-            runAmount = applicable_amount * (Number(rule.value) / 100);
+            runAmount = newSubtotalAfterProductDiscounts * (Number(rule.value) / 100);
             if (rule.max_discount_amount && runAmount > Number(rule.max_discount_amount)) {
                 runAmount = Number(rule.max_discount_amount);
             }
         }
 
-        if (rule.creator_type === 'SHOP') {
-            if (!bestShopDiscount || runAmount > shop_discount_amount) {
-                bestShopDiscount = rule;
-                shop_discount_amount = runAmount;
-            }
-        } else if (rule.creator_type === 'ADMIN') {
-            // Platform discount
-            if (!bestPlatformDiscount || runAmount > platform_discount_amount) {
-                bestPlatformDiscount = rule;
-                platform_discount_amount = runAmount;
+        if (!bestShopDiscount || runAmount > total_shop_discount) {
+            bestShopDiscount = rule;
+            total_shop_discount = runAmount;
+        }
+    }
+
+    // Distribute best shop discount proportionally
+    if (bestShopDiscount && newSubtotalAfterProductDiscounts > 0) {
+        let distributedShopDiscount = 0;
+        for (let i = 0; i < itemBreakdown.length; i++) {
+            const breakdown = itemBreakdown[i];
+            const weight = breakdown.net_after_product / newSubtotalAfterProductDiscounts;
+            
+            if (i === itemBreakdown.length - 1) {
+                // Last item gets the remainder to avoid rounding issues
+                breakdown.shop_discount = Number((total_shop_discount - distributedShopDiscount).toFixed(2));
+            } else {
+                const itemDisc = Number((total_shop_discount * weight).toFixed(2));
+                breakdown.shop_discount = itemDisc;
+                distributedShopDiscount += itemDisc;
             }
         }
     }
 
-    // Return the calculated splits and rule info
+    // 3. Determine Best Platform Discount
+    const newSubtotalAfterShopDiscounts = newSubtotalAfterProductDiscounts - total_shop_discount;
+
+    for (const rule of rules.filter(r => r.creator_type === 'ADMIN')) {
+        if (rule.min_order_value && subtotal_amount < Number(rule.min_order_value)) continue;
+
+        let runAmount = 0;
+        if (rule.type === 'FLAT') {
+            runAmount = Number(rule.value);
+            if (runAmount > newSubtotalAfterShopDiscounts) runAmount = newSubtotalAfterShopDiscounts;
+        } else if (rule.type === 'PERCENTAGE') {
+            runAmount = newSubtotalAfterShopDiscounts * (Number(rule.value) / 100);
+            if (rule.max_discount_amount && runAmount > Number(rule.max_discount_amount)) {
+                runAmount = Number(rule.max_discount_amount);
+            }
+        }
+
+        if (!bestPlatformDiscount || runAmount > total_platform_discount) {
+            bestPlatformDiscount = rule;
+            total_platform_discount = runAmount;
+        }
+    }
+
+     // Distribute best platform discount proportionally
+     if (bestPlatformDiscount && newSubtotalAfterShopDiscounts > 0) {
+        let distributedPlatformDiscount = 0;
+        for (let i = 0; i < itemBreakdown.length; i++) {
+            const breakdown = itemBreakdown[i];
+            const netBeforePlat = breakdown.net_after_product - breakdown.shop_discount;
+            const weight = netBeforePlat / newSubtotalAfterShopDiscounts;
+            
+            if (i === itemBreakdown.length - 1) {
+                breakdown.platform_discount = Number((total_platform_discount - distributedPlatformDiscount).toFixed(2));
+            } else {
+                const itemDisc = Number((total_platform_discount * weight).toFixed(2));
+                breakdown.platform_discount = itemDisc;
+                distributedPlatformDiscount += itemDisc;
+            }
+        }
+    }
+
+    // Final calculations for breakdown
+    for (const breakdown of itemBreakdown) {
+        breakdown.final_net = breakdown.gross - breakdown.product_discount - breakdown.shop_discount - breakdown.platform_discount;
+    }
+
     return {
-        shop_discount_amount,
-        platform_discount_amount,
+        shop_discount_amount: total_shop_discount,
+        platform_discount_amount: total_platform_discount,
+        product_discount_amount: total_product_discount,
+        itemBreakdown: itemBreakdown, // The new precise array
         applied_rules: {
             shop: bestShopDiscount ? { id: bestShopDiscount.id, name: bestShopDiscount.name } : null,
             platform: bestPlatformDiscount ? { id: bestPlatformDiscount.id, name: bestPlatformDiscount.name } : null

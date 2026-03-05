@@ -1,83 +1,107 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/db');
 
-const OrderRevenueLog = sequelize.define('OrderRevenueLog', {
-  id: {
-    type: DataTypes.INTEGER,
-    autoIncrement: true,
-    primaryKey: true,
+const OrderRevenueLog = sequelize.define(
+  "OrderRevenueLog",
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    order_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    shop_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    // 1. Gross Sale (Before Discounts)
+    subtotal: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.00,
+    },
+    // 2. Discounts
+    shop_discount_amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.00,
+    },
+    platform_discount_amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.00,
+    },
+    product_discount_amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.00,
+    },
+    // 3. Net Item Sale
+    net_item_total: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.00,
+    },
+    // 4. Delivery
+    applied_delivery_fee: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.00,
+    },
+    platform_delivery_share: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.00,
+    },
+    shop_delivery_share: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.00,
+    },
+    // 5. Small Order logic
+    is_small_order: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    small_order_fee_applied: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.00,
+    },
+    platform_small_order_share: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.00,
+    },
+    shop_small_order_share: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.00,
+    },
+    // 6. Final Financials
+    commission_deducted: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.00,
+    },
+    shop_final_settlement: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.00,
+    },
+    platform_net_revenue: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.00,
+    },
   },
-  order_id: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-  },
-  shop_id: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-  },
-  order_value: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-  },
-  subtotal: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-    defaultValue: 0.0,
-  },
-  shop_discount: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-    defaultValue: 0.0,
-  },
-  platform_discount: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-    defaultValue: 0.0,
-  },
-  net_platform_revenue: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-    defaultValue: 0.0,
-  },
-  is_small_order: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,
-  },
-  applied_delivery_fee: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-  },
-  applied_min_order_value: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: true,
-  },
-  commission_amount: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-  },
-  shop_delivery_earned: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-  },
-  vaayugo_delivery_earned: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-  },
-  shop_final_earning: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-  },
-  vaayugo_final_earning: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-  },
-}, {
-  timestamps: true,
-  tableName: "order_revenue_logs",
-  indexes: [
-    { fields: ['order_id'] },
-    { fields: ['shop_id'] }
-  ]
-});
+  {
+    timestamps: true,
+    tableName: "order_revenue_logs",
+  }
+);
 
 module.exports = OrderRevenueLog;

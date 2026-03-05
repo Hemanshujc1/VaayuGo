@@ -23,6 +23,7 @@ const createDeliveryRule = catchAsync(async (req, res, next) => {
         location_id, category, shop_id,
         delivery_fee, shop_delivery_share, vaayugo_delivery_share,
         commission_percent, min_order_value, small_order_delivery_fee,
+        small_order_platform_share, small_order_shop_share,
         is_active
     } = req.body;
 
@@ -41,9 +42,13 @@ const createDeliveryRule = catchAsync(async (req, res, next) => {
         return next(new AppError('Commission percent must be between 0 and 100', 400));
     }
 
-    if (small_order_delivery_fee !== null && small_order_delivery_fee !== undefined) {
+    if (small_order_delivery_fee !== null && small_order_delivery_fee !== undefined && small_order_delivery_fee !== "") {
         if (Number(small_order_delivery_fee) < Number(delivery_fee)) {
             return next(new AppError('Small order fee cannot be less than standard delivery fee', 400));
+        }
+        const totalSmallShare = Number(small_order_platform_share || 0) + Number(small_order_shop_share || 0);
+        if (Number(small_order_delivery_fee) !== totalSmallShare) {
+            return next(new AppError('Small order fee must equal shop share + platform share', 400));
         }
     }
 
@@ -51,6 +56,8 @@ const createDeliveryRule = catchAsync(async (req, res, next) => {
         location_id, category: category || null, shop_id: shop_id || null,
         delivery_fee, shop_delivery_share, vaayugo_delivery_share,
         commission_percent, min_order_value, small_order_delivery_fee,
+        small_order_platform_share: small_order_platform_share || 0,
+        small_order_shop_share: small_order_shop_share || 0,
         is_active
     });
 
@@ -72,6 +79,7 @@ const updateDeliveryRule = catchAsync(async (req, res, next) => {
         location_id, category, shop_id,
         delivery_fee, shop_delivery_share, vaayugo_delivery_share,
         commission_percent, min_order_value, small_order_delivery_fee,
+        small_order_platform_share, small_order_shop_share,
         is_active
     } = req.body;
 
@@ -88,9 +96,13 @@ const updateDeliveryRule = catchAsync(async (req, res, next) => {
         return next(new AppError('Commission percent must be between 0 and 100', 400));
     }
 
-    if (small_order_delivery_fee !== null && small_order_delivery_fee !== undefined) {
+    if (small_order_delivery_fee !== null && small_order_delivery_fee !== undefined && small_order_delivery_fee !== "") {
         if (Number(small_order_delivery_fee) < Number(delivery_fee)) {
             return next(new AppError('Small order fee cannot be less than standard delivery fee', 400));
+        }
+        const totalSmallShare = Number(small_order_platform_share || 0) + Number(small_order_shop_share || 0);
+        if (Number(small_order_delivery_fee) !== totalSmallShare) {
+            return next(new AppError('Small order fee must equal shop share + platform share', 400));
         }
     }
 
@@ -98,6 +110,8 @@ const updateDeliveryRule = catchAsync(async (req, res, next) => {
         location_id, category: category || null, shop_id: shop_id || null,
         delivery_fee, shop_delivery_share, vaayugo_delivery_share,
         commission_percent, min_order_value, small_order_delivery_fee,
+        small_order_platform_share: small_order_platform_share || 0,
+        small_order_shop_share: small_order_shop_share || 0,
         is_active: is_active !== undefined ? is_active : rule.is_active
     });
 

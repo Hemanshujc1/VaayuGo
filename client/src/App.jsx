@@ -16,6 +16,7 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import MyOrders from "./pages/MyOrders";
 import ShopOrders from "./pages/ShopOrders";
+import OrderDetail from "./pages/OrderDetail";
 import ProductManager from "./components/ProductManager";
 import AdminShops from "./pages/AdminShops";
 import AdminLocations from "./pages/AdminLocations";
@@ -67,6 +68,7 @@ function App() {
             <Route path="dashboard" element={<ShopDashboard />} />
             <Route path="products" element={<ProductManager />} />
             <Route path="orders" element={<ShopOrders />} />
+            <Route path="orders/:id" element={<OrderDetail />} />
             <Route path="profile" element={<ShopProfile />} />
             <Route path="support" element={<CompanyOverview />} />
             <Route path="register" element={<ShopRegister />} />
@@ -80,6 +82,7 @@ function App() {
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/shops" element={<AdminShops />} />
             <Route path="/admin/shops/:id" element={<AdminShopDetails />} />
+            <Route path="/admin/orders/:id" element={<OrderDetail />} />
             <Route path="/admin/customers" element={<AdminCustomers />} />
             <Route
               path="/admin/customers/:id"

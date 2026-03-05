@@ -3,6 +3,7 @@ const { Op } = require('sequelize');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/AppError');
 const ImageUploadService = require('../services/ImageUploadService');
+const Decimal = require('decimal.js');
 
 const registerShop = catchAsync(async (req, res, next) => {
     const { name, category, location_address, categoryIds } = req.body;
@@ -74,39 +75,74 @@ const getMyShopAnalytics = catchAsync(async (req, res, next) => {
     const shop = await Shop.findOne({ where: { owner_id: req.user.id } });
     if (!shop) return next(new AppError('Shop not found', 404));
 
-    const ordersCount = await Order.count({ where: { shop_id: shop.id, status: 'delivered' } });
-    
-    const revenueLogs = await OrderRevenueLog.findAll({
+    const orders = await Order.findAll({
         where: { shop_id: shop.id },
-        include: [{
-            model: Order,
-            attributes: [],
-            where: { status: 'delivered' }
-        }],
-        raw: true
+        include: [{ model: OrderRevenueLog }],
     });
 
+    let shopGrossSale = new Decimal(0);
+    let shopNetSale = new Decimal(0);
+    let deductedCommission = new Decimal(0);
+    let extraCharges = new Decimal(0);
+    let deliveryRevenue = new Decimal(0);
+    let totalShopDiscounts = new Decimal(0);
+
+    let completedOrders = 0;
+    let cancelledOrders = 0;
+    let failedOrders = 0;
     let smallOrdersCount = 0;
-    let revenueSum = 0;
-    let grossSum = 0;
-    let commSum = 0;
-    let deliverySum = 0;
 
-    revenueLogs.forEach(log => {
-        if (log.is_small_order) smallOrdersCount++;
-        revenueSum += Number(log.shop_final_earning || 0);
-        grossSum += Number(log.order_value || 0);
-        commSum += Number(log.commission_amount || 0);
-        deliverySum += Number(log.shop_delivery_earned || 0);
-    });
-    
+    for (const o of orders) {
+        if (o.status === 'cancelled') cancelledOrders++;
+        else if (o.status === 'failed') failedOrders++;
+        else if (o.status === 'delivered') {
+            completedOrders++;
+            const log = o.OrderRevenueLog;
+            if (log) {
+                const subtotal = new Decimal(log.subtotal || 0);
+                const productDiscount = new Decimal(log.product_discount_amount || 0);
+                const shopDiscount = new Decimal(log.shop_discount_amount || 0);
+                
+                const gmv = subtotal.minus(productDiscount);
+                shopGrossSale = shopGrossSale.plus(gmv);
+                
+                totalShopDiscounts = totalShopDiscounts.plus(shopDiscount);
+                shopNetSale = shopNetSale.plus(gmv.minus(shopDiscount));
+                
+                deductedCommission = deductedCommission.plus(log.commission_deducted || 0);
+                extraCharges = extraCharges.plus(log.shop_small_order_share || 0);
+                deliveryRevenue = deliveryRevenue.plus(log.shop_delivery_share || 0);
+                
+                if (log.is_small_order) smallOrdersCount++;
+            }
+        }
+    }
+
+    const shopGrossRevenue = shopNetSale.plus(deliveryRevenue).plus(extraCharges);
+    const potentialRevenue = shopGrossSale.plus(deliveryRevenue).plus(extraCharges);
+    const shopNetRevenue = shopGrossRevenue.minus(deductedCommission);
+
+    const round2 = (val) => val.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber();
+
+    const aov = completedOrders > 0 ? round2(shopNetSale.dividedBy(completedOrders)) : 0;
+
     res.json({
-        ordersCount: ordersCount || 0,
-        smallOrdersCount: smallOrdersCount || 0,
-        netEarnings: revenueSum || 0,
-        grossVolume: grossSum || 0,
-        totalCommissionPaid: commSum || 0,
-        deliveryEarnings: deliverySum || 0
+        shopGrossSale: round2(shopGrossSale),
+        shopNetSale: round2(shopNetSale),
+        deductedCommission: round2(deductedCommission),
+        extraCharges: round2(extraCharges),
+        deliveryRevenue: round2(deliveryRevenue),
+        shopGrossRevenue: round2(shopGrossRevenue),
+        totalShopDiscounts: round2(totalShopDiscounts),
+        potentialRevenue: round2(potentialRevenue),
+        shopNetRevenue: round2(shopNetRevenue), // Payout
+        
+        totalOrders: orders.length,
+        completedOrders,
+        cancelledOrders,
+        failedOrders,
+        smallOrdersCount,
+        aov
     });
 });
 

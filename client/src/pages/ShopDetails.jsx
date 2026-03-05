@@ -57,9 +57,20 @@ const ShopDetails = () => {
                   {shop.name}
                 </h1>
                 <p className="text-neutral-light mb-1">
-                  <span className="bg-neutral-mid px-2 py-1 rounded text-xs text-accent border border-neutral-mid mr-2">
-                    {shop.category}
-                  </span>
+                  {(shop.Categories || []).length > 0 ? (
+                    shop.Categories.map((cat) => (
+                      <span
+                        key={cat.id}
+                        className="bg-neutral-mid px-2 py-1 rounded text-xs text-accent border border-neutral-mid mr-2 inline-block mb-1"
+                      >
+                        {cat.name}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="bg-neutral-mid px-2 py-1 rounded text-xs text-accent border border-neutral-mid mr-2 inline-block mb-1">
+                      {shop.category || "General"}
+                    </span>
+                  )}
                   {shop.location_address}
                 </p>
                 <div className="flex items-center gap-1 mb-4 flex-wrap">
@@ -129,17 +140,30 @@ const ShopDetails = () => {
             <h2 className="text-2xl font-bold text-white mb-6">Products</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {products.length > 0 ? (
-                products.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    isShopkeeper={false}
-                    onAddToCart={(product) => addToCart(product, shop)}
-                    shopIsOpen={shop.is_open}
-                    cartItem={cartItems.find((item) => item.id === product.id)}
-                    onUpdateQuantity={updateQuantity}
-                  />
-                ))
+                products.map((product) => {
+                  const activeDiscount = (shop.Discounts || []).find(
+                    (d) =>
+                      d.target_type === "PRODUCT" &&
+                      d.target_id === product.id &&
+                      d.is_active,
+                  );
+                  return (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      isShopkeeper={false}
+                      onAddToCart={(p) =>
+                        addToCart({ ...p, activeDiscount }, shop)
+                      }
+                      shopIsOpen={shop.is_open}
+                      cartItem={cartItems.find(
+                        (item) => item.id === product.id,
+                      )}
+                      onUpdateQuantity={updateQuantity}
+                      activeDiscount={activeDiscount}
+                    />
+                  );
+                })
               ) : (
                 <p className="text-neutral-light">No products available.</p>
               )}

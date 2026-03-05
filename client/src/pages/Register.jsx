@@ -353,7 +353,7 @@ const Register = () => {
                       className="w-full px-4 py-3 border border-neutral-mid rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent bg-neutral-dark text-white transition-colors"
                     >
                       <option value="Street Food">Street Food</option>
-                      <option value="Grocery">Grocery</option>
+                      <option value="Grocery">grocery</option>
                       <option value="Medical">Medical</option>
                       <option value="Xerox">Xerox Document Center</option>
                     </select>

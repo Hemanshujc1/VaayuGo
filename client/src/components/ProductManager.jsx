@@ -81,7 +81,7 @@ const ProductManager = () => {
         if (productDiscount.enabled && productDiscount.value) {
           try {
             await api.post("/discounts", {
-              name: `Launch Offer - ${payload.name}`,
+              name: `${payload.name}`,
               type: productDiscount.type,
               value: parseFloat(productDiscount.value),
               target_type: "PRODUCT",

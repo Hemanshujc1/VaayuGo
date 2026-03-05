@@ -23,7 +23,11 @@ const Order = sequelize.define('Order', {
     type: DataTypes.FLOAT,
     defaultValue: 0.0,
   },
-  platform_fee: {
+  platform_discount_amount: {
+    type: DataTypes.FLOAT,
+    defaultValue: 0.0,
+  },
+  product_discount_amount: {
     type: DataTypes.FLOAT,
     defaultValue: 0.0,
   },

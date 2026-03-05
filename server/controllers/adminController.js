@@ -23,20 +23,97 @@ const getShopDetails = catchAsync(async (req, res, next) => {
         order: [['createdAt', 'DESC']]
     });
 
-    const shopEarned = orders
-        .filter(o => o.status === 'delivered' && o.OrderRevenueLog)
-        .reduce((sum, o) => sum + Number(o.OrderRevenueLog.shop_final_earning || 0), 0);
+    const Decimal = require('decimal.js');
+    const round2 = (val) => val.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber();
 
-    const vaayugoEarned = orders
-        .filter(o => o.status === 'delivered' && o.OrderRevenueLog)
-        .reduce((sum, o) => sum + Number(o.OrderRevenueLog.vaayugo_final_earning || 0), 0);
+    let metrics = {
+        // SALES
+        shopGmv: new Decimal(0),
+        shopNetGmv: new Decimal(0),
+        totalCompletedOrders: 0,
+        aov: 0,
+        // PLATFORM REVENUE FROM THIS SHOP
+        totalCommission: new Decimal(0),
+        deliveryRevenuePlatformShare: new Decimal(0),
+        smallOrderRevenuePlatformShare: new Decimal(0),
+        grossPlatformRevenue: new Decimal(0),
+        platformDiscounts: new Decimal(0),
+        netPlatformRevenue: new Decimal(0),
+        // SHOP EARNINGS
+        shopNetSale: new Decimal(0),
+        totalShopDiscounts: new Decimal(0),
+        commissionDeducted: new Decimal(0),
+        deliveryRevenueShopShare: new Decimal(0),
+        smallOrderRevenueShopShare: new Decimal(0),
+        shopGrossRevenue: new Decimal(0),
+        shopNetRevenueFinalSettlement: new Decimal(0),
+    };
 
-    const totalRevenue = orders
-        .filter(o => o.status === 'delivered' && o.OrderRevenueLog)
-        .reduce((sum, o) => sum + Number(o.OrderRevenueLog.order_value || o.grand_total || 0), 0); 
+    orders.forEach(o => {
+        if (o.status === 'delivered' && o.OrderRevenueLog) {
+            metrics.totalCompletedOrders++;
+            const log = o.OrderRevenueLog;
 
-    res.json({ shop, products, orders, totalRevenue, shopEarned, vaayugoEarned });
+            const subtotal = new Decimal(log.subtotal || 0);
+            const prodDisc = new Decimal(log.product_discount_amount || 0);
+            const shopDisc = new Decimal(log.shop_discount_amount || 0);
+            const platDisc = new Decimal(log.platform_discount_amount || 0);
+
+            metrics.shopGmv = metrics.shopGmv.plus(subtotal.minus(prodDisc));
+            metrics.shopNetGmv = metrics.shopNetGmv.plus(
+                subtotal.minus(prodDisc).minus(shopDisc).minus(platDisc)
+            );
+
+            metrics.totalCommission = metrics.totalCommission.plus(log.commission_deducted || 0);
+            metrics.deliveryRevenuePlatformShare = metrics.deliveryRevenuePlatformShare.plus(log.platform_delivery_share || 0);
+            metrics.smallOrderRevenuePlatformShare = metrics.smallOrderRevenuePlatformShare.plus(log.platform_small_order_share || 0);
+            metrics.platformDiscounts = metrics.platformDiscounts.plus(log.platform_discount_amount || 0);
+
+            metrics.shopNetSale = metrics.shopNetSale.plus(
+                new Decimal(log.subtotal || 0).minus(shopDisc)
+            );
+            metrics.totalShopDiscounts = metrics.totalShopDiscounts.plus(shopDisc);
+            metrics.commissionDeducted = metrics.commissionDeducted.plus(log.commission_deducted || 0);
+            metrics.deliveryRevenueShopShare = metrics.deliveryRevenueShopShare.plus(log.shop_delivery_share || 0);
+            metrics.smallOrderRevenueShopShare = metrics.smallOrderRevenueShopShare.plus(log.shop_small_order_share || 0);
+        }
+    });
+
+    metrics.aov = metrics.totalCompletedOrders > 0 
+        ? round2(metrics.shopNetGmv.dividedBy(metrics.totalCompletedOrders)) 
+        : 0;
+
+    metrics.grossPlatformRevenue = metrics.totalCommission.plus(metrics.deliveryRevenuePlatformShare).plus(metrics.smallOrderRevenuePlatformShare);
+    metrics.netPlatformRevenue = metrics.grossPlatformRevenue.minus(metrics.platformDiscounts);
+
+    metrics.shopGrossRevenue = metrics.shopNetSale.plus(metrics.deliveryRevenueShopShare).plus(metrics.smallOrderRevenueShopShare);
+    metrics.shopNetRevenueFinalSettlement = metrics.shopGrossRevenue.minus(metrics.commissionDeducted);
+
+    metrics = {
+        shopGmv: round2(metrics.shopGmv),
+        shopNetGmv: round2(metrics.shopNetGmv),
+        totalCompletedOrders: metrics.totalCompletedOrders,
+        aov: metrics.aov,
+        
+        totalCommission: round2(metrics.totalCommission),
+        deliveryRevenuePlatformShare: round2(metrics.deliveryRevenuePlatformShare),
+        smallOrderRevenuePlatformShare: round2(metrics.smallOrderRevenuePlatformShare),
+        grossPlatformRevenue: round2(metrics.grossPlatformRevenue),
+        platformDiscounts: round2(metrics.platformDiscounts),
+        netPlatformRevenue: round2(metrics.netPlatformRevenue),
+        
+        shopNetSale: round2(metrics.shopNetSale),
+        totalShopDiscounts: round2(metrics.totalShopDiscounts),
+        commissionDeducted: round2(metrics.commissionDeducted),
+        deliveryRevenueShopShare: round2(metrics.deliveryRevenueShopShare),
+        smallOrderRevenueShopShare: round2(metrics.smallOrderRevenueShopShare),
+        shopGrossRevenue: round2(metrics.shopGrossRevenue),
+        shopNetRevenueFinalSettlement: round2(metrics.shopNetRevenueFinalSettlement),
+    };
+
+    res.json({ shop, products, orders, metrics });
 });
+
 
 const getCustomerDetails = catchAsync(async (req, res, next) => {
     const { id } = req.params;

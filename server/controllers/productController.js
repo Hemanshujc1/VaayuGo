@@ -77,17 +77,8 @@ const uploadProductImages = catchAsync(async (req, res, next) => {
     const product = await Product.findOne({ where: { id, shop_id: shop.id } });
     if (!product) return next(new AppError('Product not found', 404));
 
-    let currentImages = [];
-    if (Array.isArray(product.images)) {
-        currentImages = product.images;
-    } else if (typeof product.images === 'string') {
-         try {
-            const parsed = JSON.parse(product.images);
-            currentImages = Array.isArray(parsed) ? parsed : [];
-         } catch (e) {
-            currentImages = product.images ? [product.images] : [];
-         }
-    }
+    // Ensure images is treat as array (Sequelize JSON type helps here)
+    const currentImages = Array.isArray(product.images) ? product.images : [];
 
     // Since productRoutes now uses uploadProductBulk fields, files will be in req.files['images']
     const incomingImages = (req.files && req.files['images']) ? req.files['images'] : [];
@@ -109,6 +100,7 @@ const uploadProductImages = catchAsync(async (req, res, next) => {
         product.image_url = newImages[0];
     }
 
+    product.changed('images', true);
     await product.save();
     res.json({ message: 'Images uploaded', images: product.images, image_url: product.image_url });
 });
@@ -125,16 +117,7 @@ const deleteProductImage = catchAsync(async (req, res, next) => {
     const product = await Product.findOne({ where: { id, shop_id: shop.id } });
     if (!product) return next(new AppError('Product not found', 404));
 
-    let currentImages = Array.isArray(product.images) ? product.images : [];
-    
-    if (typeof product.images === 'string') {
-         try {
-            const parsed = JSON.parse(product.images);
-            currentImages = Array.isArray(parsed) ? parsed : [];
-         } catch (e) {
-            currentImages = product.images ? [product.images] : [];
-         }
-    }
+    const currentImages = Array.isArray(product.images) ? product.images : [];
 
     if (!currentImages.includes(imageUrl)) {
         return next(new AppError('Image not found in product gallery', 404));

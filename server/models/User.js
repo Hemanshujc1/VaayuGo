@@ -54,7 +54,6 @@ const User = sequelize.define('User', {
 }, {
   timestamps: true,
   indexes: [
-    { fields: ['email'] },
     { fields: ['mobile_number'] }
   ]
 });

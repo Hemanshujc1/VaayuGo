@@ -19,6 +19,8 @@ const AdminGlobalRules = () => {
     vaayugo_delivery_share: 10,
     commission_percent: 10,
     small_order_delivery_fee: "",
+    small_order_shop_share: 0,
+    small_order_platform_share: 0,
     is_active: true,
   });
 
@@ -64,12 +66,12 @@ const AdminGlobalRules = () => {
         newRule.small_order_delivery_fee !== "" &&
         newRule.small_order_delivery_fee !== null
       ) {
-        if (
-          Number(newRule.small_order_delivery_fee) <
-          Number(newRule.delivery_fee)
-        ) {
+        const totalSmallOrderShare =
+          Number(newRule.small_order_shop_share) +
+          Number(newRule.small_order_platform_share);
+        if (Number(newRule.small_order_delivery_fee) !== totalSmallOrderShare) {
           toast.error(
-            "Small order fee cannot be less than standard delivery fee",
+            "Min Order Extra Charge must equal shop share + vaayugo share",
           );
           return;
         }
@@ -83,6 +85,14 @@ const AdminGlobalRules = () => {
           newRule.small_order_delivery_fee === ""
             ? null
             : newRule.small_order_delivery_fee,
+        small_order_shop_share:
+          newRule.small_order_delivery_fee === ""
+            ? 0
+            : newRule.small_order_shop_share,
+        small_order_platform_share:
+          newRule.small_order_delivery_fee === ""
+            ? 0
+            : newRule.small_order_platform_share,
       };
 
       if (newRule.id) {
@@ -103,6 +113,8 @@ const AdminGlobalRules = () => {
         vaayugo_delivery_share: 10,
         commission_percent: 10,
         small_order_delivery_fee: "",
+        small_order_shop_share: 0,
+        small_order_platform_share: 0,
         is_active: true,
       });
       fetchData();
@@ -136,6 +148,8 @@ const AdminGlobalRules = () => {
       vaayugo_delivery_share: rule.vaayugo_delivery_share,
       commission_percent: rule.commission_percent,
       small_order_delivery_fee: rule.small_order_delivery_fee || "",
+      small_order_shop_share: rule.small_order_shop_share || 0,
+      small_order_platform_share: rule.small_order_platform_share || 0,
       is_active: rule.is_active,
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -387,7 +401,7 @@ const AdminGlobalRules = () => {
           </div>
 
           {/* MINIMUMS AND SMALL ORDERS (Full Width) */}
-          <div className="col-span-1 md:col-span-2 lg:col-span-4 bg-primary/20 border border-neutral-mid/30 rounded-2xl p-6 mt-2 grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="col-span-1 md:col-span-2 lg:col-span-4 bg-primary/20 border border-neutral-mid/30 rounded-2xl p-6 mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 gap-y-8">
             <div className="flex flex-col">
               <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2">
                 Minimum Order Value (₹){" "}
@@ -414,9 +428,10 @@ const AdminGlobalRules = () => {
                 />
               </div>
             </div>
+
             <div className="flex flex-col">
               <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2">
-                Small Order Fee (₹){" "}
+                Min Order Extra Charge (₹)
                 <span className="text-[10px] ml-1 text-neutral-500 opacity-70">
                   (Optional)
                 </span>
@@ -427,7 +442,7 @@ const AdminGlobalRules = () => {
                 </span>
                 <input
                   type="number"
-                  placeholder="Leave blank to strictly block orders below minimum"
+                  placeholder="Extra charge if below min"
                   value={newRule.small_order_delivery_fee}
                   onChange={(e) =>
                     setNewRule({
@@ -439,7 +454,72 @@ const AdminGlobalRules = () => {
                   className="w-full bg-neutral-dark border border-neutral-mid rounded-xl p-3 pl-8 text-white focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400 transition-all"
                 />
               </div>
-              <p className="text-xs text-orange-400/80 mt-2 flex items-center gap-1">
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2">
+                Extra Charge Shop Share (₹)
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-3 text-neutral-400 font-bold">
+                  ₹
+                </span>
+                <input
+                  type="number"
+                  value={newRule.small_order_shop_share}
+                  onChange={(e) =>
+                    setNewRule({
+                      ...newRule,
+                      small_order_shop_share:
+                        e.target.value === "" ? 0 : parseFloat(e.target.value),
+                    })
+                  }
+                  disabled={
+                    newRule.small_order_delivery_fee === "" ||
+                    newRule.small_order_delivery_fee === null
+                  }
+                  className="w-full bg-neutral-dark border border-neutral-mid rounded-xl p-3 pl-8 text-white focus:ring-2 focus:ring-green-400/50 focus:border-green-400 transition-all disabled:opacity-50"
+                  required={
+                    newRule.small_order_delivery_fee !== "" &&
+                    newRule.small_order_delivery_fee !== null
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2">
+                Extra Charge VaayuGO Share (₹)
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-3 text-neutral-400 font-bold">
+                  ₹
+                </span>
+                <input
+                  type="number"
+                  value={newRule.small_order_platform_share}
+                  onChange={(e) =>
+                    setNewRule({
+                      ...newRule,
+                      small_order_platform_share:
+                        e.target.value === "" ? 0 : parseFloat(e.target.value),
+                    })
+                  }
+                  disabled={
+                    newRule.small_order_delivery_fee === "" ||
+                    newRule.small_order_delivery_fee === null
+                  }
+                  className="w-full bg-neutral-dark border border-neutral-mid rounded-xl p-3 pl-8 text-white focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400 transition-all disabled:opacity-50"
+                  required={
+                    newRule.small_order_delivery_fee !== "" &&
+                    newRule.small_order_delivery_fee !== null
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="col-span-1 md:col-span-2 lg:col-span-4 mt-[-10px]">
+              <p className="text-xs text-orange-400/80 flex items-center gap-1">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="h-4 w-4"
@@ -454,7 +534,8 @@ const AdminGlobalRules = () => {
                     d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                If blank, orders below minimum order value are blocked.
+                If "Min Order Extra Charge" is blank, orders below minimum value
+                are strictly blocked.
               </p>
             </div>
           </div>
@@ -657,9 +738,15 @@ const AdminGlobalRules = () => {
                               ₹{rule.min_order_value}
                             </span>
                             {rule.small_order_delivery_fee !== null ? (
-                              <span className="text-xs text-orange-400/80 bg-orange-400/10 px-1.5 py-0.5 rounded mt-1 inline-block w-max">
-                                +₹{rule.small_order_delivery_fee} fee if below
-                              </span>
+                              <div className="flex flex-col">
+                                <span className="text-xs text-orange-400/80 bg-orange-400/10 px-1.5 py-0.5 rounded mt-1 inline-block w-max">
+                                  +₹{rule.small_order_delivery_fee} fee if below
+                                </span>
+                                <span className="text-[10px] text-neutral-500 mt-0.5 inline-block ml-1">
+                                  S: ₹{rule.small_order_shop_share} • V: ₹
+                                  {rule.small_order_platform_share}
+                                </span>
+                              </div>
                             ) : (
                               <span className="text-xs text-red-400/80 bg-red-400/10 px-1.5 py-0.5 rounded mt-1 inline-block w-max">
                                 Strict cutoff

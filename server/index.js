@@ -60,7 +60,7 @@ app.use(globalErrorHandler);
 
 // Sync Database (Force: false to prevent data loss)
 // In development, you might use { force: true } or { alter: true } initially to update schema, but be careful.
-sequelize.sync({ alter: true })
+sequelize.sync()
   .then(() => {
     console.log('Database Synced');
   }).catch((err) => {

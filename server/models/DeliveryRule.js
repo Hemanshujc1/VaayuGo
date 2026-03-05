@@ -1,64 +1,75 @@
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/db');
 
-const DeliveryRule = sequelize.define('DeliveryRule', {
-  id: {
-    type: DataTypes.INTEGER,
-    autoIncrement: true,
-    primaryKey: true,
+const DeliveryRule = sequelize.define(
+  "DeliveryRule",
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    location_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
+    category: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    shop_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    // Normal Delivery
+    delivery_fee: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.0,
+    },
+    shop_delivery_share: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.0,
+    },
+    vaayugo_delivery_share: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.0,
+    },
+    commission_percent: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: false,
+      defaultValue: 0.0,
+    },
+    // Small Order Fee
+    min_order_value: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+    },
+    small_order_delivery_fee: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true, // The total customer pays for a small order
+    },
+    small_order_platform_share: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.00,
+    },
+    small_order_shop_share: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.00,
+    },
+    is_active: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+    },
   },
-  location_id: {
-    type: DataTypes.INTEGER,
-    allowNull: false, // Every rule must at least belong to a location
-  },
-  category: {
-    type: DataTypes.STRING,
-    allowNull: true, // Null means it applies to all categories in the location
-  },
-  shop_id: {
-    type: DataTypes.INTEGER,
-    allowNull: true, // Null means it applies to all shops in the category/location
-  },
-  delivery_fee: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-    defaultValue: 0.0,
-  },
-  shop_delivery_share: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-    defaultValue: 0.0,
-  },
-  vaayugo_delivery_share: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false,
-    defaultValue: 0.0,
-  },
-  commission_percent: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: false,
-    defaultValue: 0.0,
-  },
-  min_order_value: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: true, // Null means no minimum order constraint
-  },
-  small_order_delivery_fee: {
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: true, // Null means strict mode (block if below min_order_value)
-  },
-  is_active: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true,
-  },
-}, {
-  timestamps: true,
-  tableName: 'delivery_rules',
-  indexes: [
-    { fields: ['location_id'] },
-    { fields: ['shop_id'] },
-    { fields: ['is_active'] }
-  ]
-});
+  {
+    timestamps: true,
+    tableName: "delivery_rules",
+  }
+);
 
 module.exports = DeliveryRule;

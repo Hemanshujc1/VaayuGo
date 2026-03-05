@@ -39,9 +39,10 @@ const calculateCart = async (req, res, next) => {
     const discountData = await resolveDiscounts(location_id, shop_id, category, subtotal_amount, items);
     const shop_discount_amount = discountData.shop_discount_amount;
     const platform_discount_amount = discountData.platform_discount_amount;
+    const product_discount_amount = discountData.product_discount_amount;
     const applied_rules = discountData.applied_rules;
 
-    const final_payable_amount = Math.max(0, subtotal_amount - shop_discount_amount - platform_discount_amount);
+    const final_payable_amount = Math.max(0, subtotal_amount - shop_discount_amount - platform_discount_amount - product_discount_amount);
 
     // 2. Fetch Applicable Rule
     let rule;
@@ -54,7 +55,7 @@ const calculateCart = async (req, res, next) => {
     // 3. Validate Order Value Against Rule
     let validation;
     try {
-      validation = validateOrderAgainstRule(subtotal_amount, rule);
+      validation = validateOrderAgainstRule(subtotal_amount - product_discount_amount, rule);
     } catch (err) {
       // For Strict Mode blockages
       return res.status(400).json({ error: err.message });
@@ -62,21 +63,38 @@ const calculateCart = async (req, res, next) => {
 
     // 4. Derive Final Amounts
     const delivery_fee = validation.deliveryFee;
+    const extra_charge = validation.isSmallOrder ? (validation.extraCharge || 0) : 0;
     const commission_percent = Number(rule.commission_percent);
     
     // Revenue calculations
-    const commission_base = subtotal_amount - shop_discount_amount;
-    const commission_amount = commission_base * (commission_percent / 100);
-    const shop_settlement_amount = (subtotal_amount - shop_discount_amount) - commission_amount;
+    // Calculate commission item by item
+    let commission_amount = 0;
+    if (discountData.itemBreakdown) {
+      commission_amount = discountData.itemBreakdown.reduce((sum, item) => {
+          // Commission base = gross - product_discount - shop_discount
+          const base = item.gross - item.product_discount - item.shop_discount;
+          return sum + (base * (commission_percent / 100));
+      }, 0);
+    } else {
+        // Fallback just in case
+        const commission_base = subtotal_amount - shop_discount_amount - product_discount_amount;
+        commission_amount = commission_base * (commission_percent / 100);
+    }
+    
+    // Ensure precision
+    commission_amount = Number(commission_amount.toFixed(2));
+    const shop_settlement_amount = subtotal_amount - shop_discount_amount - product_discount_amount - commission_amount + delivery_fee + extra_charge;
 
-    const total_payable = final_payable_amount + delivery_fee;
+    const total_payable = final_payable_amount + delivery_fee + extra_charge;
 
     res.status(200).json({
       subtotal_amount,
       shop_discount_amount,
+      product_discount_amount,
       platform_discount_amount,
       final_payable_amount,
       delivery_fee,
+      extra_charge,
       is_small_order: validation.isSmallOrder,
       commission_percent,
       commission_amount,
