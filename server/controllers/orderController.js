@@ -18,7 +18,7 @@ const getMyOrders = catchAsync(async (req, res, next) => {
             { model: Shop, attributes: ['name'] },
             { model: OrderItem, include: [Product] },
             { model: DeliverySlot },
-            { model: Settlement, attributes: ['status', 'createdAt'] }
+            // { model: Settlement, attributes: ['status', 'createdAt'] }
         ],
         order: [['createdAt', 'DESC']]
     });
@@ -34,7 +34,7 @@ const getShopOrders = catchAsync(async (req, res, next) => {
     const orders = await Order.findAll({
         where: { shop_id: shop.id },
         include: [
-            { model: OrderItem, include: [Product] }, 
+            { model: OrderItem, include: [Product] },
             { model: User, attributes: ['name', 'mobile_number', 'email'] },
             { model: OrderRevenueLog },
             { model: DeliverySlot },
@@ -184,7 +184,7 @@ const getOrderById = catchAsync(async (req, res, next) => {
             { model: OrderItem, include: [{ model: Product, attributes: ['id', 'name', 'image_url'] }] },
             { model: OrderRevenueLog },
             { model: DeliverySlot },
-            { model: Settlement }
+            // { model: Settlement }
         ]
     });
 

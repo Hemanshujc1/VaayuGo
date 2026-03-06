@@ -41,6 +41,14 @@ const Product = sequelize.define('Product', {
     type: DataTypes.JSON,
     defaultValue: [],
   },
+  is_xerox_service: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  xerox_metadata: {
+    type: DataTypes.JSON, // Stores pricing rules (BW vs Color, etc)
+    allowNull: true,
+  },
 }, {
   timestamps: true,
   indexes: [

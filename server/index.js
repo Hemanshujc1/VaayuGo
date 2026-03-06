@@ -29,6 +29,7 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const discountRoutes = require('./routes/discountRoutes');
+const xeroxRoutes = require('./routes/xeroxRoutes');
 const initSettlementCron = require('./cron/settlementCron');
 
 // Database Connection
@@ -45,6 +46,7 @@ app.use('/api/files', uploadRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/discounts', discountRoutes);
+app.use('/api/xerox', xeroxRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {

@@ -28,6 +28,7 @@
     "mysql2": "^3.18.0",
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.1",
+    "pdf-lib": "^1.17.1",
     "sequelize": "^6.37.7",
     "sharp": "^0.34.5"
   },

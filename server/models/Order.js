@@ -114,6 +114,8 @@ const Order = sequelize.define('Order', {
     allowNull: true,
   },
 }, {
+  tableName: 'Orders',
+  freezeTableName: true,
   timestamps: true,
   indexes: [
     { fields: ['customer_id'] },

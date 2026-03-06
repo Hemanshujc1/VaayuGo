@@ -61,3 +61,9 @@ module.exports.uploadProductBulk = memoryUpload.fields([
     { name: 'csv', maxCount: 1 },
     { name: 'imagesZip', maxCount: 1 }
 ]);
+
+module.exports.xeroxUpload = multer({ 
+    storage: diskStorage,
+    fileFilter: diskFileFilter,
+    limits: { fileSize: 500 * 1024 * 1024 } // 500MB limit for Xerox
+}).single('file');

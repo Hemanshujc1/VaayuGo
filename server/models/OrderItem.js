@@ -10,10 +10,12 @@ const OrderItem = sequelize.define('OrderItem', {
   order_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    field: 'order_id'
   },
   product_id: {
     type: DataTypes.INTEGER,
     allowNull: true,
+    field: 'product_id'
   },
   quantity: {
     type: DataTypes.INTEGER,
@@ -50,6 +52,8 @@ const OrderItem = sequelize.define('OrderItem', {
     allowNull: true,
   },
 }, {
+  tableName: 'OrderItems',
+  freezeTableName: true,
   timestamps: false,
   indexes: [
     { fields: ['order_id'] },

@@ -98,8 +98,15 @@ const Cart = () => {
                 className="flex justify-between items-center py-3 border-b border-neutral-mid last:border-0"
               >
                 <div>
-                  <p className="font-semibold text-white">{item.name}</p>
+                  <p className="font-semibold text-white">
+                    {item.is_xerox ? <span>📄 {item.name}</span> : item.name}
+                  </p>
                   <div className="text-sm text-neutral-light">
+                    {item.is_xerox && (
+                      <p className="text-accent text-xs mb-1 italic">
+                        {item.description}
+                      </p>
+                    )}
                     {item.price !== discountedPrice ? (
                       <span className="flex gap-2 items-center flex-wrap">
                         <span className="line-through opacity-50">
