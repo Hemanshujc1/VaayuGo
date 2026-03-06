@@ -20,7 +20,13 @@ const {
     getAllPenalties,
     getAllCategories,
     createCategory,
-    deleteCategory
+    deleteCategory,
+    getShopProducts,
+    getShopOrders,
+    getSettlements,
+    updateSettlementStatus,
+    triggerSettlementManually,
+    getSettlementOrders
 } = require('../controllers/adminController');
 const {
     getDeliveryRules,
@@ -49,6 +55,8 @@ router.put('/shops/verify/:id', verifyShop);
 router.patch('/shops/:id/reject', rejectShop);
 router.patch('/shops/:id', updateShopStatus); // Generic Status Update
 router.get('/shops/:id', getShopDetails); // New Route
+router.get('/shops/:id/products', getShopProducts);
+router.get('/shops/:id/orders', getShopOrders);
 
 // User Routes
 router.get('/users', getUsers);
@@ -78,5 +86,11 @@ router.post('/locations', addLocation);
 router.get('/categories', getAllCategories);
 router.post('/categories', createCategory);
 router.delete('/categories/:id', deleteCategory);
+
+// Settlement Routes
+router.get('/settlements', getSettlements);
+router.patch('/settlements/:id/status', updateSettlementStatus);
+router.post('/settlements/trigger', triggerSettlementManually);
+router.get('/settlements/:id/orders', getSettlementOrders);
 
 module.exports = router;

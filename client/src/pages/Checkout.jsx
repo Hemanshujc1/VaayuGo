@@ -12,6 +12,8 @@ const Checkout = () => {
   const [calculation, setCalculation] = useState(null);
   const [calcLoading, setCalcLoading] = useState(true);
   const [calcError, setCalcError] = useState("");
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [selectedSlotId, setSelectedSlotId] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,7 +27,16 @@ const Checkout = () => {
         setAddress("Failed to load address.");
       }
     };
+    const fetchSlots = async () => {
+      try {
+        const res = await api.get("/orders/available-slots");
+        setAvailableSlots(res.data || []);
+      } catch (error) {
+        console.error("Failed to load delivery slots", error);
+      }
+    };
     fetchProfile();
+    fetchSlots();
   }, []);
 
   useEffect(() => {
@@ -65,11 +76,17 @@ const Checkout = () => {
       return;
     }
 
+    if (!selectedSlotId) {
+      toast.error("Please select a delivery slot");
+      return;
+    }
+
     setLoading(true);
     try {
       const orderData = {
         shop_id: cartShop.id,
         category: cartShop.category,
+        delivery_slot_id: selectedSlotId,
         items: cartItems.map((item) => ({
           id: item.id,
           quantity: item.quantity,
@@ -267,6 +284,26 @@ const Checkout = () => {
             <p className="text-xs text-accent mt-2">
               * Delivery will be made to your registered address.
             </p>
+          </div>
+
+          <h2 className="text-lg font-bold mb-4 text-accent">Delivery Slot</h2>
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            {availableSlots.map((slot) => (
+              <button
+                key={slot.id}
+                onClick={() => setSelectedSlotId(slot.id)}
+                className={`p-3 rounded-lg border text-left transition-all ${
+                  selectedSlotId === slot.id
+                    ? "bg-accent/20 border-accent text-accent"
+                    : "bg-primary border-neutral-mid text-neutral-light hover:border-neutral-light"
+                }`}
+              >
+                <p className="text-xs font-bold uppercase mb-1">{slot.name}</p>
+                <p className="text-[10px] opacity-70">
+                  {slot.start_time} - {slot.end_time}
+                </p>
+              </button>
+            ))}
           </div>
 
           <h2 className="text-lg font-bold mb-4 text-accent">Payment Method</h2>

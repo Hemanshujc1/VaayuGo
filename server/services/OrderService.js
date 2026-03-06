@@ -1,12 +1,13 @@
 const { sequelize, Order, OrderItem, Product, Shop, User, OrderRevenueLog, Location } = require('../models/index');
 const { getApplicableRule, validateOrderAgainstRule } = require('../services/RuleEngineService');
 const { resolveDiscounts } = require('../services/DiscountService');
+const DeliverySlotService = require('./DeliverySlotService');
 const AppError = require('../utils/AppError');
 const Decimal = require('decimal.js');
 
 class OrderService {
     static async createOrderTransaction(customer_id, data) {
-        const { shop_id, items, delivery_address, category } = data;
+        const { shop_id, items, delivery_address, category, delivery_slot_id } = data;
 
         const transaction = await sequelize.transaction();
         try {
@@ -138,7 +139,7 @@ class OrderService {
                 .plus(small_order_fee_applied);
 
             // Round to precisely 2 decimals
-            const round2 = (d) => d.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber();
+            const round2 = (d) => new Decimal(d).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber();
 
             // 4. Create Order
             const order = await Order.create({
@@ -157,11 +158,35 @@ class OrderService {
                 platform_fee: 0,
                 grand_total: round2(total_payable),
                 delivery_address,
+                delivery_slot_id,
                 status: 'pending'
             }, { transaction });
 
             // 5. Create Order Items
-            const itemsToCreate = orderItemsData.map(item => ({ ...item, order_id: order.id }));
+            const itemsToCreate = orderItemsData.map(item => {
+                let item_product_discount = 0;
+                let item_product_discount_type = null;
+                let item_product_discount_value = null;
+                
+                if (discountData.itemBreakdown) {
+                    const breakdown = discountData.itemBreakdown.find(b => 
+                        b.id === item.product_id || (item.product_id === null && b.name === item.name)
+                    );
+                    if (breakdown) {
+                        item_product_discount = breakdown.product_discount;
+                        item_product_discount_type = breakdown.product_discount_type;
+                        item_product_discount_value = breakdown.product_discount_value;
+                    }
+                }
+                
+                return { 
+                    ...item, 
+                    order_id: order.id,
+                    product_discount: round2(item_product_discount),
+                    product_discount_type: item_product_discount_type,
+                    product_discount_value: item_product_discount_value
+                };
+            });
             await OrderItem.bulkCreate(itemsToCreate, { transaction });
 
             // 6. Create Revenue Log (exact exact fields)
@@ -252,6 +277,22 @@ class OrderService {
             if (!failure_reason) {
                 throw new AppError('A failure reason is required.', 400);
             }
+            
+            // AUTOMATED RETRY LOGIC
+            // If Customer was unavailable and it's the 1st attempt, move to next slot
+            if (failure_reason === 'Customer was unavailable' && order.delivery_attempt === 1) {
+                const nextSlot = await DeliverySlotService.getNextSlot(order.delivery_slot_id);
+                if (nextSlot) {
+                    order.delivery_attempt = 2;
+                    order.delivery_slot_id = nextSlot.id;
+                    order.status = 'accepted'; // Revert to accepted for next slot
+                    order.last_attempt_failed_at = new Date();
+                    order.delivery_otp = null; // Clear OTP to regen on next attempt
+                    await order.save();
+                    return order;
+                }
+            }
+
             order.failure_reason = failure_reason;
             order.failed_at = new Date();
             order.final_status_locked = true;

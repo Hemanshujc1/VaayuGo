@@ -23,6 +23,7 @@ const AdminLayout = () => {
     { name: "Discount Rules", path: "/admin/discounts", icon: "🏷️" },
     { name: "Locations", path: "/admin/locations", icon: "📍" },
     { name: "Delivery Slots", path: "/admin/slots", icon: "⏱️" },
+    { name: "Settlements", path: "/admin/settlements", icon: "💰" },
   ];
 
   return (

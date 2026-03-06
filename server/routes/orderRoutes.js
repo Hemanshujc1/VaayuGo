@@ -1,11 +1,12 @@
 const express = require('express');
-const { createOrder, getMyOrders, getShopOrders, updateOrderStatus, rateOrder, getOrderById } = require('../controllers/orderController');
+const { createOrder, getMyOrders, getShopOrders, updateOrderStatus, rateOrder, getOrderById, getAvailableSlots } = require('../controllers/orderController');
 const { authenticateToken, authorizeRole } = require('../middlewares/authMiddleware');
 
 const router = express.Router();
 
-router.use(authenticateToken); // Any authenticated user can place orders
+router.use(authenticateToken);
 
+router.get('/available-slots', getAvailableSlots);
 router.post('/', authorizeRole(['customer']), createOrder);
 router.get('/my-orders', authorizeRole(['customer']), getMyOrders);
 router.post('/:id/rate', authorizeRole(['customer']), rateOrder);

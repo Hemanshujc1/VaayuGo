@@ -36,6 +36,8 @@ async function resolveDiscounts(location_id, shop_id, category, subtotal_amount,
             quantity: item.quantity,
             gross: itemGross,
             product_discount: 0,
+            product_discount_type: null,
+            product_discount_value: null,
             shop_discount: 0,
             platform_discount: 0,
             net_after_product: itemGross
@@ -55,6 +57,13 @@ async function resolveDiscounts(location_id, shop_id, category, subtotal_amount,
                 }
             }
             breakdown.product_discount += runAmount;
+            
+            // Only capture rule details if a discount is actually applied
+            if (runAmount > 0) {
+                breakdown.product_discount_type = rule.type;
+                breakdown.product_discount_value = Number(rule.value);
+            }
+
             breakdown.net_after_product = breakdown.gross - breakdown.product_discount;
             total_product_discount += runAmount;
         }

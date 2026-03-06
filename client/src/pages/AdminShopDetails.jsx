@@ -1,26 +1,24 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import api from "../api/axios";
 
 const AdminShopDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [shop, setShop] = useState(null);
-  const [products, setProducts] = useState([]);
-  const [orders, setOrders] = useState([]);
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Still fetching the overview data here. The arrays (products, orders) will be fetched in child routes.
   useEffect(() => {
-    fetchShopDetails();
+    fetchShopOverview();
   }, [id]);
 
-  const fetchShopDetails = async () => {
+  const fetchShopOverview = async () => {
     try {
       const { data } = await api.get(`/admin/shops/${id}`);
       setShop(data.shop);
-      setProducts(data.products || []);
-      setOrders(data.orders || []);
       setMetrics(data.metrics || null);
     } catch (error) {
       console.error("Error fetching shop details", error);
@@ -93,10 +91,10 @@ const AdminShopDetails = () => {
           </div>
         </div>
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate("/admin/shops")}
           className="bg-neutral-mid text-white px-6 py-2 rounded-full hover:bg-neutral-light/20 transition-colors font-bold text-sm shadow whitespace-nowrap"
         >
-          ← Back
+          ← Back to Shops
         </button>
       </div>
 
@@ -283,97 +281,20 @@ const AdminShopDetails = () => {
         </>
       )}
 
-      {/* Tabs */}
-      <h2 className="text-xl font-bold text-white mb-4 mt-12 border-b border-neutral-mid pb-2">
-        Inventory & Order Records
-      </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Products List */}
-        <div className="bg-neutral-dark p-6 rounded-xl shadow border border-neutral-mid">
-          <h3 className="text-lg font-bold text-white mb-4 flex items-center justify-between">
-            <span>Shop Products ({products.length})</span>
-          </h3>
-          <div className="max-h-96 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
-            {products.length === 0 ? (
-              <p className="text-neutral-light text-center py-4 text-sm">
-                No products listed by this shop.
-              </p>
-            ) : (
-              products.map((p) => (
-                <div
-                  key={p.id}
-                  className="bg-primary p-3 rounded border border-neutral-mid flex justify-between items-center"
-                >
-                  <div className="flex flex-col">
-                    <span className="text-white font-medium text-sm">
-                      {p.name}
-                    </span>
-                    <span className="text-xs text-neutral-500">
-                      Stock: {p.stock_quantity || 0}
-                    </span>
-                  </div>
-                  <span className="text-green-400 font-bold text-sm">
-                    ₹{p.price}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Orders List */}
-        <div className="bg-neutral-dark p-6 rounded-xl shadow border border-neutral-mid">
-          <h3 className="text-lg font-bold text-white mb-4">
-            Recent Shop Orders ({orders.length})
-          </h3>
-          <div className="max-h-96 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
-            {orders.length === 0 ? (
-              <p className="text-neutral-light text-center py-4 text-sm">
-                No orders recorded yet.
-              </p>
-            ) : (
-              orders.map((o) => (
-                <div
-                  key={o.id}
-                  className="bg-primary p-3 rounded border border-neutral-mid flex flex-col gap-2"
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-medium text-sm">
-                        Order #{o.id}
-                      </span>
-                      <button
-                        onClick={() => navigate(`/admin/orders/${o.id}`)}
-                        className="text-xs bg-neutral-mid hover:bg-neutral-light text-white px-2 py-1 rounded"
-                      >
-                        View
-                      </button>
-                    </div>
-                    <span
-                      className={`text-xs font-bold px-2 py-0.5 rounded ${
-                        o.status === "delivered"
-                          ? "bg-green-900/50 text-green-400"
-                          : o.status === "cancelled" || o.status === "failed"
-                            ? "bg-red-900/50 text-red-400"
-                            : "bg-yellow-900/50 text-yellow-400"
-                      }`}
-                    >
-                      {o.status.toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-neutral-light">
-                      Val: <span className="text-white">₹{o.grand_total}</span>
-                    </span>
-                    <span className="text-neutral-500">
-                      {new Date(o.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+      {/* Navigation Links */}
+      <div className="mt-8 flex gap-4 border-t border-neutral-mid pt-8">
+        <Link
+          to={`/admin/shops/${id}/products`}
+          className="flex-1 bg-neutral-dark border border-teal-500/30 text-teal-400 font-bold text-center py-4 rounded-xl hover:bg-teal-500 hover:text-primary transition-all shadow-sm flex items-center justify-center gap-2"
+        >
+          <span>📦</span> View All Products
+        </Link>
+        <Link
+          to={`/admin/shops/${id}/orders`}
+          className="flex-1 bg-neutral-dark border border-amber-500/30 text-amber-400 font-bold text-center py-4 rounded-xl hover:bg-amber-500 hover:text-primary transition-all shadow-sm flex items-center justify-center gap-2"
+        >
+          <span>🧾</span> View All Orders
+        </Link>
       </div>
     </div>
   );

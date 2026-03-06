@@ -29,6 +29,7 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const discountRoutes = require('./routes/discountRoutes');
+const initSettlementCron = require('./cron/settlementCron');
 
 // Database Connection
 connectDB();
@@ -70,4 +71,6 @@ sequelize.sync()
 // Start Server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  // Initialize Cron Jobs
+  initSettlementCron();
 });

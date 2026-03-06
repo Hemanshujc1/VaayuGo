@@ -47,6 +47,11 @@ const Order = sequelize.define('Order', {
     type: DataTypes.ENUM('pending', 'paid', 'failed'),
     defaultValue: 'pending',
   },
+  payment_method: {
+    type: DataTypes.ENUM('cod', 'online'),
+    defaultValue: 'cod',
+    allowNull: false,
+  },
   shop_rating: {
     type: DataTypes.INTEGER,
     allowNull: true,
@@ -90,6 +95,23 @@ const Order = sequelize.define('Order', {
   final_status_locked: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
+  },
+  delivery_slot_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  delivery_attempt: {
+    type: DataTypes.INTEGER,
+    defaultValue: 1,
+    allowNull: false,
+  },
+  last_attempt_failed_at: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  settlement_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
   },
 }, {
   timestamps: true,

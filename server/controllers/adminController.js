@@ -1,4 +1,5 @@
-const { sequelize, DeliverySlot, Shop, User, Order, OrderRevenueLog, Location, Penalty, Category, ShopCategory } = require('../models/index');
+const { sequelize, DeliverySlot, Shop, User, Order, OrderRevenueLog, Location, Penalty, Category, ShopCategory, DiscountRule, Settlement } = require('../models/index');
+const { Op } = require('sequelize');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/AppError');
 const AnalyticsService = require('../services/AnalyticsService');
@@ -13,7 +14,7 @@ const getShopDetails = catchAsync(async (req, res, next) => {
     const shop = await Shop.findByPk(id, { include: User });
     if (!shop) return next(new AppError('Shop not found', 404));
 
-    const products = await sequelize.models.Product.findAll({ where: { shop_id: id } });
+    // Fetch orders internally just for metrics calculations, but do not send them to the frontend payload
     const orders = await Order.findAll({ 
         where: { shop_id: id },
         include: [
@@ -111,9 +112,47 @@ const getShopDetails = catchAsync(async (req, res, next) => {
         shopNetRevenueFinalSettlement: round2(metrics.shopNetRevenueFinalSettlement),
     };
 
-    res.json({ shop, products, orders, metrics });
+    res.json({ shop, metrics });
 });
 
+const getShopProducts = catchAsync(async (req, res, next) => {
+    const { id } = req.params;
+    const products = await sequelize.models.Product.findAll({ 
+        where: { shop_id: id },
+        order: [['createdAt', 'DESC']]
+    });
+
+    const productIds = products.map(p => p.id);
+    const discounts = await DiscountRule.findAll({
+        where: { 
+            is_active: true,
+            [Op.or]: [
+                { target_type: 'SHOP', target_id: id },
+                { target_type: 'PRODUCT', target_id: { [Op.in]: productIds } }
+            ],
+            // Only current valid discounts
+            [Op.and]: [
+                { [Op.or]: [{ valid_from: { [Op.lte]: new Date() } }, { valid_from: null }] },
+                { [Op.or]: [{ valid_until: { [Op.gte]: new Date() } }, { valid_until: null }] }
+            ]
+        }
+    });
+
+    res.json({ products, discounts });
+});
+
+const getShopOrders = catchAsync(async (req, res, next) => {
+    const { id } = req.params;
+    const orders = await Order.findAll({ 
+        where: { shop_id: id },
+        include: [
+            { model: User, attributes: ['name', 'mobile_number', 'email'] },
+            { model: OrderRevenueLog }
+        ],
+        order: [['createdAt', 'DESC']]
+    });
+    res.json(orders);
+});
 
 const getCustomerDetails = catchAsync(async (req, res, next) => {
     const { id } = req.params;
@@ -343,6 +382,73 @@ const deleteCategory = catchAsync(async (req, res, next) => {
     await category.destroy();
     res.json({ message: 'Category deleted successfully' });
 });
+ 
+// --- Settlements ---
+
+const getSettlements = catchAsync(async (req, res, next) => {
+    const settlements = await Settlement.findAll({
+        include: [{ model: Shop, attributes: ['name', 'id'] }],
+        order: [['createdAt', 'DESC']]
+    });
+    console.log(`[DEBUG] getSettlements returning ${settlements.length} items`);
+    res.json(settlements);
+});
+
+const updateSettlementStatus = catchAsync(async (req, res, next) => {
+    const { id } = req.params;
+    const { status } = req.body; // 'completed', 'disputed'
+
+    const validStatuses = ['pending', 'completed', 'failed', 'disputed'];
+    if (!validStatuses.includes(status)) {
+        return next(new AppError('Invalid status', 400));
+    }
+
+    const settlement = await Settlement.findByPk(id);
+    if (!settlement) return next(new AppError('Settlement not found', 404));
+
+    settlement.status = status;
+    await settlement.save();
+    res.json({ message: `Settlement status updated to ${status}`, settlement });
+});
+
+const triggerSettlementManually = catchAsync(async (req, res, next) => {
+    const { shop_id, start_date, end_date } = req.body;
+    const SettlementService = require('../services/SettlementService');
+
+    let startDate, endDate;
+    if (start_date && end_date) {
+        startDate = new Date(start_date);
+        endDate = new Date(end_date);
+    } else {
+        const range = SettlementService.getPreviousWeekRange();
+        startDate = range.startDate;
+        endDate = range.endDate;
+    }
+
+    if (shop_id) {
+        const settlement = await SettlementService.calculateWeeklySettlement(shop_id, startDate, endDate);
+        return res.json({ message: 'Settlement calculated', settlement });
+    }
+
+    const shops = await Shop.findAll({ where: { status: 'approved' } });
+    const results = [];
+    for (const shop of shops) {
+        const s = await SettlementService.calculateWeeklySettlement(shop.id, startDate, endDate);
+        if (s) results.push(s);
+    }
+
+    res.json({ message: `Processed ${shops.length} shops. Created ${results.length} settlements.`, results });
+});
+
+const getSettlementOrders = catchAsync(async (req, res, next) => {
+    const { id } = req.params;
+    const orders = await Order.findAll({
+        where: { settlement_id: id },
+        attributes: ['id', 'grand_total', 'createdAt', 'status'],
+        order: [['createdAt', 'DESC']]
+    });
+    res.json(orders);
+});
 
 module.exports = {
   getDeliverySlots: getSlots, 
@@ -365,5 +471,11 @@ module.exports = {
   getAllPenalties,
   getAllCategories,
   createCategory,
-  deleteCategory
+  deleteCategory,
+  getShopProducts,
+  getShopOrders,
+  getSettlements,
+  updateSettlementStatus,
+  triggerSettlementManually,
+  getSettlementOrders
 };

@@ -12,6 +12,7 @@ const Penalty = require('./Penalty');
 const Category = require('./Category');
 const ShopCategory = require('./ShopCategory');
 const DiscountRule = require('./DiscountRule');
+const Settlement = require('./Settlement');
 
 // Defines relationships
 User.hasOne(Shop, { foreignKey: 'owner_id' });
@@ -55,6 +56,20 @@ OrderRevenueLog.belongsTo(Order, { foreignKey: 'order_id', onDelete: 'CASCADE' }
 Shop.hasMany(OrderRevenueLog, { foreignKey: 'shop_id', onDelete: 'CASCADE' });
 OrderRevenueLog.belongsTo(Shop, { foreignKey: 'shop_id', onDelete: 'CASCADE' });
 
+// Order-DeliverySlot relationships
+Order.belongsTo(DeliverySlot, { foreignKey: 'delivery_slot_id' });
+DeliverySlot.hasMany(Order, { foreignKey: 'delivery_slot_id' });
+
+// Settlement relationships
+Shop.hasMany(Settlement, { foreignKey: 'shop_id' });
+Settlement.belongsTo(Shop, { foreignKey: 'shop_id' });
+
+Settlement.hasMany(OrderRevenueLog, { foreignKey: 'settlement_id' });
+OrderRevenueLog.belongsTo(Settlement, { foreignKey: 'settlement_id' });
+
+Order.belongsTo(Settlement, { foreignKey: 'settlement_id' });
+Settlement.hasMany(Order, { foreignKey: 'settlement_id' });
+
 module.exports = {
   connectDB,
   sequelize,
@@ -70,5 +85,6 @@ module.exports = {
   Penalty,
   Category,
   ShopCategory,
-  DiscountRule
+  DiscountRule,
+  Settlement
 };

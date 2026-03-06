@@ -24,6 +24,18 @@ const OrderItem = sequelize.define('OrderItem', {
     type: DataTypes.FLOAT,
     allowNull: false,
   },
+  product_discount: {
+    type: DataTypes.FLOAT,
+    defaultValue: 0.0,
+  },
+  product_discount_type: {
+    type: DataTypes.ENUM('PERCENTAGE', 'FLAT'),
+    allowNull: true,
+  },
+  product_discount_value: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+  },
   name: {
     type: DataTypes.STRING,
     allowNull: true,

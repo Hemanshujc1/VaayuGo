@@ -97,6 +97,11 @@ const OrderRevenueLog = sequelize.define(
       allowNull: false,
       defaultValue: 0.00,
     },
+    // 7. Settlement Tracking
+    settlement_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
   },
   {
     timestamps: true,

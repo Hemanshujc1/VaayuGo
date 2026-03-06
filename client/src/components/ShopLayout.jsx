@@ -18,6 +18,7 @@ const ShopLayout = () => {
     { name: "Dashboard", path: "/shop/dashboard", icon: "📊" },
     { name: "Products", path: "/shop/products", icon: "📦" },
     { name: "Orders", path: "/shop/orders", icon: "📝" },
+    { name: "Earnings", path: "/shop/earnings", icon: "💰" },
     { name: "Support", path: "/shop/support", icon: "📞" },
   ];
 

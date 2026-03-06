@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import api from "../api/axios";
 import { toast } from "react-hot-toast";
 
@@ -171,6 +172,15 @@ const MyOrders = () => {
                     >
                       {order.status.toUpperCase()}
                     </span>
+
+                    <div className="mt-3">
+                      <Link
+                        to={`/my-orders/${order.id}`}
+                        className="inline-block text-xs font-bold text-teal-400 border border-teal-500/30 bg-teal-500/10 hover:bg-teal-500 hover:text-primary px-4 py-2 rounded-lg transition-colors shadow-sm"
+                      >
+                        View Full Receipt
+                      </Link>
+                    </div>
 
                     {order.status !== "cancelled" &&
                       order.status !== "delivered" &&

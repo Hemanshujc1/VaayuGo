@@ -9,6 +9,7 @@ import LoadingSpinner from "./components/LoadingSpinner";
 
 import AdminDashboard from "./pages/AdminDashboard";
 import ShopDashboard from "./pages/ShopDashboard";
+import ShopEarnings from "./pages/ShopEarnings";
 import ShopRegister from "./pages/ShopRegister";
 import Home from "./pages/Home";
 import ShopDetails from "./pages/ShopDetails";
@@ -27,6 +28,8 @@ import AdminLayout from "./components/AdminLayout";
 import AdminProfile from "./pages/AdminProfile";
 import AdminCustomers from "./pages/AdminCustomers";
 import AdminShopDetails from "./pages/AdminShopDetails";
+import AdminShopProducts from "./pages/AdminShopProducts";
+import AdminShopOrders from "./pages/AdminShopOrders";
 import AdminCustomerDetails from "./pages/AdminCustomerDetails";
 import ShopProfile from "./pages/ShopProfile";
 import ShopLayout from "./components/ShopLayout";
@@ -37,6 +40,7 @@ import ShopBulkUpload from "./pages/ShopBulkUpload";
 import AdminBulkUpload from "./pages/AdminBulkUpload";
 import AdminCategories from "./pages/AdminCategories";
 import AdminDiscountRules from "./pages/AdminDiscountRules";
+import AdminSettlements from "./pages/AdminSettlements";
 
 function App() {
   return (
@@ -58,6 +62,7 @@ function App() {
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/my-orders" element={<MyOrders />} />
+            <Route path="/my-orders/:id" element={<OrderDetail />} />
             <Route path="/profile" element={<CustomerProfile />} />
           </Route>
         </Route>
@@ -69,6 +74,7 @@ function App() {
             <Route path="products" element={<ProductManager />} />
             <Route path="orders" element={<ShopOrders />} />
             <Route path="orders/:id" element={<OrderDetail />} />
+            <Route path="earnings" element={<ShopEarnings />} />
             <Route path="profile" element={<ShopProfile />} />
             <Route path="support" element={<CompanyOverview />} />
             <Route path="register" element={<ShopRegister />} />
@@ -82,6 +88,14 @@ function App() {
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/shops" element={<AdminShops />} />
             <Route path="/admin/shops/:id" element={<AdminShopDetails />} />
+            <Route
+              path="/admin/shops/:id/products"
+              element={<AdminShopProducts />}
+            />
+            <Route
+              path="/admin/shops/:id/orders"
+              element={<AdminShopOrders />}
+            />
             <Route path="/admin/orders/:id" element={<OrderDetail />} />
             <Route path="/admin/customers" element={<AdminCustomers />} />
             <Route
@@ -94,6 +108,7 @@ function App() {
             <Route path="/admin/rules" element={<AdminGlobalRules />} />
             <Route path="/admin/discounts" element={<AdminDiscountRules />} />
             <Route path="/admin/bulk-upload" element={<AdminBulkUpload />} />
+            <Route path="/admin/settlements" element={<AdminSettlements />} />
             <Route path="/admin/categories" element={<AdminCategories />} />
             <Route path="/admin/profile" element={<AdminProfile />} />
           </Route>

@@ -1,9 +1,12 @@
-const { Order, OrderItem, Product, Shop, User, OrderRevenueLog } = require('../models/index');
+const { Order, OrderItem, Product, Shop, User, OrderRevenueLog, DeliverySlot, Settlement } = require('../models/index');
+const DeliverySlotService = require('../services/DeliverySlotService');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/AppError');
 const OrderService = require('../services/OrderService');
 
 const createOrder = catchAsync(async (req, res, next) => {
+    const { delivery_slot_id } = req.body;
+    if (!delivery_slot_id) return next(new AppError('Delivery slot is required', 400));
     const order = await OrderService.createOrderTransaction(req.user.id, req.body);
     res.status(201).json({ message: 'Order created successfully', orderId: order.id });
 });
@@ -13,7 +16,9 @@ const getMyOrders = catchAsync(async (req, res, next) => {
         where: { customer_id: req.user.id },
         include: [
             { model: Shop, attributes: ['name'] },
-            { model: OrderItem, include: [Product] }
+            { model: OrderItem, include: [Product] },
+            { model: DeliverySlot },
+            { model: Settlement, attributes: ['status', 'createdAt'] }
         ],
         order: [['createdAt', 'DESC']]
     });
@@ -31,7 +36,9 @@ const getShopOrders = catchAsync(async (req, res, next) => {
         include: [
             { model: OrderItem, include: [Product] }, 
             { model: User, attributes: ['name', 'mobile_number', 'email'] },
-            { model: OrderRevenueLog }
+            { model: OrderRevenueLog },
+            { model: DeliverySlot },
+            { model: Settlement, attributes: ['status', 'createdAt'] }
         ],
         order: [['createdAt', 'DESC']]
     });
@@ -104,6 +111,11 @@ const getShopOrders = catchAsync(async (req, res, next) => {
     res.json({ orders, metrics });
 });
 
+const getAvailableSlots = catchAsync(async (req, res, next) => {
+    const slots = await DeliverySlotService.getAvailableSlots();
+    res.json(slots);
+});
+
 
 const updateOrderStatus = catchAsync(async (req, res, next) => {
     const { id } = req.params;
@@ -163,10 +175,16 @@ const getOrderById = catchAsync(async (req, res, next) => {
 
     const order = await Order.findByPk(id, {
         include: [
-            { model: Shop, attributes: ['id', 'name', 'location_address'] },
+            { 
+               model: Shop, 
+               attributes: ['id', 'name', 'location_address'],
+               include: [{ model: User, attributes: ['mobile_number'] }] 
+            },
             { model: User, attributes: ['id', 'name', 'mobile_number', 'email', 'address'] },
             { model: OrderItem, include: [{ model: Product, attributes: ['id', 'name', 'image_url'] }] },
-            { model: OrderRevenueLog }
+            { model: OrderRevenueLog },
+            { model: DeliverySlot },
+            { model: Settlement }
         ]
     });
 
@@ -191,4 +209,4 @@ const getOrderById = catchAsync(async (req, res, next) => {
     res.json(order);
 });
 
-module.exports = { createOrder, getMyOrders, getShopOrders, updateOrderStatus, rateOrder, getOrderById };
+module.exports = { createOrder, getMyOrders, getShopOrders, updateOrderStatus, rateOrder, getOrderById, getAvailableSlots };

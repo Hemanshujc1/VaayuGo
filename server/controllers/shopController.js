@@ -1,4 +1,4 @@
-const { Shop, Order, OrderRevenueLog, Category, ShopCategory } = require('../models');
+const { Shop, Order, OrderRevenueLog, Category, ShopCategory, Settlement } = require('../models');
 const { Op } = require('sequelize');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/AppError');
@@ -228,6 +228,30 @@ const updateShopProfile = catchAsync(async (req, res, next) => {
     res.json({ message: 'Profile updated successfully', shop });
 });
 
+const getSettlements = catchAsync(async (req, res, next) => {
+    const shop = await Shop.findOne({ where: { owner_id: req.user.id } });
+    if (!shop) return next(new AppError('Shop not found', 404));
+
+    const settlements = await Settlement.findAll({
+        where: { shop_id: shop.id },
+        order: [['createdAt', 'DESC']]
+    });
+    res.json(settlements);
+});
+
+const getSettlementOrders = catchAsync(async (req, res, next) => {
+    const { id } = req.params;
+    const shop = await Shop.findOne({ where: { owner_id: req.user.id } });
+    if (!shop) return next(new AppError('Shop not found', 404));
+
+    const orders = await Order.findAll({
+        where: { settlement_id: id, shop_id: shop.id },
+        attributes: ['id', 'grand_total', 'createdAt', 'status'],
+        order: [['createdAt', 'DESC']]
+    });
+    res.json(orders);
+});
+
 module.exports = { 
     registerShop, 
     getMyShop, 
@@ -236,5 +260,7 @@ module.exports = {
     uploadShopImages, 
     deleteShopImage, 
     getMyShopAnalytics,
-    updateShopProfile 
+    updateShopProfile,
+    getSettlements,
+    getSettlementOrders
 };

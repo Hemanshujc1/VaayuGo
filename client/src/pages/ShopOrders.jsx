@@ -18,6 +18,8 @@ const ShopOrders = () => {
   const [sortOrder, setSortOrder] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8; // Slightly more items since cards are compact
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [slotFilter, setSlotFilter] = useState("all");
 
   // Modal States
   const [activeModal, setActiveModal] = useState(null); // 'delivery', 'failure', 'cancel'
@@ -38,8 +40,18 @@ const ShopOrders = () => {
     }
   };
 
+  const fetchSlots = async () => {
+    try {
+      const res = await api.get("/orders/available-slots");
+      setAvailableSlots(res.data || []);
+    } catch (error) {
+      console.error("Error fetching slots", error);
+    }
+  };
+
   useEffect(() => {
     fetchOrders();
+    fetchSlots();
   }, []);
 
   const handleStatusUpdate = async (orderId, newStatus, extraData = {}) => {
@@ -82,7 +94,7 @@ const ShopOrders = () => {
   // Reset page if data changes dramatically
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filter, sortOrder]);
+  }, [searchTerm, filter, sortOrder, slotFilter]);
 
   if (loading)
     return (
@@ -95,6 +107,13 @@ const ShopOrders = () => {
   // 1. Filter
   if (filter && filter !== "all") {
     processedOrders = processedOrders.filter((o) => o.status === filter);
+  }
+
+  // 1b. Slot Filter
+  if (slotFilter && slotFilter !== "all") {
+    processedOrders = processedOrders.filter(
+      (o) => String(o.delivery_slot_id) === String(slotFilter),
+    );
   }
 
   // 2. Search
@@ -192,6 +211,18 @@ const ShopOrders = () => {
                 { label: "Delivered", value: "delivered" },
               ]}
             />
+            <FilterDropdown
+              value={slotFilter}
+              onChange={(e) => setSlotFilter(e.target.value)}
+              placeholder="All Slots"
+              options={[
+                { label: "All Slots", value: "all" },
+                ...availableSlots.map((s) => ({
+                  label: s.name,
+                  value: String(s.id),
+                })),
+              ]}
+            />
             <SortDropdown
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value)}
@@ -215,7 +246,7 @@ const ShopOrders = () => {
           {paginatedOrders.map((order) => (
             <div
               key={order.id}
-              className="bg-neutral-dark p-6 rounded shadow border-l-4 border-warning"
+              className={`bg-neutral-dark p-6 rounded shadow border-l-4 ${order.delivery_attempt > 1 ? "border-accent animate-pulse" : "border-warning"}`}
             >
               <div className="flex justify-between items-start mb-4">
                 <div>
@@ -223,12 +254,37 @@ const ShopOrders = () => {
                     <h2 className="font-bold text-lg text-white">
                       Order #{order.id}
                     </h2>
+                    {order.delivery_attempt > 1 && (
+                      <span className="bg-accent text-primary text-[10px] font-black px-2 py-0.5 rounded animate-bounce">
+                        RETRY - ATTEMPT {order.delivery_attempt}
+                      </span>
+                    )}
+                    {order.status === "delivered" && (
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                          order.settlement_id
+                            ? "bg-green-600/20 text-green-400 border-green-600/30"
+                            : "bg-warning/20 text-warning border-warning/30"
+                        }`}
+                      >
+                        {order.settlement_id
+                          ? "SETTLEMENT COMPLETE"
+                          : "SETTLEMENT PENDING"}
+                      </span>
+                    )}
                     <button
                       onClick={() => navigate(`/shop/orders/${order.id}`)}
                       className="text-xs bg-neutral-mid hover:bg-neutral-light text-white px-2 py-1 rounded"
                     >
                       View Details
                     </button>
+                    {order.DeliverySlot && (
+                      <span className="text-[10px] bg-neutral-mid text-neutral-light px-2 py-1 rounded border border-neutral-light/20">
+                        Slot: {order.DeliverySlot.name} (
+                        {order.DeliverySlot.start_time} -{" "}
+                        {order.DeliverySlot.end_time})
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm text-neutral-light">
                     From: {order.User?.name || "N/A"} (
