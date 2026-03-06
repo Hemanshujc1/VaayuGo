@@ -69,8 +69,8 @@ const Home = () => {
 
   // Find Top Rated and Newest shops for special shelves
   const topRatedShops = [...shops]
-    .filter((s) => s.rating >= 4.0)
-    .sort((a, b) => b.rating - a.rating)
+    .filter((s) => Number(s.rating) >= 4.0)
+    .sort((a, b) => Number(b.rating) - Number(a.rating))
     .slice(0, 5);
 
   const newestShops = [...shops]

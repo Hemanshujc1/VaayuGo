@@ -87,7 +87,7 @@ const ShopCard = ({ shop }) => {
         </div>
         <div className="flex justify-between items-center">
           <span className="bg-green-900/30 text-green-400 border border-green-800 text-xs px-2 py-1 rounded">
-            {shop.rating > 0 ? `${shop.rating} ★` : "New"}
+            {shop.rating > 0 ? `${Number(shop.rating).toFixed(1)} ★` : "New"}
           </span>
           <span className="text-xs text-neutral-light">
             {shop.location_address}

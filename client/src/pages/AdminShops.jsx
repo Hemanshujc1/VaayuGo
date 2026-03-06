@@ -199,6 +199,12 @@ const AdminShops = () => {
                       : shop.category || "General"}
                   </p>
                   <p>Location: {shop.location_address || "N/A"}</p>
+                  <p>
+                    Rating:{" "}
+                    {shop.rating > 0
+                      ? `${Number(shop.rating).toFixed(1)} ★`
+                      : "New"}
+                  </p>
                 </div>
               </div>
               <div className="mt-4 md:mt-0 flex gap-4">
