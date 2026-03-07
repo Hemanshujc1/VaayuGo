@@ -69,11 +69,35 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       await api.post("/auth/register", userData);
-      toast.success("Registration Successful! Please Login.");
-      navigate("/login");
+      toast.success(
+        "Registration Successful! Please check your email for the OTP.",
+      );
       return true;
     } catch (error) {
       toast.error(error.response?.data?.message || "Registration Failed");
+      return false;
+    }
+  };
+
+  const verifyOtp = async (email, otp) => {
+    try {
+      const response = await api.post("/auth/verify-otp", { email, otp });
+      toast.success(response.data.message || "Email Verified Successfully!");
+      navigate("/login");
+      return true;
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Verification Failed");
+      return false;
+    }
+  };
+
+  const resendOtp = async (email) => {
+    try {
+      const response = await api.post("/auth/resend-otp", { email });
+      toast.success(response.data.message || "OTP Resent Successfully!");
+      return true;
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to resend OTP");
       return false;
     }
   };
@@ -83,6 +107,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     register,
+    verifyOtp,
+    resendOtp,
     logout,
   };
 

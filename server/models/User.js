@@ -39,9 +39,17 @@ const User = sequelize.define('User', {
     type: DataTypes.ENUM('customer', 'shopkeeper', 'admin'),
     defaultValue: 'customer',
   },
-  is_blocked: {
+  is_verified: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
+  },
+  verificationOtp: {
+    type: DataTypes.STRING(6),
+    allowNull: true,
+  },
+  verificationOtpExpires: {
+    type: DataTypes.DATE,
+    allowNull: true,
   },
   resetPasswordOtp: {
     type: DataTypes.STRING,

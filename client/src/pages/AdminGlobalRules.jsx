@@ -2,12 +2,14 @@ import { useState, useEffect } from "react";
 import api from "../api/axios";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
+import { useConfirm } from "../context/ConfirmContext";
 
 const AdminGlobalRules = () => {
   const [rules, setRules] = useState([]);
   const [shops, setShops] = useState([]);
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const confirm = useConfirm();
 
   const [newRule, setNewRule] = useState({
     location_id: "",
@@ -21,6 +23,7 @@ const AdminGlobalRules = () => {
     small_order_delivery_fee: "",
     small_order_shop_share: 0,
     small_order_platform_share: 0,
+    min_platform_revenue: 0,
     is_active: true,
   });
 
@@ -107,11 +110,9 @@ const AdminGlobalRules = () => {
         location_id: locations.length > 0 ? locations[0].id : "",
         shop_id: "",
         category: "",
-        min_order_value: 0,
-        delivery_fee: 20,
-        shop_delivery_share: 10,
         vaayugo_delivery_share: 10,
         commission_percent: 10,
+        min_platform_revenue: 0,
         small_order_delivery_fee: "",
         small_order_shop_share: 0,
         small_order_platform_share: 0,
@@ -126,7 +127,16 @@ const AdminGlobalRules = () => {
   };
 
   const handleDeleteRule = async (id) => {
-    if (!window.confirm("Delete this rule?")) return;
+    const acknowledged = await confirm({
+      title: "Delete Rule?",
+      message:
+        "Are you sure you want to delete this delivery rule? This may affect order calculations immediately.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      type: "danger",
+    });
+
+    if (!acknowledged) return;
     try {
       await api.delete(`/admin/delivery-rules/${id}`);
       toast.success("Delivery rule deleted");
@@ -150,6 +160,7 @@ const AdminGlobalRules = () => {
       small_order_delivery_fee: rule.small_order_delivery_fee || "",
       small_order_shop_share: rule.small_order_shop_share || 0,
       small_order_platform_share: rule.small_order_platform_share || 0,
+      min_platform_revenue: rule.min_platform_revenue || 0,
       is_active: rule.is_active,
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -518,6 +529,33 @@ const AdminGlobalRules = () => {
               </div>
             </div>
 
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-red-400 uppercase tracking-wider mb-2">
+                Min. Platform Revenue (₹)
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-3 text-red-300 font-bold">
+                  ₹
+                </span>
+                <input
+                  type="number"
+                  placeholder="e.g. 5"
+                  value={newRule.min_platform_revenue}
+                  onChange={(e) =>
+                    setNewRule({
+                      ...newRule,
+                      min_platform_revenue:
+                        e.target.value === "" ? 0 : parseFloat(e.target.value),
+                    })
+                  }
+                  className="w-full bg-red-900/10 border border-red-500/30 rounded-xl p-3 pl-8 text-white focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all"
+                />
+              </div>
+              <p className="text-[10px] text-neutral-500 mt-1 ml-1 italic">
+                Platform discount will be capped to maintain this revenue.
+              </p>
+            </div>
+
             <div className="col-span-1 md:col-span-2 lg:col-span-4 mt-[-10px]">
               <p className="text-xs text-orange-400/80 flex items-center gap-1">
                 <svg
@@ -682,6 +720,7 @@ const AdminGlobalRules = () => {
                   <th className="px-6 py-4">Min Order</th>
                   <th className="px-6 py-4">Structure</th>
                   <th className="px-6 py-4 text-center">Comm. %</th>
+                  <th className="px-6 py-4 text-center">Min Rev</th>
                   <th className="px-6 py-4 text-center">Status</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
@@ -787,6 +826,16 @@ const AdminGlobalRules = () => {
                         <span className="font-bold text-white text-lg bg-primary/50 px-3 py-1 rounded inline-block">
                           {rule.commission_percent}%
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-red-400">
+                            ₹{rule.min_platform_revenue || 0}
+                          </span>
+                          <span className="text-[10px] text-neutral-500">
+                            Min. Rev.
+                          </span>
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-center">
                         <span

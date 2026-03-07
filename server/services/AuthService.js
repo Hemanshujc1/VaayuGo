@@ -1,7 +1,9 @@
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { User, Shop, ShopCategory } = require('../models');
 const AppError = require('../utils/AppError');
+const EmailService = require('./EmailService');
 
 // Validation helpers
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -37,6 +39,10 @@ class AuthService {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // Generate 6-digit numeric OTP
+    const verificationOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const verificationOtpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
     const user = await User.create({
       email,
       password: hashedPassword,
@@ -44,8 +50,18 @@ class AuthService {
       name,
       mobile_number,
       address,
-      location
+      location,
+      verificationOtp,
+      verificationOtpExpires,
+      is_verified: false
     });
+
+    // Send verification OTP email
+    try {
+      await EmailService.sendVerificationOtp(email, name, verificationOtp);
+    } catch (emailError) {
+      console.error('Failed to send verification OTP email:', emailError);
+    }
 
     if (role === 'shopkeeper') {
       await Shop.create({
@@ -67,6 +83,10 @@ class AuthService {
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) throw new AppError('Incorrect password', 401);
+
+    if (!user.is_verified) {
+      throw new AppError('Please verify your email address using the OTP sent to you before logging in.', 401);
+    }
 
     if (user.is_blocked) throw new AppError('Your account has been blocked. Please contact admin.', 403);
 
@@ -163,6 +183,51 @@ class AuthService {
     }
 
     return user;
+  }
+
+  static async verifyOtp(email, otp) {
+    if (!email || !otp) throw new AppError('Email and OTP are required', 400);
+
+    const user = await User.findOne({
+      where: { email }
+    });
+
+    if (!user) throw new AppError('User not found', 404);
+    if (user.is_verified) throw new AppError('Email already verified', 400);
+
+    if (!user.verificationOtp || user.verificationOtp !== otp) {
+      throw new AppError('Invalid OTP', 400);
+    }
+
+    if (new Date() > new Date(user.verificationOtpExpires)) {
+      throw new AppError('OTP has expired. Please request a new one.', 400);
+    }
+
+    user.is_verified = true;
+    user.verificationOtp = null;
+    user.verificationOtpExpires = null;
+    await user.save();
+
+    return true;
+  }
+
+  static async resendOtp(email) {
+    if (!email) throw new AppError('Email is required', 400);
+
+    const user = await User.findOne({ where: { email } });
+    if (!user) throw new AppError('User not found', 404);
+    if (user.is_verified) throw new AppError('Email already verified', 400);
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    user.verificationOtp = otp;
+    user.verificationOtpExpires = expires;
+    await user.save();
+
+    await EmailService.sendVerificationOtp(user.email, user.name, otp);
+
+    return true;
   }
 }
 

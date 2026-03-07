@@ -36,7 +36,8 @@ async function createAdmin() {
       mobile_number: '0000000000',
       address: 'Global HQ',
       location: 'Central',
-      role: 'admin'
+      role: 'admin',
+      is_verified: true
     });
 
     console.log('====================================');

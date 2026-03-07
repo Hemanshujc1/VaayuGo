@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import api from "../api/axios";
 import { useAuth } from "../context/AuthContext";
+import { useConfirm } from "../context/ConfirmContext";
 import toast from "react-hot-toast";
 
 const ShopProfile = () => {
   const { user } = useAuth();
+  const confirm = useConfirm();
   const [profile, setProfile] = useState(null);
   const [shop, setShop] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -385,7 +387,15 @@ const ShopProfile = () => {
                       />
                       <button
                         onClick={async () => {
-                          if (!window.confirm("Delete this image?")) return;
+                          const acknowledged = await confirm({
+                            title: "Delete Image?",
+                            message:
+                              "Are you sure you want to permanently delete this shop image?",
+                            confirmText: "Yes, Delete",
+                            cancelText: "No, Keep",
+                            type: "danger",
+                          });
+                          if (!acknowledged) return;
                           try {
                             const res = await api.delete("/shop/images", {
                               data: { imageUrl: img },

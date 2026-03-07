@@ -18,11 +18,26 @@ const Register = () => {
     category: "Street Food",
   });
 
-  const { register } = useAuth();
+  const { register, verifyOtp, resendOtp } = useAuth();
   const [error, setError] = useState("");
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [resendTimer, setResendTimer] = useState(0);
+  const [isVerifying, setIsVerifying] = useState(false);
+
   const [locations, setLocations] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  useEffect(() => {
+    let interval;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
 
   useEffect(() => {
     const fetchLocations = async () => {
@@ -43,6 +58,24 @@ const Register = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleOtpChange = (element, index) => {
+    if (isNaN(element.value)) return false;
+    const newOtp = [...otp];
+    newOtp[index] = element.value;
+    setOtp(newOtp);
+
+    // Focus next input
+    if (element.nextSibling && element.value) {
+      element.nextSibling.focus();
+    }
+  };
+
+  const handleKeyDown = (e, index) => {
+    if (e.key === "Backspace" && !otp[index] && e.target.previousSibling) {
+      e.target.previousSibling.focus();
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -53,10 +86,133 @@ const Register = () => {
     }
 
     const success = await register(formData);
-    if (!success) {
+    if (success) {
+      setVerificationSent(true);
+      setResendTimer(60);
+      window.scrollTo(0, 0);
+    } else {
       setError("Registration failed. Try again.");
     }
   };
+
+  const handleOtpSubmit = async (e) => {
+    e.preventDefault();
+    setIsVerifying(true);
+    const otpString = otp.join("");
+    if (otpString.length < 6) {
+      // toast.error("Please enter the full 6-digit code"); // Assuming toast is available
+      setError("Please enter the full 6-digit code");
+      setIsVerifying(false);
+      return;
+    }
+
+    const success = await verifyOtp(formData.email, otpString);
+    setIsVerifying(false);
+    if (!success) {
+      setError("OTP verification failed. Please try again.");
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendTimer > 0) return;
+    const success = await resendOtp(formData.email);
+    if (success) {
+      setResendTimer(60);
+      setError(""); // Clear previous error if resend is successful
+    } else {
+      setError("Failed to resend OTP. Please try again.");
+    }
+  };
+
+  if (verificationSent) {
+    return (
+      <div className="flex bg-primary min-h-screen items-center justify-center p-8">
+        <div className="w-full max-w-md bg-neutral-dark border border-neutral-mid rounded-2xl p-8 text-center space-y-6 shadow-2xl">
+          <div className="w-20 h-20 bg-accent/20 rounded-full flex items-center justify-center mx-auto">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-10 w-10 text-accent"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+              />
+            </svg>
+          </div>
+          <h2 className="text-3xl font-bold text-white">Verify Your Email</h2>
+          <p className="text-neutral-light leading-relaxed">
+            We've sent a 6-digit verification code to <br />
+            <span className="text-white font-semibold">{formData.email}</span>
+          </p>
+
+          {/* Dedicated Error Message Box for OTP */}
+          {error && (
+            <div className="bg-red-900/30 border-l-4 border-red-500 p-4 rounded animate-pulse">
+              <div className="flex">
+                <div className="shrink-0">
+                  <span className="text-red-400 text-lg">⚠️</span>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-red-300">{error}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleOtpSubmit} className="space-y-6">
+            <div className="flex justify-between gap-2">
+              {otp.map((data, index) => (
+                <input
+                  key={index}
+                  type="text"
+                  maxLength="1"
+                  value={data}
+                  onChange={(e) => handleOtpChange(e.target, index)}
+                  onFocus={(e) => e.target.select()}
+                  onKeyDown={(e) => handleKeyDown(e, index)}
+                  className="w-12 h-14 text-center text-2xl font-bold bg-neutral-mid border border-neutral-light/20 rounded-lg text-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
+                  required
+                />
+              ))}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isVerifying}
+              className="w-full py-3 px-4 rounded-lg font-bold text-primary bg-accent hover:bg-secondary disabled:opacity-50 transition duration-200"
+            >
+              {isVerifying ? "Verifying..." : "Verify & Continue"}
+            </button>
+          </form>
+
+          <div className="pt-4">
+            <p className="text-sm text-neutral-light">
+              Didn't receive the code?{" "}
+              <button
+                onClick={handleResendOtp}
+                disabled={resendTimer > 0}
+                className={`font-bold transition-colors ${resendTimer > 0 ? "text-neutral-500 cursor-not-allowed" : "text-accent hover:text-white"}`}
+              >
+                {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend OTP"}
+              </button>
+            </p>
+          </div>
+
+          <Link
+            to="/login"
+            className="text-sm text-neutral-500 hover:text-white transition-colors block"
+          >
+            Cancel and Back to Login
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex bg-primary min-h-screen">

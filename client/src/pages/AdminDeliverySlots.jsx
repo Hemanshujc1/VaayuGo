@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import api from "../api/axios";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
+import { useConfirm } from "../context/ConfirmContext";
 
 const AdminDeliverySlots = () => {
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(true);
+  const confirm = useConfirm();
   const [newSlot, setNewSlot] = useState({
     name: "",
     start_time: "",
@@ -41,7 +43,17 @@ const AdminDeliverySlots = () => {
   };
 
   const handleDeleteSlot = async (id) => {
-    if (!window.confirm("Delete this slot?")) return;
+    const acknowledged = await confirm({
+      title: "Delete Slot?",
+      message:
+        "Are you sure you want to delete this delivery slot? This cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      type: "danger",
+    });
+
+    if (!acknowledged) return;
+
     try {
       await api.delete(`/admin/slots/${id}`);
       toast.success("Slot deleted");

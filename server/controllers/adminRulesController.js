@@ -24,6 +24,7 @@ const createDeliveryRule = catchAsync(async (req, res, next) => {
         delivery_fee, shop_delivery_share, vaayugo_delivery_share,
         commission_percent, min_order_value, small_order_delivery_fee,
         small_order_platform_share, small_order_shop_share,
+        min_platform_revenue,
         is_active
     } = req.body;
 
@@ -58,6 +59,7 @@ const createDeliveryRule = catchAsync(async (req, res, next) => {
         commission_percent, min_order_value, small_order_delivery_fee,
         small_order_platform_share: small_order_platform_share || 0,
         small_order_shop_share: small_order_shop_share || 0,
+        min_platform_revenue: min_platform_revenue || 0,
         is_active
     });
 
@@ -80,6 +82,7 @@ const updateDeliveryRule = catchAsync(async (req, res, next) => {
         delivery_fee, shop_delivery_share, vaayugo_delivery_share,
         commission_percent, min_order_value, small_order_delivery_fee,
         small_order_platform_share, small_order_shop_share,
+        min_platform_revenue,
         is_active
     } = req.body;
 
@@ -112,6 +115,7 @@ const updateDeliveryRule = catchAsync(async (req, res, next) => {
         commission_percent, min_order_value, small_order_delivery_fee,
         small_order_platform_share: small_order_platform_share || 0,
         small_order_shop_share: small_order_shop_share || 0,
+        min_platform_revenue: min_platform_revenue !== undefined ? min_platform_revenue : rule.min_platform_revenue,
         is_active: is_active !== undefined ? is_active : rule.is_active
     });
 

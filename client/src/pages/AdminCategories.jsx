@@ -3,12 +3,14 @@ import api from "../api/axios";
 import toast from "react-hot-toast";
 import { Plus, Trash2, FolderTree, ChevronLeft, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useConfirm } from "../context/ConfirmContext";
 
 const AdminCategories = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newCatName, setNewCatName] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const confirm = useConfirm();
 
   useEffect(() => {
     fetchCategories();
@@ -43,12 +45,16 @@ const AdminCategories = () => {
   };
 
   const handleDeleteCategory = async (id) => {
-    if (
-      !window.confirm(
+    const acknowledged = await confirm({
+      title: "Delete Category?",
+      message:
         "Are you sure? Existing shops in this category won't be deleted but will lose this category reference.",
-      )
-    )
-      return;
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      type: "danger",
+    });
+
+    if (!acknowledged) return;
 
     try {
       await api.delete(`/admin/categories/${id}`);

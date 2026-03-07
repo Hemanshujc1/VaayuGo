@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import api from "../api/axios";
 import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
+import { useConfirm } from "../context/ConfirmContext";
 import SearchBar from "../components/common/SearchBar";
 import FilterDropdown from "../components/common/FilterDropdown";
 import SortDropdown from "../components/common/SortDropdown";
@@ -12,6 +13,7 @@ const AdminShops = () => {
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState([]);
   const navigate = useNavigate();
+  const confirm = useConfirm();
 
   // Data Table States
   const [searchTerm, setSearchTerm] = useState("");
@@ -82,7 +84,16 @@ const AdminShops = () => {
   };
 
   const handleReject = async (id) => {
-    if (!window.confirm("Are you sure you want to reject this shop?")) return;
+    const acknowledged = await confirm({
+      title: "Reject Shop?",
+      message:
+        "Are you sure you want to reject this shop registration? This will notify the shop owner.",
+      confirmText: "Yes, Reject",
+      cancelText: "Cancel",
+      type: "danger",
+    });
+
+    if (!acknowledged) return;
     try {
       await api.patch(`/admin/shops/${id}/reject`);
       toast.success("Shop Rejected");
@@ -96,8 +107,15 @@ const AdminShops = () => {
     const newStatus = currentStatus === "suspended" ? "approved" : "suspended";
     const action = currentStatus === "suspended" ? "Unblock" : "Block";
 
-    if (!window.confirm(`Are you sure you want to ${action} this shop?`))
-      return;
+    const acknowledged = await confirm({
+      title: `${action} Shop?`,
+      message: `Are you sure you want to ${action.toLowerCase()} this shop? This will affect their ability to receive orders.`,
+      confirmText: action,
+      cancelText: "Keep Active",
+      type: action === "Block" ? "danger" : "info",
+    });
+
+    if (!acknowledged) return;
 
     try {
       await api.patch(`/admin/shops/${id}`, { status: newStatus });

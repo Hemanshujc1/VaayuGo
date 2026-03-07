@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useContext, useEffect } from "react";
 import toast from "react-hot-toast";
+import { useConfirm } from "./ConfirmContext";
 
 const CartContext = createContext();
 
@@ -31,6 +32,7 @@ export const CartProvider = ({ children }) => {
     }
     return null;
   }); // Ensure all items from same shop
+  const confirm = useConfirm();
 
   // Persist cart to local storage when state changes
 
@@ -39,14 +41,19 @@ export const CartProvider = ({ children }) => {
     localStorage.setItem("vaayugo_cart_shop", JSON.stringify(cartShop));
   }, [cartItems, cartShop]);
 
-  const addToCart = (product, shop) => {
+  const addToCart = async (product, shop) => {
     // Check if shop matches
     if (cartShop && cartShop.id !== shop.id) {
-      if (
-        !window.confirm(
-          "Start a new basket? Adding items from a different shop will clear your current cart.",
-        )
-      ) {
+      const acknowledged = await confirm({
+        title: "Start a New Basket?",
+        message:
+          "Adding items from a different shop will clear your current cart. Do you want to continue?",
+        confirmText: "Clear & Add New",
+        cancelText: "Keep Current",
+        type: "warning",
+      });
+
+      if (!acknowledged) {
         return;
       }
       clearCart();

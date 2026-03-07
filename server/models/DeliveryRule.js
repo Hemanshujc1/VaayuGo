@@ -61,6 +61,11 @@ const DeliveryRule = sequelize.define(
       allowNull: false,
       defaultValue: 0.00,
     },
+    min_platform_revenue: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.00,
+    },
     is_active: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,

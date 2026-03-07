@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import api from "../api/axios";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
+import { useConfirm } from "../context/ConfirmContext";
 import ProductCard from "./ProductCard";
 import Pagination from "./common/Pagination";
 import SearchBar from "./common/SearchBar";
@@ -12,6 +13,7 @@ const ProductManager = () => {
   const [products, setProducts] = useState([]);
   const [discounts, setDiscounts] = useState([]);
   const [shopId, setShopId] = useState(null);
+  const confirm = useConfirm();
 
   const [newProduct, setNewProduct] = useState({
     name: "",
@@ -186,7 +188,14 @@ const ProductManager = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this product?")) return;
+    const acknowledged = await confirm({
+      title: "Delete Product?",
+      message: "This will permanently remove this product from your shop.",
+      confirmText: "Yes, Delete",
+      cancelText: "No, Keep",
+      type: "danger",
+    });
+    if (!acknowledged) return;
     try {
       await api.delete(`/products/${id}`);
       toast.success("Product deleted");
@@ -291,7 +300,15 @@ const ProductManager = () => {
   };
 
   const handleDeleteOffer = async (id) => {
-    if (!window.confirm("Delete this promotional offer?")) return;
+    const acknowledged = await confirm({
+      title: "Remove Offer?",
+      message: "Are you sure you want to delete this promotional offer?",
+      confirmText: "Remove",
+      cancelText: "Keep",
+      type: "danger",
+    });
+    if (!acknowledged) return;
+
     try {
       await api.delete(`/discounts/${id}`);
       toast.success("Offer deleted");
@@ -493,7 +510,15 @@ const ProductManager = () => {
                       <button
                         type="button"
                         onClick={async () => {
-                          if (!window.confirm("Delete image?")) return;
+                          const acknowledged = await confirm({
+                            title: "Delete Image?",
+                            message:
+                              "Are you sure you want to remove this image?",
+                            confirmText: "Delete",
+                            cancelText: "Cancel",
+                            type: "danger",
+                          });
+                          if (!acknowledged) return;
                           try {
                             const res = await api.delete(
                               `/products/${editingId}/images`,

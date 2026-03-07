@@ -1,6 +1,6 @@
 const { sequelize, Order, OrderItem, Product, Shop, User, OrderRevenueLog, Location } = require('../models/index');
 const { getApplicableRule, validateOrderAgainstRule } = require('../services/RuleEngineService');
-const { resolveDiscounts } = require('../services/DiscountService');
+const DiscountService = require('../services/DiscountService');
 const DeliverySlotService = require('./DeliverySlotService');
 const EmailService = require('./EmailService');
 const AppError = require('../utils/AppError');
@@ -77,10 +77,10 @@ class OrderService {
                 };
             });
 
-            const discountData = await resolveDiscounts(location_id, shop_id, category, subtotal_amount.toNumber(), enrichedItems);
+            const discountData = await DiscountService.resolveDiscounts(location_id, shop_id, category, subtotal_amount.toNumber(), enrichedItems);
             
             const shop_discount_amount = new Decimal(discountData.shop_discount_amount || 0);
-            const platform_discount_amount = new Decimal(discountData.platform_discount_amount || 0);
+            let platform_discount_amount = new Decimal(discountData.platform_discount_amount || 0);
             const product_discount_amount = new Decimal(discountData.product_discount_amount || 0);
 
             // 4. Rule Engine Validation & Splits
@@ -100,7 +100,7 @@ class OrderService {
             // Ensure precision
             total_commission = new Decimal(total_commission.toDecimalPlaces(2, Decimal.ROUND_HALF_UP));
 
-            const net_item_total = subtotal_amount.minus(shop_discount_amount).minus(platform_discount_amount).minus(product_discount_amount);
+            let net_item_total = subtotal_amount.minus(shop_discount_amount).minus(platform_discount_amount).minus(product_discount_amount);
             
             // Format splits as strict Decimals
             let platform_delivery_share = new Decimal(rule.vaayugo_delivery_share || 0);
@@ -126,10 +126,32 @@ class OrderService {
                 .plus(shop_small_order_share);
 
             // Platform Net Revenue = (Commission) + (Delivery Platform Share) + (Extra Charges Platform small order) - (Platform Discount)
-            const platform_net_revenue = total_commission
+            let platform_net_revenue = total_commission
                 .plus(platform_delivery_share)
                 .plus(platform_small_order_share)
                 .minus(platform_discount_amount);
+
+            // Revenue Protection Logic: Cap Platform Discount if revenue falls below threshold
+            const min_revenue_threshold = new Decimal(rule.min_platform_revenue || 0);
+            if (platform_net_revenue.lessThan(min_revenue_threshold)) {
+                const shortfall = min_revenue_threshold.minus(platform_net_revenue);
+                // Reduce platform discount by the shortfall
+                const adjusted_platform_discount = platform_discount_amount.minus(shortfall).greaterThan(0) 
+                    ? platform_discount_amount.minus(shortfall) 
+                    : new Decimal(0);
+                
+                // Final Platform Discount used in order creation
+                platform_discount_amount = adjusted_platform_discount;
+                
+                // Recalculate platform net revenue
+                platform_net_revenue = total_commission
+                    .plus(platform_delivery_share)
+                    .plus(platform_small_order_share)
+                    .minus(platform_discount_amount);
+                
+                // Recalculate net item total
+                net_item_total = subtotal_amount.minus(shop_discount_amount).minus(platform_discount_amount).minus(product_discount_amount);
+            }
 
             // Total Customer Pays = subtotal - shop_discount - platform_discount + normal_delivery_fee + small_order_fee
             const total_payable = subtotal_amount

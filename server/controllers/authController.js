@@ -79,6 +79,18 @@ const updateProfile = catchAsync(async (req, res, next) => {
   });
 });
 
+const verifyOtp = catchAsync(async (req, res, next) => {
+  const { email, otp } = req.body;
+  await AuthService.verifyOtp(email, otp);
+  res.status(200).json({ message: 'Email verified successfully. You can now login.' });
+});
+
+const resendOtp = catchAsync(async (req, res, next) => {
+  const { email } = req.body;
+  await AuthService.resendOtp(email);
+  res.status(200).json({ message: 'A new OTP has been sent to your email.' });
+});
+
 module.exports = {
   register,
   login,
@@ -86,4 +98,6 @@ module.exports = {
   forgotPassword,
   resetPassword,
   updateProfile,
+  verifyOtp,
+  resendOtp,
 };

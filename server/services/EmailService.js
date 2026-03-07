@@ -38,8 +38,44 @@ class EmailService {
       return info;
     } catch (error) {
       console.error(`Error sending email to ${to}:`, error);
-      throw error;
     }
+  }
+
+  async sendVerificationOtp(to, name, otp) {
+    const subject = `${otp} is your VaayuGo verification code`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-w: 600px; margin: 0 auto; color: #333; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+        <h2 style="color: #03dac6; text-align: center;">Welcome to VaayuGo!</h2>
+        <p>Hi ${name},</p>
+        <p>Thank you for registering with VaayuGo. To complete your registration, please use the following one-time password (OTP) to verify your email address:</p>
+        
+        <div style="text-align: center; margin: 40px 0;">
+          <div style="display: inline-block; background-color: #f4f4f4; padding: 15px 30px; border-radius: 8px; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #121212; border: 2px dashed #03dac6;">
+            ${otp}
+          </div>
+        </div>
+        
+        <p>This code will expire in 10 minutes. If it expires, you can request a new one from the registration page.</p>
+        <p>If you did not create an account, please ignore this email.</p>
+        
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
+        <p style="font-size: 12px; color: #888; text-align: center;">
+          Happy Shopping,<br>
+          <strong>The VaayuGo Team</strong>
+        </p>
+      </div>
+    `;
+
+    // For development, also log the OTP to console
+    console.log(`\n======================================`);
+    console.log(`📧 VERIFICATION OTP`);
+    console.log(`--------------------------------------`);
+    console.log(`User: ${to}`);
+    console.log(`OTP:  ${otp}`);
+    console.log(`Expiry: 10 Minutes`);
+    console.log(`======================================\n`);
+
+    return this.sendEmail(to, subject, html);
   }
 
   // Phase 3: Customer Notifications

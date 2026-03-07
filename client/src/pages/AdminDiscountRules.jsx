@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import api from "../api/axios";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
+import { useConfirm } from "../context/ConfirmContext";
 import Pagination from "../components/common/Pagination";
 
 const AdminDiscountRules = () => {
@@ -9,6 +10,7 @@ const AdminDiscountRules = () => {
   const [shops, setShops] = useState([]);
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const confirm = useConfirm();
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -134,7 +136,17 @@ const AdminDiscountRules = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this discount rule permanently?")) return;
+    const acknowledged = await confirm({
+      title: "Delete Discount?",
+      message:
+        "Are you sure you want to permanently remove this discount rule? This action cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      type: "danger",
+    });
+
+    if (!acknowledged) return;
+
     try {
       await api.delete(`/discounts/${id}`);
       toast.success("Discount deleted");
