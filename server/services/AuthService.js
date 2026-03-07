@@ -63,7 +63,7 @@ class AuthService {
 
   static async loginUser(email, password) {
     const user = await User.findOne({ where: { email } });
-    if (!user) throw new AppError('User does not exist with this email', 401);
+    if (!user) throw new AppError('User not found', 401);
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) throw new AppError('Incorrect password', 401);

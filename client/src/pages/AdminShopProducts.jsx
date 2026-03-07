@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import Pagination from "../components/common/Pagination";
+import SearchBar from "../components/common/SearchBar";
+import SortDropdown from "../components/common/SortDropdown";
+import FilterDropdown from "../components/common/FilterDropdown";
 
 const AdminShopProducts = () => {
   const { id } = useParams();
@@ -9,9 +13,19 @@ const AdminShopProducts = () => {
   const [discounts, setDiscounts] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [stockFilter, setStockFilter] = useState("");
+  const [sortBy, setSortBy] = useState("name_asc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   useEffect(() => {
     fetchProducts();
   }, [id]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, stockFilter, sortBy]);
 
   const fetchProducts = async () => {
     try {
@@ -30,6 +44,44 @@ const AdminShopProducts = () => {
       <div className="text-white text-center p-4">Loading Products...</div>
     );
 
+  const filteredAndSortedProducts = products
+    .filter((p) => {
+      const matchesSearch = p.name
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+
+      let matchesStock = true;
+      if (stockFilter === "in_stock") matchesStock = p.stock_quantity > 0;
+      if (stockFilter === "out_of_stock") matchesStock = p.stock_quantity === 0;
+
+      return matchesSearch && matchesStock;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "name_asc":
+          return a.name.localeCompare(b.name);
+        case "name_desc":
+          return b.name.localeCompare(a.name);
+        case "price_high":
+          return b.price - a.price;
+        case "price_low":
+          return a.price - b.price;
+        case "stock_low":
+          return (a.stock_quantity || 0) - (b.stock_quantity || 0);
+        case "stock_high":
+          return (b.stock_quantity || 0) - (a.stock_quantity || 0);
+        default:
+          return 0;
+      }
+    });
+
+  const totalPages =
+    Math.ceil(filteredAndSortedProducts.length / itemsPerPage) || 1;
+  const currentProducts = filteredAndSortedProducts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
+
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8">
       <div className="flex justify-between items-center mb-6">
@@ -43,17 +95,53 @@ const AdminShopProducts = () => {
           ← Back to Shop
         </button>
       </div>
+
+      <div className="flex flex-col md:flex-row gap-4 mb-4">
+        <div className="flex-1">
+          <SearchBar
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search products by name..."
+          />
+        </div>
+        <div className="flex flex-wrap gap-4">
+          <FilterDropdown
+            value={stockFilter}
+            onChange={(e) => setStockFilter(e.target.value)}
+            options={[
+              { value: "in_stock", label: "In Stock" },
+              { value: "out_of_stock", label: "Out of Stock" },
+            ]}
+            placeholder="All Stock Levels"
+          />
+          <SortDropdown
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            options={[
+              { value: "name_asc", label: "Name (A-Z)" },
+              { value: "name_desc", label: "Name (Z-A)" },
+              { value: "price_high", label: "Price (Highest)" },
+              { value: "price_low", label: "Price (Lowest)" },
+              { value: "stock_high", label: "Stock (Highest)" },
+              { value: "stock_low", label: "Stock (Lowest)" },
+            ]}
+          />
+        </div>
+      </div>
+
       <div className="bg-neutral-dark p-6 rounded-xl shadow border border-neutral-mid">
         <h3 className="text-lg font-bold text-white mb-4 flex items-center justify-between">
-          <span>Total Products ({products.length})</span>
+          <span>Total Products ({filteredAndSortedProducts.length})</span>
         </h3>
         <div className="space-y-3">
-          {products.length === 0 ? (
+          {currentProducts.length === 0 ? (
             <p className="text-neutral-light text-center py-4 text-sm">
-              No products listed by this shop.
+              {products.length === 0
+                ? "No products listed by this shop."
+                : "No matching products found."}
             </p>
           ) : (
-            products.map((p) => {
+            currentProducts.map((p) => {
               const activeDiscount = (discounts || []).find(
                 (d) =>
                   d.target_type === "PRODUCT" &&
@@ -113,6 +201,16 @@ const AdminShopProducts = () => {
             })
           )}
         </div>
+
+        {totalPages > 1 && (
+          <div className="mt-6 pt-6 border-t border-neutral-mid/40">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

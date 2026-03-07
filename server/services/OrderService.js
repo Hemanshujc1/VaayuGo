@@ -2,6 +2,7 @@ const { sequelize, Order, OrderItem, Product, Shop, User, OrderRevenueLog, Locat
 const { getApplicableRule, validateOrderAgainstRule } = require('../services/RuleEngineService');
 const { resolveDiscounts } = require('../services/DiscountService');
 const DeliverySlotService = require('./DeliverySlotService');
+const EmailService = require('./EmailService');
 const AppError = require('../utils/AppError');
 const Decimal = require('decimal.js');
 
@@ -215,6 +216,23 @@ class OrderService {
             }, { transaction });
 
             await transaction.commit();
+
+            // Phase 4: Send New Order Email to Shopkeeper
+            try {
+                // Fetch complete order with User for email context
+                const completeOrder = await Order.findByPk(order.id, {
+                    include: [
+                        { model: User, attributes: ['name', 'mobile_number', 'email'] },
+                        { model: OrderItem }
+                    ]
+                });
+                if (shop.User && shop.User.email) {
+                    EmailService.sendNewOrderAlert(completeOrder, shop.User.email).catch(console.error);
+                }
+            } catch (emailErr) {
+                console.error("Failed to trigger new order email:", emailErr);
+            }
+
             return order;
 
         } catch (error) {
@@ -322,6 +340,40 @@ class OrderService {
 
         order.status = status;
         await order.save();
+
+        // Phase 3: Trigger Output Email for Status Change
+        try {
+            // Re-fetch with Customer data if not fully loaded
+            const fullOrder = await Order.findByPk(order.id, {
+                include: [
+                    { model: User, attributes: ['name', 'email', 'mobile_number'] },
+                    { 
+                        model: Shop, 
+                        attributes: ['name', 'owner_id'],
+                        include: [{ model: User, attributes: ['name', 'email'] }]
+                    }
+                ]
+            });
+            
+            if (fullOrder && fullOrder.User && fullOrder.User.email) {
+                console.log(`[EMAIL DEBUG] Triggering customer email to ${fullOrder.User.email}`);
+                EmailService.sendOrderStatusUpdate(fullOrder, fullOrder.User.email, status).catch(console.error);
+            } else {
+                console.log(`[EMAIL DEBUG] Skipping customer email. User or email missing.`);
+            }
+
+            if (status === 'cancelled') {
+                if (fullOrder && fullOrder.Shop && fullOrder.Shop.User && fullOrder.Shop.User.email) {
+                    console.log(`[EMAIL DEBUG] Triggering shopkeeper cancel email to ${fullOrder.Shop.User.email}`);
+                    EmailService.sendOrderCancelledAlert(fullOrder, fullOrder.Shop.User.email).catch(console.error);
+                } else {
+                    console.log(`[EMAIL DEBUG] Skipping shopkeeper cancel email. Shop data missing. fullOrder.Shop exists: ${!!fullOrder?.Shop}, User exists: ${!!fullOrder?.Shop?.User}`);
+                }
+            }
+        } catch (emailErr) {
+             console.error("Failed to trigger order status emails:", emailErr);
+        }
+
         return order;
     }
 }

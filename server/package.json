@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db:init": "node scripts/initDB.js"
   },
   "keywords": [],
   "author": "",
@@ -27,6 +28,7 @@
     "multer": "^2.0.2",
     "mysql2": "^3.18.0",
     "node-cron": "^4.2.1",
+    "node-mocks-http": "^1.17.2",
     "nodemailer": "^8.0.1",
     "pdf-lib": "^1.17.1",
     "sequelize": "^6.37.7",

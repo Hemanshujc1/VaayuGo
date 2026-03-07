@@ -246,7 +246,7 @@ const ShopOrders = () => {
           {paginatedOrders.map((order) => (
             <div
               key={order.id}
-              className={`bg-neutral-dark p-6 rounded shadow border-l-4 ${order.delivery_attempt > 1 ? "border-accent animate-pulse" : "border-warning"}`}
+              className={`bg-neutral-dark p-6 rounded shadow border-l-4 ${order.delivery_attempt > 1 && !["delivered", "failed", "cancelled"].includes(order.status) ? "border-accent animate-pulse" : "border-warning"}`}
             >
               <div className="flex justify-between items-start mb-4">
                 <div>
@@ -254,11 +254,14 @@ const ShopOrders = () => {
                     <h2 className="font-bold text-lg text-white">
                       Order #{order.id}
                     </h2>
-                    {order.delivery_attempt > 1 && (
-                      <span className="bg-accent text-primary text-[10px] font-black px-2 py-0.5 rounded animate-bounce">
-                        RETRY - ATTEMPT {order.delivery_attempt}
-                      </span>
-                    )}
+                    {order.delivery_attempt > 1 &&
+                      !["delivered", "failed", "cancelled"].includes(
+                        order.status,
+                      ) && (
+                        <span className="bg-accent text-primary text-[10px] font-black px-2 py-0.5 rounded animate-bounce">
+                          RETRY - ATTEMPT {order.delivery_attempt}
+                        </span>
+                      )}
                     {order.status === "delivered" && (
                       <span
                         className={`text-[10px] font-bold px-2 py-0.5 rounded border ${

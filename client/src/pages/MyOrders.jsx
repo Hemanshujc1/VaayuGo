@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/axios";
 import { toast } from "react-hot-toast";
+import Pagination from "../components/common/Pagination";
+import SearchBar from "../components/common/SearchBar";
+import SortDropdown from "../components/common/SortDropdown";
+import FilterDropdown from "../components/common/FilterDropdown";
 
 const MyOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -11,6 +15,12 @@ const MyOrders = () => {
   const [deliveryRating, setDeliveryRating] = useState(0);
   const [cancelingOrderId, setCancelingOrderId] = useState(null);
   const [cancelReason, setCancelReason] = useState("");
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [sortBy, setSortBy] = useState("date_desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const submitRating = async (orderId) => {
     if (shopRating === 0 || deliveryRating === 0) {
@@ -85,17 +95,93 @@ const MyOrders = () => {
     fetchOrders();
   }, []);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, sortBy]);
+
   if (loading) return <div className="text-white p-8">Loading Orders...</div>;
+
+  const filteredAndSortedOrders = orders
+    .filter((o) => {
+      const shopName = o.Shop?.name || "Unknown Shop";
+      const matchesSearch = shopName
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter ? o.status === statusFilter : true;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "date_asc":
+          return new Date(a.createdAt) - new Date(b.createdAt);
+        case "date_desc":
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        case "value_high":
+          return b.grand_total - a.grand_total;
+        case "value_low":
+          return a.grand_total - b.grand_total;
+        default:
+          return 0;
+      }
+    });
+
+  const totalPages =
+    Math.ceil(filteredAndSortedOrders.length / itemsPerPage) || 1;
+  const currentOrders = filteredAndSortedOrders.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
 
   return (
     <div className="min-h-screen bg-primary text-primary-text pb-20">
-      <div className="container mx-auto p-4 md:p-8">
+      <div className="container mx-auto p-4 md:p-8 max-w-5xl">
         <h1 className="text-2xl font-bold mb-6 text-white">My Orders</h1>
-        {orders.length === 0 ? (
-          <p className="text-neutral-light">No past orders found.</p>
+
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="flex-1">
+            <SearchBar
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by Shop Name..."
+            />
+          </div>
+          <div className="flex flex-wrap gap-4">
+            <FilterDropdown
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              options={[
+                { value: "pending", label: "Pending" },
+                { value: "accepted", label: "Accepted" },
+                { value: "preparing", label: "Preparing" },
+                { value: "out_for_delivery", label: "Out for Delivery" },
+                { value: "delivered", label: "Delivered" },
+                { value: "cancelled", label: "Cancelled" },
+                { value: "failed", label: "Failed" },
+              ]}
+              placeholder="All Statuses"
+            />
+            <SortDropdown
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              options={[
+                { value: "date_desc", label: "Date (Newest)" },
+                { value: "date_asc", label: "Date (Oldest)" },
+                { value: "value_high", label: "Value (Highest)" },
+                { value: "value_low", label: "Value (Lowest)" },
+              ]}
+            />
+          </div>
+        </div>
+
+        {currentOrders.length === 0 ? (
+          <p className="text-neutral-light">
+            {orders.length === 0
+              ? "No past orders found."
+              : "No matching orders found."}
+          </p>
         ) : (
           <div className="space-y-4">
-            {orders.map((order) => (
+            {currentOrders.map((order) => (
               <div
                 key={order.id}
                 className="bg-neutral-dark p-4 rounded shadow border-l-4 border-accent"
@@ -327,6 +413,16 @@ const MyOrders = () => {
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="mt-8 pt-6 border-t border-neutral-mid/40">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
           </div>
         )}
       </div>

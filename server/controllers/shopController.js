@@ -3,6 +3,7 @@ const { Op } = require('sequelize');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/AppError');
 const ImageUploadService = require('../services/ImageUploadService');
+const EmailService = require('../services/EmailService');
 const Decimal = require('decimal.js');
 
 const registerShop = catchAsync(async (req, res, next) => {
@@ -35,6 +36,29 @@ const registerShop = catchAsync(async (req, res, next) => {
             category_id: catId
         }));
         await ShopCategory.bulkCreate(associations);
+    }
+
+    // Phase 5: Trigger Admin Approval Request Email
+    try {
+        const admins = await require('../models/User').findAll({
+            where: { role: 'admin', is_blocked: false },
+            attributes: ['email']
+        });
+        
+        const adminEmails = admins.map(a => a.email).filter(Boolean);
+        
+        if (adminEmails.length > 0) {
+            const user = await require('../models/User').findByPk(owner_id);
+            const shopDetails = {
+                ...newShop.toJSON(),
+                User: user ? user.toJSON() : null,
+                phone: user ? user.mobile_number : "N/A"
+            };
+            
+            EmailService.sendAdminApprovalRequest(adminEmails, shopDetails).catch(console.error);
+        }
+    } catch (emailErr) {
+        console.error("Failed to trigger admin approval email for new shop:", emailErr);
     }
 
     res.status(201).json({ message: 'Shop registered successfully. Waiting for Admin approval.', shop: newShop });

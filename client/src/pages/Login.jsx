@@ -182,7 +182,7 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setEmail("admin@vaayugo.com");
+                    setEmail("hemanshuwork26@gmail.com");
                     setPassword("admin@123");
                   }}
                   className="px-3 py-1.5 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30 rounded text-sm font-medium transition-colors"

@@ -2,10 +2,10 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const dotenv = require('dotenv');
+
 const { connectDB, sequelize } = require('./models/index'); // Import from models/index to ensure associations are loaded
 const AppError = require('./utils/AppError');
 const globalErrorHandler = require('./middlewares/errorHandler');
-
 dotenv.config();
 
 const app = express();

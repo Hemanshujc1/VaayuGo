@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import api from "../api/axios";
 import { toast } from "react-hot-toast";
+import Pagination from "../components/common/Pagination";
+import SearchBar from "../components/common/SearchBar";
+import SortDropdown from "../components/common/SortDropdown";
+import FilterDropdown from "../components/common/FilterDropdown";
 
 const AdminSettlements = () => {
   const [settlements, setSettlements] = useState([]);
@@ -9,6 +13,12 @@ const AdminSettlements = () => {
   const [selectedSettlement, setSelectedSettlement] = useState(null);
   const [settlementOrders, setSettlementOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [sortBy, setSortBy] = useState("date_desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const fetchSettlements = async () => {
     try {
@@ -26,6 +36,40 @@ const AdminSettlements = () => {
   useEffect(() => {
     fetchSettlements();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, sortBy]);
+
+  const filteredAndSortedSettlements = settlements
+    .filter((s) => {
+      const matchesSearch = s.Shop?.name
+        ?.toLowerCase()
+        .includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter ? s.status === statusFilter : true;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "date_asc":
+          return new Date(a.start_date) - new Date(b.start_date);
+        case "date_desc":
+          return new Date(b.start_date) - new Date(a.start_date);
+        case "payout_high":
+          return b.net_payout - a.net_payout;
+        case "payout_low":
+          return a.net_payout - b.net_payout;
+        default:
+          return 0;
+      }
+    });
+
+  const totalPages =
+    Math.ceil(filteredAndSortedSettlements.length / itemsPerPage) || 1;
+  const currentSettlements = filteredAndSortedSettlements.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
 
   const handleUpdateStatus = async (id, status) => {
     try {
@@ -117,6 +161,38 @@ const AdminSettlements = () => {
         </div>
       </div>
 
+      <div className="flex flex-col md:flex-row gap-4 mb-4">
+        <div className="flex-1">
+          <SearchBar
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by shop name..."
+          />
+        </div>
+        <div className="flex gap-4">
+          <FilterDropdown
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            options={[
+              { value: "pending", label: "Pending" },
+              { value: "completed", label: "Completed" },
+              { value: "disputed", label: "Disputed" },
+            ]}
+            placeholder="All Statuses"
+          />
+          <SortDropdown
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            options={[
+              { value: "date_desc", label: "Date (Newest)" },
+              { value: "date_asc", label: "Date (Oldest)" },
+              { value: "payout_high", label: "Payout (Highest)" },
+              { value: "payout_low", label: "Payout (Lowest)" },
+            ]}
+          />
+        </div>
+      </div>
+
       <div className="bg-neutral-dark border border-neutral-mid rounded-xl overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -134,7 +210,7 @@ const AdminSettlements = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-mid">
-              {settlements.map((s) => (
+              {currentSettlements.map((s) => (
                 <tr
                   key={s.id}
                   className="hover:bg-white/5 transition-colors group"
@@ -227,19 +303,31 @@ const AdminSettlements = () => {
                   </td>
                 </tr>
               ))}
-              {settlements.length === 0 && (
+              {currentSettlements.length === 0 && (
                 <tr>
                   <td
                     colSpan="9"
                     className="px-6 py-10 text-center text-neutral-light italic"
                   >
-                    No settlements generated yet.
+                    {settlements.length === 0
+                      ? "No settlements generated yet."
+                      : "No matching settlements found."}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="p-4 border-t border-neutral-mid/40">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        )}
       </div>
 
       {selectedSettlement && (

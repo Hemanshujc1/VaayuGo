@@ -3,6 +3,10 @@ import api from "../api/axios";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import ProductCard from "./ProductCard";
+import Pagination from "./common/Pagination";
+import SearchBar from "./common/SearchBar";
+import SortDropdown from "./common/SortDropdown";
+import FilterDropdown from "./common/FilterDropdown";
 
 const ProductManager = () => {
   const [products, setProducts] = useState([]);
@@ -39,9 +43,19 @@ const ProductManager = () => {
     target_name: "Entire Store",
   });
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [stockFilter, setStockFilter] = useState("");
+  const [sortBy, setSortBy] = useState("name_asc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8; // 8 items per page works well for a 4-column grid
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, stockFilter, sortBy]);
 
   const fetchData = async () => {
     try {
@@ -50,11 +64,19 @@ const ProductManager = () => {
         api.get("/shop/my-shop"),
         api.get("/discounts"),
       ]);
-      setProducts(prodRes.data);
+      setProducts(
+        Array.isArray(prodRes.data)
+          ? prodRes.data
+          : prodRes.data?.products || [],
+      );
       if (shopRes.data) {
         setShopId(shopRes.data.id);
       }
-      setDiscounts(discRes.data);
+      setDiscounts(
+        Array.isArray(discRes.data)
+          ? discRes.data
+          : discRes.data?.discounts || [],
+      );
     } catch (error) {
       console.error("Error fetching data", error);
     }
@@ -639,47 +661,142 @@ const ProductManager = () => {
 
       {/* 4. Product Catalog */}
       <div>
-        <h2 className="text-xl font-bold text-white mb-6 flex items-center justify-between">
-          Your Catalog
-          <span className="text-sm font-normal text-neutral-500 bg-neutral-dark px-3 py-1 rounded-full border border-neutral-mid">
-            {products.length} Items
-          </span>
-        </h2>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+          <h2 className="text-xl font-bold text-white flex items-center gap-3">
+            Your Catalog
+            <span className="text-sm font-normal text-neutral-500 bg-neutral-dark px-3 py-1 rounded-full border border-neutral-mid">
+              {products.length} Items
+            </span>
+          </h2>
 
-        {products.length === 0 ? (
-          <div className="text-center py-16 bg-neutral-dark/20 rounded-3xl border border-dashed border-neutral-mid/50">
-            <div className="text-6xl mb-4 opacity-50">🛍️</div>
-            <p className="text-neutral-light text-lg font-bold">
-              Your store is empty.
-            </p>
-            <p className="text-sm text-neutral-500 mt-2">
-              Add your first product above to start selling.
-            </p>
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <div className="w-full md:w-64">
+              <SearchBar
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search products..."
+              />
+            </div>
+            <FilterDropdown
+              value={stockFilter}
+              onChange={(e) => setStockFilter(e.target.value)}
+              options={[
+                { value: "in_stock", label: "In Stock" },
+                { value: "out_of_stock", label: "Out of Stock" },
+              ]}
+              placeholder="All Stock Levels"
+            />
+            <SortDropdown
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              options={[
+                { value: "name_asc", label: "Name (A-Z)" },
+                { value: "name_desc", label: "Name (Z-A)" },
+                { value: "price_high", label: "Price (Highest)" },
+                { value: "price_low", label: "Price (Lowest)" },
+                { value: "stock_high", label: "Stock (Highest)" },
+                { value: "stock_low", label: "Stock (Lowest)" },
+              ]}
+            />
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {products.map((product) => {
-              const activeDiscount = discounts.find(
-                (d) =>
-                  d.target_type === "PRODUCT" &&
-                  d.target_id === product.id &&
-                  d.is_active,
-              );
-              return (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  isShopkeeper={true}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                  onToggle={toggleAvailability}
-                  onAddDiscount={openProductOfferModal}
-                  activeDiscount={activeDiscount}
-                />
-              );
-            })}
-          </div>
-        )}
+        </div>
+
+        {(() => {
+          const filteredAndSortedProducts = products
+            .filter((p) => {
+              const matchesSearch = p.name
+                .toLowerCase()
+                .includes(searchQuery.toLowerCase());
+
+              let matchesStock = true;
+              if (stockFilter === "in_stock")
+                matchesStock = p.stock_quantity > 0;
+              if (stockFilter === "out_of_stock")
+                matchesStock = p.stock_quantity === 0;
+
+              return matchesSearch && matchesStock;
+            })
+            .sort((a, b) => {
+              switch (sortBy) {
+                case "name_asc":
+                  return a.name.localeCompare(b.name);
+                case "name_desc":
+                  return b.name.localeCompare(a.name);
+                case "price_high":
+                  return b.price - a.price;
+                case "price_low":
+                  return a.price - b.price;
+                case "stock_low":
+                  return (a.stock_quantity || 0) - (b.stock_quantity || 0);
+                case "stock_high":
+                  return (b.stock_quantity || 0) - (a.stock_quantity || 0);
+                default:
+                  return 0;
+              }
+            });
+
+          const totalPages =
+            Math.ceil(filteredAndSortedProducts.length / itemsPerPage) || 1;
+          const currentProducts = filteredAndSortedProducts.slice(
+            (currentPage - 1) * itemsPerPage,
+            currentPage * itemsPerPage,
+          );
+
+          if (currentProducts.length === 0) {
+            return (
+              <div className="text-center py-16 bg-neutral-dark/20 rounded-3xl border border-dashed border-neutral-mid/50">
+                <div className="text-6xl mb-4 opacity-50">🛍️</div>
+                <p className="text-neutral-light text-lg font-bold">
+                  {products.length === 0
+                    ? "Your store is empty."
+                    : "No matching products found."}
+                </p>
+                <p className="text-sm text-neutral-500 mt-2">
+                  {products.length === 0
+                    ? "Add your first product above to start selling."
+                    : "Try adjusting your search or filters."}
+                </p>
+              </div>
+            );
+          }
+
+          return (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {currentProducts.map((product) => {
+                  const activeDiscount = discounts.find(
+                    (d) =>
+                      d.target_type === "PRODUCT" &&
+                      d.target_id === product.id &&
+                      d.is_active,
+                  );
+                  return (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      isShopkeeper={true}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                      onToggle={toggleAvailability}
+                      onAddDiscount={openProductOfferModal}
+                      activeDiscount={activeDiscount}
+                    />
+                  );
+                })}
+              </div>
+
+              {totalPages > 1 && (
+                <div className="mt-8 pt-6 border-t border-neutral-mid/40">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                  />
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
 
       {/* Modal: Create Offer */}

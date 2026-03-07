@@ -9,11 +9,30 @@ const AdminShopDetails = () => {
   const [shop, setShop] = useState(null);
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentImgIdx, setCurrentImgIdx] = useState(0);
 
   // Still fetching the overview data here. The arrays (products, orders) will be fetched in child routes.
   useEffect(() => {
     fetchShopOverview();
   }, [id]);
+
+  useEffect(() => {
+    let images = [];
+    if (shop?.images) {
+      images = Array.isArray(shop.images)
+        ? shop.images
+        : JSON.parse(shop.images || "[]");
+    }
+    if (images.length === 0 && shop?.image_url) images = [shop.image_url];
+
+    if (images.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setCurrentImgIdx((prev) => (prev + 1) % images.length);
+    }, 4000); // 4 seconds slideshow
+
+    return () => clearInterval(interval);
+  }, [shop?.images, shop?.image_url]);
 
   const fetchShopOverview = async () => {
     try {
@@ -39,63 +58,187 @@ const AdminShopDetails = () => {
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8">
       {/* 1. Header & Identity */}
-      <div className="bg-neutral-dark p-6 rounded-xl shadow-lg border border-neutral-mid mb-8 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 rounded-bl-full -z-10 blur-2xl"></div>
-        {shop.image_url ? (
-          <img
-            src={shop.image_url}
-            alt={shop.name}
-            className="w-24 h-24 object-cover rounded-full border-4 border-neutral-mid shadow-lg"
-          />
-        ) : (
-          <div className="w-24 h-24 bg-neutral-mid flex items-center justify-center rounded-full text-3xl shadow-lg border-4 border-neutral-mid">
-            🏪
+      <div className="relative rounded-2xl overflow-hidden mb-12 shadow-2xl border border-white/10 group bg-neutral-dark">
+        <div className="absolute inset-0 z-0">
+          {(() => {
+            let images = [];
+            if (shop.images) {
+              images = Array.isArray(shop.images)
+                ? shop.images
+                : JSON.parse(shop.images || "[]");
+            }
+            if (images.length === 0 && shop.image_url)
+              images = [shop.image_url];
+
+            if (images.length > 0 && images[currentImgIdx]) {
+              const imgSrc = images[currentImgIdx].startsWith("http")
+                ? images[currentImgIdx]
+                : `http://localhost:3001${images[currentImgIdx]}`;
+              return (
+                <div className="relative w-full h-full bg-neutral-dark">
+                  <img
+                    src={imgSrc}
+                    alt="Background"
+                    className="w-full h-full object-cover scale-110 blur-xl opacity-40 transition-opacity duration-1000"
+                  />
+                  <div className="absolute inset-0 bg-linear-to-b from-primary/20 via-primary/60 to-primary"></div>
+                </div>
+              );
+            }
+            return <div className="absolute inset-0 bg-neutral-dark"></div>;
+          })()}
+        </div>
+
+        <div className="relative z-10 p-6 md:p-10 flex flex-col md:flex-row gap-8 items-center md:items-start">
+          <div className="w-full md:w-64 h-64 relative rounded-2xl overflow-hidden shrink-0 border-2 border-white/20 shadow-2xl group-hover:border-accent/40 transition-colors duration-500 bg-neutral-mid/10">
+            {(() => {
+              let images = [];
+              if (shop.images) {
+                images = Array.isArray(shop.images)
+                  ? shop.images
+                  : JSON.parse(shop.images || "[]");
+              }
+              if (images.length === 0 && shop.image_url)
+                images = [shop.image_url];
+
+              if (images.length > 0 && images[currentImgIdx]) {
+                const imgSrc = images[currentImgIdx].startsWith("http")
+                  ? images[currentImgIdx]
+                  : `http://localhost:3001${images[currentImgIdx]}`;
+                return (
+                  <>
+                    <img
+                      src={imgSrc}
+                      alt={shop.name}
+                      className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                    />
+                    {images.length > 1 && (
+                      <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
+                        {images.map((_, idx) => (
+                          <div
+                            key={idx}
+                            className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentImgIdx ? "w-6 bg-accent" : "w-1.5 bg-white/40"}`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </>
+                );
+              }
+              return (
+                <div className="w-full h-full flex flex-col items-center justify-center text-5xl">
+                  🏪
+                  <span className="text-sm text-neutral-light mt-4">
+                    No Image
+                  </span>
+                </div>
+              );
+            })()}
+            <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
           </div>
-        )}
-        <div className="flex-1 text-center md:text-left">
-          <div className="flex flex-col md:flex-row items-center gap-3 mb-2">
-            <h1 className="text-3xl font-bold text-white">{shop.name}</h1>
-            <span
-              className={`px-3 py-1 text-xs font-bold rounded-full border ${
-                shop.status === "approved"
-                  ? "bg-green-900/40 text-green-400 border-green-800"
-                  : shop.status === "rejected"
-                    ? "bg-red-900/40 text-red-400 border-red-800"
-                    : "bg-yellow-900/40 text-yellow-400 border-yellow-800"
-              }`}
-            >
-              {shop.status.toUpperCase()}
-            </span>
-            <span
-              className={`px-3 py-1 text-xs font-bold rounded-full border ${
-                shop.is_open
-                  ? "bg-blue-900/40 text-blue-400 border-blue-800"
-                  : "bg-neutral-600/40 text-neutral-400 border-neutral-600"
-              }`}
-            >
-              {shop.is_open ? "🟢 OPEN" : "🔴 CLOSED"}
-            </span>
+
+          <div className="flex-1 text-center md:text-left space-y-6">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-2">
+                <span
+                  className={`px-3 py-1 text-xs font-bold rounded-full border shadow-sm ${
+                    shop.status === "approved"
+                      ? "bg-green-900/40 text-green-400 border-green-800"
+                      : shop.status === "rejected"
+                        ? "bg-red-900/40 text-red-400 border-red-800"
+                        : "bg-yellow-900/40 text-yellow-400 border-yellow-800"
+                  }`}
+                >
+                  {shop.status.toUpperCase()}
+                </span>
+
+                {shop.is_open ? (
+                  <span className="relative flex items-center gap-2 px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full">
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+                    </span>
+                    <span className="text-[10px] font-black tracking-widest uppercase text-green-400">
+                      Now Open
+                    </span>
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2 px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full">
+                    <span className="h-2.5 w-2.5 rounded-full bg-red-500"></span>
+                    <span className="text-[10px] font-black tracking-widest uppercase text-red-400">
+                      Currently Closed
+                    </span>
+                  </span>
+                )}
+              </div>
+
+              <h1 className="text-4xl md:text-5xl font-black text-white drop-shadow-lg tracking-tight">
+                {shop.name}
+              </h1>
+
+              <div className="flex flex-wrap justify-center md:justify-start gap-2 pt-1">
+                {(shop.Categories || []).length > 0 ? (
+                  shop.Categories.map((cat) => (
+                    <span
+                      key={cat.id}
+                      className="bg-white/5 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-accent border border-white/10"
+                    >
+                      {cat.name}
+                    </span>
+                  ))
+                ) : shop.category ? (
+                  <span className="bg-white/5 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-accent border border-white/10">
+                    {shop.category}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+
+            <p className="text-neutral-light text-base font-medium flex items-center justify-center md:justify-start gap-2">
+              <span className="opacity-60 text-accent">📍</span>
+              {shop.location_address}
+            </p>
+
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
+              <div className="bg-white/5 backdrop-blur-xl px-5 py-3 rounded-2xl border border-white/10 flex flex-col gap-1 shadow-xl">
+                <span className="text-[10px] font-bold text-neutral-light uppercase tracking-tighter">
+                  Owner
+                </span>
+                <span className="text-white font-bold">
+                  {shop.User?.name || "Unknown"}
+                </span>
+              </div>
+              <div className="bg-white/5 backdrop-blur-xl px-5 py-3 rounded-2xl border border-white/10 flex flex-col gap-1 shadow-xl">
+                <span className="text-[10px] font-bold text-neutral-light uppercase tracking-tighter">
+                  Contact
+                </span>
+                <span className="text-white font-bold">
+                  📞 {shop.User?.mobile_number || "N/A"}
+                </span>
+                <span className="text-white font-bold text-sm">
+                  ✉️ {shop.User?.email || "N/A"}
+                </span>
+              </div>
+              <div className="bg-white/5 backdrop-blur-xl px-5 py-3 rounded-2xl border border-white/10 flex flex-col gap-1 shadow-xl">
+                <span className="text-[10px] font-bold text-neutral-light uppercase tracking-tighter">
+                  Shop ID
+                </span>
+                <span className="font-bold text-accent">
+                  #{shop.id}
+                </span>
+              </div>
+            </div>
           </div>
-          <p className="text-neutral-light text-sm mb-1 line-clamp-2">
-            📍 {shop.location_address}
-          </p>
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs text-neutral-400 mt-2">
-            <span>
-              Owner:{" "}
-              <span className="text-white font-medium">
-                {shop.User?.name || "Unknown"}
-              </span>
-            </span>
-            <span>📞 {shop.User?.mobile_number || "N/A"}</span>
-            <span>Shop ID: {shop.id}</span>
+
+          <div className="shrink-0 mt-4 md:mt-0">
+            <button
+              onClick={() => navigate("/admin/shops")}
+              className="bg-white/10 backdrop-blur-lg border border-white/20 text-white px-6 py-3 rounded-full hover:bg-white/20 hover:border-white/40 transition-all font-bold text-sm shadow-xl flex items-center gap-2"
+            >
+              <span>←</span> Back to Shops
+            </button>
           </div>
         </div>
-        <button
-          onClick={() => navigate("/admin/shops")}
-          className="bg-neutral-mid text-white px-6 py-2 rounded-full hover:bg-neutral-light/20 transition-colors font-bold text-sm shadow whitespace-nowrap"
-        >
-          ← Back to Shops
-        </button>
       </div>
 
       {metrics && (

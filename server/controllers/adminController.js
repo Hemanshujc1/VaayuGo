@@ -3,6 +3,7 @@ const { Op } = require('sequelize');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/AppError');
 const AnalyticsService = require('../services/AnalyticsService');
+const EmailService = require('../services/EmailService');
 
 const getAnalytics = catchAsync(async (req, res, next) => {
     const metrics = await AnalyticsService.getPlatformMetrics();
@@ -385,31 +386,57 @@ const updateShopStatus = catchAsync(async (req, res, next) => {
         return next(new AppError('Invalid status', 400));
     }
 
-    const shop = await Shop.findByPk(id);
+    const shop = await Shop.findByPk(id, { include: User });
     if (!shop) return next(new AppError('Shop not found', 404));
 
+    const oldStatus = shop.status;
     shop.status = status;
     await shop.save();
+
+    // Trigger emails based on status change
+    if (shop.User && shop.User.email) {
+        if (oldStatus !== 'approved' && status === 'approved') {
+            EmailService.sendShopApproved(shop.User.email).catch(console.error);
+        } else if (oldStatus !== 'rejected' && status === 'rejected') {
+            const reason = req.body.reason || "Application did not meet our current requirements.";
+            EmailService.sendShopRejected(shop.User.email, reason).catch(console.error);
+        }
+    }
+
     res.json({ message: `Shop status updated to ${status}`, shop });
 });
 
 const verifyShop = catchAsync(async (req, res, next) => { 
     const { id } = req.params;
-    const shop = await Shop.findByPk(id);
+    const shop = await Shop.findByPk(id, { include: User });
     if (!shop) return next(new AppError('Shop not found', 404));
 
     shop.status = 'approved';
     await shop.save();
+
+    // Trigger Approval Email
+    if (shop.User && shop.User.email) {
+        EmailService.sendShopApproved(shop.User.email).catch(console.error);
+    }
+
     res.json({ message: 'Shop verified successfully', shop });
 });
 
 const rejectShop = catchAsync(async (req, res, next) => { 
     const { id } = req.params;
-    const shop = await Shop.findByPk(id);
+    const { reason } = req.body;
+    
+    const shop = await Shop.findByPk(id, { include: User });
     if (!shop) return next(new AppError('Shop not found', 404));
 
     shop.status = 'rejected';
     await shop.save();
+
+    // Trigger Rejection Email
+    if (shop.User && shop.User.email) {
+        EmailService.sendShopRejected(shop.User.email, reason || "No specific reason provided.").catch(console.error);
+    }
+
     res.json({ message: 'Shop rejected', shop });
 });
 

@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import api from "../api/axios";
 import { toast } from "react-hot-toast";
+import Pagination from "../components/common/Pagination";
+import SearchBar from "../components/common/SearchBar";
+import SortDropdown from "../components/common/SortDropdown";
+import FilterDropdown from "../components/common/FilterDropdown";
 
 const ShopEarnings = () => {
   const [settlements, setSettlements] = useState([]);
@@ -8,6 +12,13 @@ const ShopEarnings = () => {
   const [selectedSettlement, setSelectedSettlement] = useState(null);
   const [settlementOrders, setSettlementOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+
+  // List Controls State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [sortBy, setSortBy] = useState("date_desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const fetchSettlements = async () => {
     try {
@@ -25,6 +36,10 @@ const ShopEarnings = () => {
   useEffect(() => {
     fetchSettlements();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, sortBy]);
 
   const handleViewOrders = async (settlement) => {
     setSelectedSettlement(settlement);
@@ -61,6 +76,38 @@ const ShopEarnings = () => {
       </div>
     );
 
+  const filteredAndSortedSettlements = settlements
+    .filter((s) => {
+      // The search query will match against the Start Date or End Date string format
+      // Or just search by settlement id implicitly
+      const dateString =
+        `${new Date(s.start_date).toLocaleDateString()} ${new Date(s.end_date).toLocaleDateString()}`.toLowerCase();
+      const matchesSearch = dateString.includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter ? s.status === statusFilter : true;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "date_asc":
+          return new Date(a.start_date) - new Date(b.start_date);
+        case "date_desc":
+          return new Date(b.start_date) - new Date(a.start_date);
+        case "payout_high":
+          return Number(b.net_payout) - Number(a.net_payout);
+        case "payout_low":
+          return Number(a.net_payout) - Number(b.net_payout);
+        default:
+          return 0;
+      }
+    });
+
+  const totalPages =
+    Math.ceil(filteredAndSortedSettlements.length / itemsPerPage) || 1;
+  const currentSettlements = filteredAndSortedSettlements.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
+
   return (
     <div className="max-w-6xl mx-auto space-y-8 p-4">
       <div>
@@ -70,6 +117,36 @@ const ShopEarnings = () => {
         <p className="text-neutral-light">
           Track your weekly payouts and reconciled earnings.
         </p>
+      </div>
+
+      {/* Note about math */}
+      <div className="bg-accent/5 border border-accent/20 p-6 rounded-xl">
+        <h3 className="text-accent font-bold mb-2 flex items-center gap-2">
+          <span>💡</span> Understanding the Settlement
+        </h3>
+        <ul className="text-neutral-light text-sm space-y-2 list-disc ml-5">
+          <li>
+            <strong>COD Orders:</strong> Since you collect cash directly,
+            VaayuGo's commission is deducted from your next payout or remains as
+            a due.
+          </li>
+          <li>
+            <strong>Online Orders:</strong> VaayuGo collects the cash and pays
+            you the net amount after commission.
+          </li>
+          <li>
+            <strong>Positive Payout (+):</strong> VaayuGo owes you money
+            (typically from online orders).
+          </li>
+          <li>
+            <strong>Negative Payout (-):</strong> You owe VaayuGo (typically
+            commission from high-volume COD sales).
+          </li>
+          <li>
+            <strong>View Breakdown:</strong> Click the "View Breakdown" link to
+            see exactly which orders were processed in a given week.
+          </li>
+        </ul>
       </div>
 
       {/* Summary Cards */}
@@ -114,6 +191,38 @@ const ShopEarnings = () => {
         </div>
       </div>
 
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex-1">
+          <SearchBar
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by date..."
+          />
+        </div>
+        <div className="flex flex-wrap gap-4">
+          <FilterDropdown
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            options={[
+              { value: "completed", label: "Completed" },
+              { value: "pending", label: "Pending" },
+              { value: "disputed", label: "Disputed" },
+            ]}
+            placeholder="All Statuses"
+          />
+          <SortDropdown
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            options={[
+              { value: "date_desc", label: "Date (Newest)" },
+              { value: "date_asc", label: "Date (Oldest)" },
+              { value: "payout_high", label: "Payout (Highest)" },
+              { value: "payout_low", label: "Payout (Lowest)" },
+            ]}
+          />
+        </div>
+      </div>
+
       {/* History Table */}
       <div className="bg-neutral-dark border border-neutral-mid rounded-xl overflow-hidden shadow-2xl">
         <div className="p-6 border-b border-neutral-mid bg-primary/20">
@@ -133,7 +242,7 @@ const ShopEarnings = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-mid">
-              {settlements.map((s) => (
+              {currentSettlements.map((s) => (
                 <tr
                   key={s.id}
                   className="hover:bg-white/5 transition-colors group"
@@ -203,19 +312,31 @@ const ShopEarnings = () => {
                   </td>
                 </tr>
               ))}
-              {settlements.length === 0 && (
+              {currentSettlements.length === 0 && (
                 <tr>
                   <td
                     colSpan="7"
                     className="px-6 py-10 text-center text-neutral-light italic"
                   >
-                    No settlements processed yet.
+                    {settlements.length === 0
+                      ? "No settlements processed yet."
+                      : "No matching settlements found."}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+
+        {totalPages > 1 && (
+          <div className="p-6 border-t border-neutral-mid">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        )}
       </div>
 
       {selectedSettlement && (
@@ -327,36 +448,6 @@ const ShopEarnings = () => {
           </div>
         </div>
       )}
-
-      {/* Note about math */}
-      <div className="bg-accent/5 border border-accent/20 p-6 rounded-xl">
-        <h3 className="text-accent font-bold mb-2 flex items-center gap-2">
-          <span>💡</span> Understanding the Settlement
-        </h3>
-        <ul className="text-neutral-light text-sm space-y-2 list-disc ml-5">
-          <li>
-            <strong>COD Orders:</strong> Since you collect cash directly,
-            VaayuGo's commission is deducted from your next payout or remains as
-            a due.
-          </li>
-          <li>
-            <strong>Online Orders:</strong> VaayuGo collects the cash and pays
-            you the net amount after commission.
-          </li>
-          <li>
-            <strong>Positive Payout (+):</strong> VaayuGo owes you money
-            (typically from online orders).
-          </li>
-          <li>
-            <strong>Negative Payout (-):</strong> You owe VaayuGo (typically
-            commission from high-volume COD sales).
-          </li>
-          <li>
-            <strong>View Breakdown:</strong> Click the "View Breakdown" link to
-            see exactly which orders were processed in a given week.
-          </li>
-        </ul>
-      </div>
     </div>
   );
 };
