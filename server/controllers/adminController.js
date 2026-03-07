@@ -316,8 +316,64 @@ const getPendingShops = catchAsync(async (req, res, next) => {
 });
 
 const getAllShops = catchAsync(async (req, res, next) => {
-    const shops = await Shop.findAll({ include: User });
-    res.json(shops);
+    const { 
+        page = 1, 
+        limit = 10, 
+        search = '', 
+        status = '', 
+        category_id = '', 
+        sort = 'newest' 
+    } = req.query;
+
+    const offset = (page - 1) * limit;
+    
+    // Build Where Clause
+    const where = {};
+    if (status) where.status = status;
+    if (category_id) where.category = category_id;
+    
+    const categoryInclude = { 
+        model: Category, 
+        attributes: ['id', 'name'],
+        through: { attributes: [] }
+    };
+
+    const include = [
+        { model: User, attributes: ['id', 'mobile_number', 'email', 'name', 'location'] },
+        categoryInclude
+    ];
+
+    if (search) {
+        where[Op.or] = [
+            { name: { [Op.like]: `%${search}%` } },
+            { '$User.name$': { [Op.like]: `%${search}%` } },
+            { '$User.email$': { [Op.like]: `%${search}%` } },
+            { '$User.mobile_number$': { [Op.like]: `%${search}%` } }
+        ];
+    }
+
+    // Sorting
+    let order = [['createdAt', 'DESC']];
+    if (sort === 'oldest') order = [['createdAt', 'ASC']];
+    if (sort === 'name_asc') order = [['name', 'ASC']];
+    if (sort === 'name_desc') order = [['name', 'DESC']];
+
+    const { count, rows: shops } = await Shop.findAndCountAll({
+        where,
+        include,
+        order,
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        distinct: true,
+        subQuery: false
+    });
+
+    res.json({
+        shops,
+        totalCount: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: parseInt(page)
+    });
 });
 
 const updateShopStatus = catchAsync(async (req, res, next) => {
@@ -362,7 +418,19 @@ const rejectShop = catchAsync(async (req, res, next) => {
 // --- Category Management ---
 
 const getAllCategories = catchAsync(async (req, res, next) => {
-    const categories = await Category.findAll({ order: [['name', 'ASC']] });
+    // Fetch distinct categories directly from Shop model because the app uses the `category` string field
+    const shops = await Shop.findAll({
+        attributes: [[sequelize.fn('DISTINCT', sequelize.col('category')), 'category']],
+        raw: true
+    });
+    
+    // Map to standard format expected by frontend
+    const categories = shops
+        .map(s => s.category)
+        .filter(c => c && c.trim() !== '')
+        .map(c => ({ id: c, name: c }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+        
     res.json(categories);
 });
 

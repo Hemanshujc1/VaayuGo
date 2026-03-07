@@ -84,20 +84,30 @@ const createDiscount = async (req, res) => {
 // @access  Private (Admin or Shopkeeper)
 const getDiscounts = async (req, res) => {
     try {
-        if (req.user.role === 'admin') {
-            // Admin sees all discounts
-            const rules = await DiscountRule.findAll({ order: [['createdAt', 'DESC']] });
-            return res.json(rules);
-        } else if (req.user.role === 'shopkeeper') {
-            // Shopkeeper sees only their own discounts
-            const rules = await DiscountRule.findAll({
-                where: { creator_type: 'SHOP', creator_id: req.user.id },
-                order: [['createdAt', 'DESC']]
-            });
-            return res.json(rules);
-        } else {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
+
+        let whereClause = {};
+
+        if (req.user.role === 'shopkeeper') {
+            whereClause = { creator_type: 'SHOP', creator_id: req.user.id };
+        } else if (req.user.role !== 'admin') {
             return res.status(403).json({ message: 'Unauthorized' });
         }
+
+        const { count, rows } = await DiscountRule.findAndCountAll({
+            where: whereClause,
+            order: [['createdAt', 'DESC']],
+            limit,
+            offset
+        });
+
+        res.json({
+            discounts: rows,
+            totalCount: count,
+            totalPages: Math.ceil(count / limit) || 1
+        });
     } catch (error) {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
@@ -155,7 +165,7 @@ const editDiscount = async (req, res) => {
             return res.status(403).json({ message: 'Unauthorized to modify this rule' });
         }
 
-        const { name, type, value, max_discount_amount, min_order_value, valid_from, valid_until } = req.body;
+        const { name, type, value, max_discount_amount, min_order_value, target_type, target_id, valid_from, valid_until } = req.body;
 
         if (name !== undefined && (name.trim().length < 3 || name.trim().length > 50)) {
             return res.status(400).json({ message: 'Discount name must be between 3 and 50 characters' });
@@ -176,6 +186,8 @@ const editDiscount = async (req, res) => {
             value,
             max_discount_amount: max_discount_amount || null,
             min_order_value: min_order_value || null,
+            target_type: target_type || rule.target_type,
+            target_id: target_id || null,
             valid_from: valid_from || null,
             valid_until: valid_until || null
         });

@@ -29,8 +29,10 @@ const AdminBulkUpload = () => {
 
   const fetchShops = async () => {
     try {
-      const res = await api.get("/admin/shops/all");
-      setShops(res.data);
+      const res = await api.get("/admin/shops/all", {
+        params: { limit: 1000 },
+      });
+      setShops(res.data?.shops || []);
     } catch (error) {
       console.error("Error fetching shops:", error);
       toast.error("Failed to load shops");

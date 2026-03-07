@@ -172,7 +172,7 @@ const CustomerProfile = () => {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-neutral-light mb-1 uppercase tracking-wider">
-                    Location (Read-only)
+                    Location
                   </p>
                   <p className="text-lg font-medium text-white">
                     {profile?.location || "N/A"}

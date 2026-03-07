@@ -17,7 +17,7 @@ const ShopOrders = () => {
   const [filter, setFilter] = useState("all"); // Default to all orders depending on shop owner preference
   const [sortOrder, setSortOrder] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8; // Slightly more items since cards are compact
+  const itemsPerPage = 5; // Slightly more items since cards are compact
   const [availableSlots, setAvailableSlots] = useState([]);
   const [slotFilter, setSlotFilter] = useState("all");
 

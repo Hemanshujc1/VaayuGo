@@ -2,12 +2,21 @@ import { useState, useEffect } from "react";
 import api from "../api/axios";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
+import Pagination from "../components/common/Pagination";
 
 const AdminDiscountRules = () => {
   const [discounts, setDiscounts] = useState([]);
   const [shops, setShops] = useState([]);
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const itemsPerPage = 5;
+
+  // Edit states
+  const [editingId, setEditingId] = useState(null);
 
   const [newDiscount, setNewDiscount] = useState({
     name: "",
@@ -25,17 +34,20 @@ const AdminDiscountRules = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [currentPage]);
 
   const fetchData = async () => {
     try {
       const [discountsRes, shopsRes, locRes] = await Promise.all([
-        api.get("/discounts"),
-        api.get("/admin/shops/all"),
+        api.get("/discounts", {
+          params: { page: currentPage, limit: itemsPerPage },
+        }),
+        api.get("/admin/shops/all", { params: { limit: 1000 } }),
         api.get("/public/locations"),
       ]);
-      setDiscounts(discountsRes.data);
-      setShops(shopsRes.data);
+      setDiscounts(discountsRes.data?.discounts || []);
+      setTotalPages(discountsRes.data?.totalPages || 1);
+      setShops(shopsRes.data?.shops || []);
       setLocations(locRes.data);
     } catch (error) {
       toast.error("Failed to fetch discount data");
@@ -63,32 +75,52 @@ const AdminDiscountRules = () => {
         valid_until: newDiscount.valid_until || null,
       };
 
-      if (newDiscount.target_type === "CATEGORY") {
-        payload.target_id = newDiscount.target_category; // Hack to send string category, backend needs to support it though.
-        // Wait, backend expects integer for target_id.
-        // Let's rely on standard logic, if category it might crash backend if it strictly wants integer.
-        // I will use target_id for the string if type is CATEGORY as an edge case, but the backend DB uses INTEGER.
-        // Oh, target_id is INTEGER in models! So category as target_id will fail.
+      if (editingId) {
+        await api.put(`/discounts/${editingId}`, payload);
+        toast.success("Discount updated successfully");
+      } else {
+        await api.post("/discounts", payload);
+        toast.success("Discount created successfully");
       }
 
-      await api.post("/discounts", payload);
-      toast.success("Discount created successfully");
-
-      setNewDiscount({
-        name: "",
-        type: "PERCENTAGE",
-        value: "",
-        max_discount_amount: "",
-        min_order_value: "",
-        target_type: "GLOBAL",
-        target_id: "",
-        valid_from: "",
-        valid_until: "",
-      });
+      handleCancelEdit();
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to create discount");
+      toast.error(error.response?.data?.message || "Failed to save discount");
     }
+  };
+
+  const handleEdit = (discount) => {
+    setEditingId(discount.id);
+    setNewDiscount({
+      name: discount.name,
+      type: discount.type,
+      value: discount.value,
+      max_discount_amount: discount.max_discount_amount || "",
+      min_order_value: discount.min_order_value || "",
+      target_type: discount.target_type,
+      target_id: discount.target_id || "",
+      valid_from: discount.valid_from ? discount.valid_from.split("T")[0] : "",
+      valid_until: discount.valid_until
+        ? discount.valid_until.split("T")[0]
+        : "",
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setNewDiscount({
+      name: "",
+      type: "PERCENTAGE",
+      value: "",
+      max_discount_amount: "",
+      min_order_value: "",
+      target_type: "GLOBAL",
+      target_id: "",
+      valid_from: "",
+      valid_until: "",
+    });
   };
 
   const handleToggle = async (id) => {
@@ -163,8 +195,16 @@ const AdminDiscountRules = () => {
                 d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            Create New Offer
+            {editingId ? "Edit Offer" : "Create New Offer"}
           </h2>
+          {editingId && (
+            <button
+              onClick={handleCancelEdit}
+              className="text-sm font-semibold text-neutral-400 hover:text-white transition-colors border border-neutral-mid rounded-full px-4 py-1.5"
+            >
+              Cancel Edit
+            </button>
+          )}
         </div>
 
         <form
@@ -340,7 +380,7 @@ const AdminDiscountRules = () => {
               type="submit"
               className="bg-linear-to-r from-accent to-accent/80 hover:from-accent/90 hover:to-accent text-primary font-bold px-8 py-3 rounded-xl shadow-[0_4px_14px_rgba(var(--color-accent),0.3)] hover:shadow-[0_6px_20px_rgba(var(--color-accent),0.4)] active:scale-[0.98] transition-all"
             >
-              Publish Discount
+              {editingId ? "Save Changes" : "Publish Discount"}
             </button>
           </div>
         </form>
@@ -420,7 +460,29 @@ const AdminDiscountRules = () => {
                           : "Disabled (Click to Enable)"}
                       </button>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right flex justify-end gap-2">
+                      {rule.creator_type === "ADMIN" && (
+                        <button
+                          onClick={() => handleEdit(rule)}
+                          className="p-2 text-neutral-400 hover:text-accent transition-colors"
+                          title="Edit Rule"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
+                        </button>
+                      )}
                       <button
                         onClick={() => handleDelete(rule.id)}
                         className="p-2 text-neutral-400 hover:text-red-400 transition-colors"
@@ -446,6 +508,16 @@ const AdminDiscountRules = () => {
                 ))}
               </tbody>
             </table>
+
+            {totalPages > 1 && (
+              <div className="p-4 border-t border-neutral-mid/40">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -10,23 +10,60 @@ import Pagination from "../components/common/Pagination";
 const AdminShops = () => {
   const [shops, setShops] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState([]);
   const navigate = useNavigate();
 
   // Data Table States
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [filter, setFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [sortOrder, setSortOrder] = useState("newest");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [totalPages, setTotalPages] = useState(1);
+  const itemsPerPage = 5;
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     fetchAllShops();
-  }, []);
+  }, [debouncedSearchTerm, filter, categoryFilter, sortOrder, currentPage]);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await api.get("/admin/categories");
+      setCategories(res.data);
+    } catch (err) {
+      console.error("Failed to fetch categories", err);
+    }
+  };
 
   const fetchAllShops = async () => {
+    setLoading(true);
     try {
-      const res = await api.get("/admin/shops/all");
-      setShops(res.data);
+      const res = await api.get("/admin/shops/all", {
+        params: {
+          page: currentPage,
+          limit: itemsPerPage,
+          search: debouncedSearchTerm,
+          status: filter,
+          category_id: categoryFilter,
+          sort: sortOrder,
+        },
+      });
+      setShops(res.data.shops);
+      setTotalPages(res.data.totalPages);
     } catch (err) {
       toast.error("Failed to fetch shops");
     } finally {
@@ -38,10 +75,7 @@ const AdminShops = () => {
     try {
       await api.put(`/admin/shops/verify/${id}`);
       toast.success("Shop Verified Successfully");
-      // Refresh local state
-      setShops(
-        shops.map((s) => (s.id === id ? { ...s, status: "approved" } : s)),
-      );
+      fetchAllShops();
     } catch (err) {
       toast.error("Failed to verify shop");
     }
@@ -52,9 +86,7 @@ const AdminShops = () => {
     try {
       await api.patch(`/admin/shops/${id}/reject`);
       toast.success("Shop Rejected");
-      setShops(
-        shops.map((s) => (s.id === id ? { ...s, status: "rejected" } : s)),
-      );
+      fetchAllShops();
     } catch (err) {
       toast.error("Failed to reject shop");
     }
@@ -70,71 +102,47 @@ const AdminShops = () => {
     try {
       await api.patch(`/admin/shops/${id}`, { status: newStatus });
       toast.success(`Shop ${action}ed Successfully`);
-      setShops(
-        shops.map((s) => (s.id === id ? { ...s, status: newStatus } : s)),
-      );
+      fetchAllShops();
     } catch (error) {
       console.error(error);
       toast.error(`Failed to ${action} shop`);
     }
   };
 
-  // 1. Filter
-  let processedData = shops.filter((shop) => {
-    if (filter && shop.status !== filter) return false;
-    // 2. Search
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      const matchesName = shop.name?.toLowerCase().includes(term);
-      const matchesOwner = shop.User?.username?.toLowerCase().includes(term);
-      const matchesEmail = shop.User?.email?.toLowerCase().includes(term);
-      return matchesName || matchesOwner || matchesEmail;
-    }
-    return true;
-  });
-
-  // 3. Sort
-  processedData.sort((a, b) => {
-    if (sortOrder === "newest") {
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    } else if (sortOrder === "oldest") {
-      return new Date(a.createdAt) - new Date(b.createdAt);
-    } else if (sortOrder === "name_asc") {
-      return a.name.localeCompare(b.name);
-    } else if (sortOrder === "name_desc") {
-      return b.name.localeCompare(a.name);
-    }
-    return 0;
-  });
-
-  // 4. Paginate
-  const totalPages = Math.ceil(processedData.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedShops = processedData.slice(
-    startIndex,
-    startIndex + itemsPerPage,
-  );
-
-  // Reset page if data changes dramatically
-  useEffect(() => {
+  const handleFilterChange = (val) => {
+    setFilter(val);
     setCurrentPage(1);
-  }, [searchTerm, filter, sortOrder]);
+  };
+
+  const handleCategoryChange = (val) => {
+    setCategoryFilter(val);
+    setCurrentPage(1);
+  };
+
+  const handleSortChange = (val) => {
+    setSortOrder(val);
+    setCurrentPage(1);
+  };
 
   return (
-    <div className="p-8 bg-primary min-h-screen text-primary-text">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <h1 className="text-3xl font-bold text-white">Manage Shops</h1>
+    <div className="p-4 md:p-8 bg-primary min-h-screen text-primary-text">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6">
+        <h1 className="text-3xl font-bold text-white whitespace-nowrap">
+          Manage Shops
+        </h1>
 
-        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-          <SearchBar
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search shops or owners..."
-          />
-          <div className="flex gap-3">
+        <div className="flex flex-col md:flex-row gap-4 w-full lg:w-auto items-stretch md:items-center">
+          <div className="flex-1 md:w-80">
+            <SearchBar
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search shops or owners..."
+            />
+          </div>
+          <div className="flex flex-wrap gap-3">
             <FilterDropdown
               value={filter}
-              onChange={(e) => setFilter(e.target.value)}
+              onChange={(e) => handleFilterChange(e.target.value)}
               placeholder="All Statuses"
               options={[
                 { label: "Pending", value: "pending" },
@@ -142,9 +150,15 @@ const AdminShops = () => {
                 { label: "Blocked", value: "suspended" },
               ]}
             />
+            <FilterDropdown
+              value={categoryFilter}
+              onChange={(e) => handleCategoryChange(e.target.value)}
+              placeholder="All Categories"
+              options={categories.map((c) => ({ label: c.name, value: c.id }))}
+            />
             <SortDropdown
               value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
+              onChange={(e) => handleSortChange(e.target.value)}
               options={[
                 { label: "Newest First", value: "newest" },
                 { label: "Oldest First", value: "oldest" },
@@ -157,16 +171,19 @@ const AdminShops = () => {
       </div>
 
       {loading ? (
-        <div className="text-center text-white">Loading...</div>
+        <div className="text-center text-white py-10">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
+          Loading shops...
+        </div>
       ) : (
         <div className="grid gap-6">
-          {paginatedShops.length === 0 && (
+          {shops.length === 0 && (
             <div className="text-center text-neutral-light py-10 bg-neutral-dark rounded border border-neutral-mid">
               No shops match your criteria.
             </div>
           )}
 
-          {paginatedShops.map((shop) => (
+          {shops.map((shop) => (
             <div
               key={shop.id}
               className="bg-neutral-dark p-6 rounded shadow border border-neutral-mid flex flex-col md:flex-row justify-between items-start md:items-center"
@@ -190,8 +207,10 @@ const AdminShops = () => {
                 </h2>
                 <div className="text-neutral-light mt-2 space-y-1 text-sm">
                   <p>
-                    Owner: {shop.User?.username} ({shop.User?.email})
+                    Owner: {shop.User?.name || "N/A"}{" "}
+                    {shop.User?.mobile_number && `(${shop.User.mobile_number})`}
                   </p>
+                  <p>Email: {shop.User?.email || "N/A"}</p>
                   <p>
                     Category:{" "}
                     {(shop.Categories || []).length > 0
@@ -249,7 +268,7 @@ const AdminShops = () => {
             </div>
           ))}
 
-          {paginatedShops.length > 0 && (
+          {shops.length > 0 && (
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}

@@ -34,11 +34,11 @@ const AdminGlobalRules = () => {
     try {
       const [rulesRes, shopsRes, locRes] = await Promise.all([
         api.get("/admin/delivery-rules"),
-        api.get("/admin/shops/all"),
+        api.get("/admin/shops/all", { params: { limit: 1000 } }),
         api.get("/public/locations"),
       ]);
       setRules(rulesRes.data);
-      setShops(shopsRes.data);
+      setShops(shopsRes.data?.shops || []);
       setLocations(locRes.data);
 
       if (locRes.data.length > 0) {
@@ -272,7 +272,7 @@ const AdminGlobalRules = () => {
                     const loc = locations.find(
                       (l) => l.id === Number(newRule.location_id),
                     );
-                    return loc ? shop.location_address === loc.name : true;
+                    return loc ? shop.User?.location === loc.name : true;
                   })
                   .map((shop) => (
                     <option key={shop.id} value={shop.id}>
