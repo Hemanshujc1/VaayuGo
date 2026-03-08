@@ -237,6 +237,32 @@ class EmailService {
     const promises = adminEmails.map(email => this.sendEmail(email, subject, html));
     return Promise.all(promises);
   }
+
+  async sendPenaltyNotification(to, amount, reason) {
+    const subject = `Penalty Issued - VaayuGO`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-w: 600px; margin: 0 auto; color: #333;">
+        <h2 style="color: #cf6679;">Penalty Issued</h2>
+        <p>Dear User,</p>
+        <p>A penalty of <strong>₹${amount}</strong> has been issued to your account.</p>
+        
+        <h3>Reason:</h3>
+        <div style="background-color: #f8dbdf; padding: 15px; border-left: 4px solid #cf6679; border-radius: 4px; margin-bottom: 20px;">
+            ${reason}
+        </div>
+        
+        <p>If you believe this was issued in error, please contact support immediately.</p>
+        
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
+        <p style="font-size: 12px; color: #888; text-align: center;">
+          Regards,<br>
+          <strong>VaayuGO Team</strong>
+        </p>
+      </div>
+    `;
+
+    return this.sendEmail(to, subject, html);
+  }
 }
 
 module.exports = new EmailService();

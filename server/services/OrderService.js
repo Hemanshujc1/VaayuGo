@@ -153,18 +153,25 @@ class OrderService {
                 net_item_total = subtotal_amount.minus(shop_discount_amount).minus(platform_discount_amount).minus(product_discount_amount);
             }
 
-            // Total Customer Pays = subtotal - shop_discount - platform_discount + normal_delivery_fee + small_order_fee
-            const total_payable = subtotal_amount
-                .minus(shop_discount_amount)
-                .minus(platform_discount_amount)
-                .minus(product_discount_amount)
-                .plus(applied_delivery_fee)
-                .plus(small_order_fee_applied);
+            // 4. Resolve Customer Penalties
+            const { Penalty } = require('../models');
+            const pendingPenalties = await Penalty.findAll({
+                where: {
+                    target_type: 'customer',
+                    target_id: customer_id,
+                    status: 'pending',
+                    is_reversed: false
+                },
+                transaction
+            });
+
+            const penalty_charges = pendingPenalties.reduce((sum, p) => sum.plus(new Decimal(p.amount)), new Decimal(0));
+            const total_payable_with_penalties = total_payable.plus(penalty_charges);
 
             // Round to precisely 2 decimals
             const round2 = (d) => new Decimal(d).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber();
 
-            // 4. Create Order
+            // 5. Create Order
             const order = await Order.create({
                 customer_id,
                 shop_id,
@@ -173,17 +180,33 @@ class OrderService {
                 shop_discount_amount: round2(shop_discount_amount),
                 platform_discount_amount: round2(platform_discount_amount),
                 product_discount_amount: round2(product_discount_amount),
-                final_payable_amount: round2(total_payable),
+                final_payable_amount: round2(total_payable_with_penalties),
+                penalty_amount: round2(penalty_charges),
                 commission_rate: rule.commission_percent,
                 commission_amount: round2(total_commission),
                 shop_settlement_amount: round2(shop_final_settlement),
                 delivery_fee: round2(applied_delivery_fee.plus(small_order_fee_applied)), // what customer pays total for delivery
                 platform_fee: 0,
-                grand_total: round2(total_payable),
+                grand_total: round2(total_payable_with_penalties),
                 delivery_address,
                 delivery_slot_id,
                 status: 'pending'
             }, { transaction });
+
+            // 6. Mark Penalties as Applied
+            if (pendingPenalties.length > 0) {
+                await Penalty.update(
+                    { 
+                        status: 'applied', 
+                        applied_at: new Date(), 
+                        reference_id: order.id.toString() 
+                    },
+                    { 
+                        where: { id: { [Op.in]: pendingPenalties.map(p => p.id) } },
+                        transaction 
+                    }
+                );
+            }
 
             // 5. Create Order Items
             const itemsToCreate = orderItemsData.map(item => {

@@ -75,7 +75,27 @@ class SettlementService {
         }
       }
 
-      // 2. Create the Settlement record
+      // 2. Fetch pending penalties for this shop
+      const { Penalty } = require('../models');
+      const pendingPenalties = await Penalty.findAll({
+        where: {
+          target_type: 'shopkeeper',
+          target_id: shopId,
+          status: 'pending',
+          is_reversed: false
+        },
+        transaction
+      });
+
+      let totalPenaltyDeduction = new Decimal(0);
+      pendingPenalties.forEach(p => {
+        totalPenaltyDeduction = totalPenaltyDeduction.plus(p.amount);
+      });
+
+      // Apply penalties to net payout
+      netPayout = netPayout.minus(totalPenaltyDeduction);
+
+      // 3. Create the Settlement record
       const settlement = await Settlement.create({
         shop_id: shopId,
         start_date: startDate,
@@ -85,11 +105,27 @@ class SettlementService {
         total_online_collected: totalOnlineCollected.toNumber(),
         commission_total: commissionTotal.toNumber(),
         platform_discount_total: platformDiscountTotal.toNumber(),
+        penalty_total: totalPenaltyDeduction.toNumber(), // Ensure this field exists or add it
         net_payout: netPayout.toNumber(),
         status: 'pending'
       }, { transaction });
 
-      // 3. Mark the logs and orders as settled
+      // 4. Mark the penalties as applied
+      if (pendingPenalties.length > 0) {
+        await Penalty.update(
+          { 
+            status: 'applied', 
+            applied_at: new Date(), 
+            reference_id: settlement.id.toString() 
+          },
+          { 
+            where: { id: { [Op.in]: pendingPenalties.map(p => p.id) } },
+            transaction 
+          }
+        );
+      }
+
+      // 5. Mark the logs and orders as settled
       await OrderRevenueLog.update(
         { settlement_id: settlement.id },
         { 

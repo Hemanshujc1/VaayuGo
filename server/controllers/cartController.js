@@ -85,7 +85,22 @@ const calculateCart = async (req, res, next) => {
     commission_amount = Number(commission_amount.toFixed(2));
     const shop_settlement_amount = subtotal_amount - shop_discount_amount - product_discount_amount - commission_amount + delivery_fee + extra_charge;
 
-    const total_payable = final_payable_amount + delivery_fee + extra_charge;
+    // 5. Integrate Customer Penalties
+    let penalty_charges = 0;
+    if (req.user && req.user.id) {
+      const { Penalty } = require('../models');
+      const pendingPenalties = await Penalty.findAll({
+        where: {
+          target_type: 'customer',
+          target_id: req.user.id,
+          status: 'pending',
+          is_reversed: false
+        }
+      });
+      penalty_charges = pendingPenalties.reduce((sum, p) => sum + Number(p.amount), 0);
+    }
+
+    const total_payable = final_payable_amount + delivery_fee + extra_charge + penalty_charges;
 
     res.status(200).json({
       subtotal_amount,
@@ -95,6 +110,7 @@ const calculateCart = async (req, res, next) => {
       final_payable_amount,
       delivery_fee,
       extra_charge,
+      penalty_charges,
       is_small_order: validation.isSmallOrder,
       commission_percent,
       commission_amount,

@@ -18,9 +18,15 @@ const Settlement = require('./Settlement');
 User.hasOne(Shop, { foreignKey: 'owner_id' });
 Shop.belongsTo(User, { foreignKey: 'owner_id' });
 
-User.hasMany(Penalty, { foreignKey: 'user_id', as: 'penalties' });
-Penalty.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+// Penalty relationships - Generic association to User (as customer) or Shop (as shopkeeper)
+// For simplicity in Sequelize, we'll keep the association to User for customers
+// and maybe add one for Shop if needed, but often we can just fetch manually
+// given target_type logic.
 Penalty.belongsTo(User, { foreignKey: 'admin_id', as: 'admin' });
+// We can't easily do conditional belongsTo in Sequelize without polymorphic associations
+// but we'll keep a reference to User if target_type is customer.
+Penalty.belongsTo(User, { foreignKey: 'target_id', as: 'user', constraints: false });
+Penalty.belongsTo(Shop, { foreignKey: 'target_id', as: 'shop', constraints: false });
 
 Shop.hasMany(Product, { foreignKey: 'shop_id' });
 Product.belongsTo(Shop, { foreignKey: 'shop_id' });

@@ -43,6 +43,10 @@ const User = sequelize.define('User', {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
+  is_blocked: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
   verificationOtp: {
     type: DataTypes.STRING(6),
     allowNull: true,

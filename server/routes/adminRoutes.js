@@ -18,6 +18,7 @@ const {
     createPenalty,
     getPenaltiesByUser,
     getAllPenalties,
+    reversePenalty,
     getAllCategories,
     createCategory,
     deleteCategory,
@@ -73,6 +74,7 @@ router.get('/analytics', getAnalytics); // New analytics route
 router.post('/penalties', createPenalty);
 router.get('/penalties', getAllPenalties);
 router.get('/users/:userId/penalties', getPenaltiesByUser);
+router.patch('/penalties/:id/reverse', reversePenalty);
 
 router.get('/delivery-rules', getDeliveryRules);
 router.post('/delivery-rules', createDeliveryRule);

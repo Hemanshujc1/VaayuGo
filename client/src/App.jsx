@@ -1,47 +1,48 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import ForgotPassword from "./pages/ForgotPassword";
-import VerifyEmail from "./pages/VerifyEmail";
-import ProtectedRoute from "./components/ProtectedRoute";
+import Login from "./pages/shared/Login";
+import Register from "./pages/shared/Register";
+import ForgotPassword from "./pages/shared/ForgotPassword";
+import VerifyEmail from "./pages/shared/VerifyEmail";
+import ProtectedRoute from "./components/shared/ProtectedRoute";
 import { useAuth } from "./context/AuthContext";
-import LoadingSpinner from "./components/LoadingSpinner";
+import LoadingSpinner from "./components/shared/LoadingSpinner";
 
-import AdminDashboard from "./pages/AdminDashboard";
-import ShopDashboard from "./pages/ShopDashboard";
-import ShopEarnings from "./pages/ShopEarnings";
-import ShopRegister from "./pages/ShopRegister";
-import Home from "./pages/Home";
-import ShopDetails from "./pages/ShopDetails";
-import Cart from "./pages/Cart";
-import Checkout from "./pages/Checkout";
-import MyOrders from "./pages/MyOrders";
-import ShopOrders from "./pages/ShopOrders";
-import OrderDetail from "./pages/OrderDetail";
-import ProductManager from "./components/ProductManager";
-import AdminShops from "./pages/AdminShops";
-import AdminLocations from "./pages/AdminLocations";
-import AdminDeliverySlots from "./pages/AdminDeliverySlots";
-import AdminGlobalRules from "./pages/AdminGlobalRules";
-import AdminUsers from "./pages/AdminUsers";
-import AdminLayout from "./components/AdminLayout";
-import AdminProfile from "./pages/AdminProfile";
-import AdminCustomers from "./pages/AdminCustomers";
-import AdminShopDetails from "./pages/AdminShopDetails";
-import AdminShopProducts from "./pages/AdminShopProducts";
-import AdminShopOrders from "./pages/AdminShopOrders";
-import AdminCustomerDetails from "./pages/AdminCustomerDetails";
-import ShopProfile from "./pages/ShopProfile";
-import ShopLayout from "./components/ShopLayout";
-import CustomerProfile from "./pages/CustomerProfile";
-import CompanyOverview from "./pages/CompanyOverview";
-import CustomerLayout from "./components/CustomerLayout";
-import ShopBulkUpload from "./pages/ShopBulkUpload";
-import AdminBulkUpload from "./pages/AdminBulkUpload";
-import AdminCategories from "./pages/AdminCategories";
-import AdminDiscountRules from "./pages/AdminDiscountRules";
-import AdminSettlements from "./pages/AdminSettlements";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import ShopDashboard from "./pages/shopkeeper/ShopDashboard";
+import ShopEarnings from "./pages/shopkeeper/ShopEarnings";
+import ShopRegister from "./pages/shopkeeper/ShopRegister";
+import Home from "./pages/customer/Home";
+import ShopDetails from "./pages/shared/ShopDetails";
+import Cart from "./pages/customer/Cart";
+import Checkout from "./pages/customer/Checkout";
+import MyOrders from "./pages/customer/MyOrders";
+import ShopOrders from "./pages/shopkeeper/ShopOrders";
+import OrderDetail from "./pages/shared/OrderDetail";
+import ProductManager from "./components/shopkeeper/ProductManager";
+import AdminShops from "./pages/admin/AdminShops";
+import AdminLocations from "./pages/admin/AdminLocations";
+import AdminDeliverySlots from "./pages/admin/AdminDeliverySlots";
+import AdminGlobalRules from "./pages/admin/AdminGlobalRules";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminLayout from "./components/admin/AdminLayout";
+import AdminProfile from "./pages/admin/AdminProfile";
+import AdminCustomers from "./pages/admin/AdminCustomers";
+import AdminShopDetails from "./pages/admin/AdminShopDetails";
+import AdminShopProducts from "./pages/admin/AdminShopProducts";
+import AdminShopOrders from "./pages/admin/AdminShopOrders";
+import AdminCustomerDetails from "./pages/admin/AdminCustomerDetails";
+import ShopProfile from "./pages/shopkeeper/ShopProfile";
+import ShopLayout from "./components/shopkeeper/ShopLayout";
+import CustomerProfile from "./pages/customer/CustomerProfile";
+import CompanyOverview from "./pages/shared/CompanyOverview";
+import CustomerLayout from "./components/customer/CustomerLayout";
+import ShopBulkUpload from "./pages/shopkeeper/ShopBulkUpload";
+import AdminBulkUpload from "./pages/admin/AdminBulkUpload";
+import AdminCategories from "./pages/admin/AdminCategories";
+import AdminDiscountRules from "./pages/admin/AdminDiscountRules";
+import AdminSettlements from "./pages/admin/AdminSettlements";
+import AdminPenalties from "./pages/admin/AdminPenalties";
 
 function App() {
   return (
@@ -112,6 +113,7 @@ function App() {
             <Route path="/admin/bulk-upload" element={<AdminBulkUpload />} />
             <Route path="/admin/settlements" element={<AdminSettlements />} />
             <Route path="/admin/categories" element={<AdminCategories />} />
+            <Route path="/admin/penalties" element={<AdminPenalties />} />
             <Route path="/admin/profile" element={<AdminProfile />} />
           </Route>
         </Route>

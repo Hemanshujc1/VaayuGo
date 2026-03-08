@@ -44,6 +44,11 @@ const Settlement = sequelize.define('Settlement', {
     allowNull: false,
     defaultValue: 0.00,
   },
+  penalty_total: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0.00,
+  },
   net_payout: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,

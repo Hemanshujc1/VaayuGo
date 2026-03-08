@@ -9,7 +9,11 @@ const Penalty = sequelize.define(
       primaryKey: true,
       autoIncrement: true,
     },
-    user_id: {
+    target_type: {
+      type: DataTypes.ENUM('customer', 'shopkeeper'),
+      allowNull: false,
+    },
+    target_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
@@ -26,8 +30,20 @@ const Penalty = sequelize.define(
       allowNull: false,
     },
     status: {
-      type: DataTypes.ENUM("pending", "paid", "deducted"),
-      defaultValue: "pending",
+      type: DataTypes.ENUM('pending', 'applied', 'reversed'),
+      defaultValue: 'pending',
+    },
+    is_reversed: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    reference_id: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    applied_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
   },
   {

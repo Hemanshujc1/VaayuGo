@@ -35,6 +35,10 @@ const Order = sequelize.define('Order', {
     type: DataTypes.FLOAT,
     allowNull: false,
   },
+  penalty_amount: {
+    type: DataTypes.FLOAT,
+    defaultValue: 0.0,
+  },
   status: {
     type: DataTypes.ENUM('pending', 'accepted', 'out_for_delivery', 'delivered', 'failed', 'cancelled'),
     defaultValue: 'pending',

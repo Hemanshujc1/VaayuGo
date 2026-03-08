@@ -174,22 +174,51 @@ const getCustomerDetails = catchAsync(async (req, res, next) => {
 // --- Penalties ---
 
 const createPenalty = catchAsync(async (req, res, next) => {
-    const { user_id, amount, reason } = req.body;
+    const { target_type, target_id, amount, reason } = req.body;
     const admin_id = req.user.id;
 
-    if (!user_id || !amount || !reason) {
-        return next(new AppError('user_id, amount, and reason are required', 400));
+    if (!target_type || !target_id || !amount || !reason) {
+        return next(new AppError('target_type, target_id, amount, and reason are required', 400));
     }
 
-    const user = await User.findByPk(user_id);
-    if (!user) return next(new AppError('Target user not found', 404));
+    if (!['customer', 'shopkeeper'].includes(target_type)) {
+        return next(new AppError('Invalid target_type. Must be customer or shopkeeper', 400));
+    }
+
+    // Verify target exists
+    if (target_type === 'customer') {
+        const user = await User.findByPk(target_id);
+        if (!user) return next(new AppError('Target customer not found', 404));
+    } else {
+        const shop = await Shop.findByPk(target_id);
+        if (!shop) return next(new AppError('Target shop not found', 404));
+    }
 
     const penalty = await Penalty.create({
-        user_id,
+        target_type,
+        target_id,
         admin_id,
         amount,
         reason
     });
+
+    // Send email notification (integration with EmailService)
+    try {
+        let recipientEmail = '';
+        if (target_type === 'customer') {
+            const user = await User.findByPk(target_id);
+            recipientEmail = user.email;
+        } else {
+            const shop = await Shop.findByPk(target_id, { include: User });
+            recipientEmail = shop.User.email;
+        }
+        
+        if (recipientEmail) {
+            await EmailService.sendPenaltyNotification(recipientEmail, amount, reason);
+        }
+    } catch (err) {
+        console.error('Failed to send penalty email:', err);
+    }
 
     res.status(201).json({ message: 'Penalty issued successfully', penalty });
 });
@@ -197,7 +226,7 @@ const createPenalty = catchAsync(async (req, res, next) => {
 const getPenaltiesByUser = catchAsync(async (req, res, next) => {
     const { userId } = req.params;
     const penalties = await Penalty.findAll({
-        where: { user_id: userId },
+        where: { target_id: userId, target_type: 'customer' },
         include: [
             { model: User, as: 'admin', attributes: ['name', 'email'] }
         ],
@@ -208,14 +237,50 @@ const getPenaltiesByUser = catchAsync(async (req, res, next) => {
 });
 
 const getAllPenalties = catchAsync(async (req, res, next) => {
+    const { status, target_type, target_id } = req.query;
+    const where = {};
+    if (status) where.status = status;
+    if (target_type) where.target_type = target_type;
+    if (target_id) where.target_id = target_id;
+
     const penalties = await Penalty.findAll({
+        where,
         include: [
-            { model: User, as: 'user', attributes: ['name', 'email', 'role'] },
             { model: User, as: 'admin', attributes: ['name'] }
         ],
         order: [['createdAt', 'DESC']]
     });
-    res.json(penalties);
+
+    // Manual inclusion of user/shop details due to polymorphic-like structure
+    const enrichedPenalties = await Promise.all(penalties.map(async (p) => {
+        const plain = p.get({ plain: true });
+        if (p.target_type === 'customer') {
+            const user = await User.findByPk(p.target_id, { attributes: ['name', 'email'] });
+            plain.target = user;
+        } else {
+            const shop = await Shop.findByPk(p.target_id, { attributes: ['name'] });
+            plain.target = shop;
+        }
+        return plain;
+    }));
+
+    res.json(enrichedPenalties);
+});
+
+const reversePenalty = catchAsync(async (req, res, next) => {
+    const { id } = req.params;
+    const penalty = await Penalty.findByPk(id);
+
+    if (!penalty) return next(new AppError('Penalty not found', 404));
+    if (penalty.status !== 'pending') {
+        return next(new AppError(`Cannot reverse a penalty that is already ${penalty.status}`, 400));
+    }
+
+    penalty.status = 'reversed';
+    penalty.is_reversed = true;
+    await penalty.save();
+
+    res.json({ message: 'Penalty reversed successfully', penalty });
 });
 
 
@@ -564,6 +629,7 @@ module.exports = {
   createPenalty,
   getPenaltiesByUser,
   getAllPenalties,
+  reversePenalty,
   getAllCategories,
   createCategory,
   deleteCategory,

@@ -5,7 +5,7 @@ import {
   useCallback,
   useRef,
 } from "react";
-import ConfirmDialog from "../components/common/ConfirmDialog";
+import ConfirmDialog from "../components/shared/common/ConfirmDialog";
 
 const ConfirmContext = createContext();
 
