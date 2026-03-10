@@ -503,7 +503,7 @@ const ProductManager = () => {
                   {newProduct.images.map((img, idx) => (
                     <div key={idx} className="relative group w-20 h-20">
                       <img
-                        src={`http://localhost:3001${img}`}
+                        src={`${import.meta.env.VITE_BACKEND_URL || "http://localhost:3001"}${img}`}
                         alt="Product"
                         className="w-full h-full object-cover rounded-lg border border-neutral-mid"
                       />

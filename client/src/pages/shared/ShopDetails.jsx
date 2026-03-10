@@ -79,7 +79,7 @@ const ShopDetails = () => {
               return (
                 <div className="relative w-full h-full">
                   <img
-                    src={`http://localhost:3001${images[currentImgIdx]}`}
+                    src={`${import.meta.env.VITE_BACKEND_URL || "http://localhost:3001"}${images[currentImgIdx]}`}
                     alt="Background"
                     className="w-full h-full object-cover scale-110 blur-xl opacity-40 transition-opacity duration-1000"
                   />
@@ -106,7 +106,7 @@ const ShopDetails = () => {
                   return (
                     <>
                       <img
-                        src={`http://localhost:3001${images[currentImgIdx]}`}
+                        src={`${import.meta.env.VITE_BACKEND_URL || "http://localhost:3001"}${images[currentImgIdx]}`}
                         alt={shop.name}
                         className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                       />

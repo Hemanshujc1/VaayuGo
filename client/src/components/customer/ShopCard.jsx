@@ -44,7 +44,7 @@ const ShopCard = ({ shop }) => {
       <div className="h-40 bg-neutral-mid flex items-center justify-center text-neutral-light relative">
         {images.length > 0 ? (
           <img
-            src={`http://localhost:3001${images[currentImgIdx]}`}
+            src={`${import.meta.env.VITE_BACKEND_URL || "http://localhost:3001"}${images[currentImgIdx]}`}
             alt={shop.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />

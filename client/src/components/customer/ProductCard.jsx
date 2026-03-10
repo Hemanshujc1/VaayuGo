@@ -51,7 +51,7 @@ const ProductCard = ({
       <div className="h-48 bg-neutral-dark flex items-center justify-center relative overflow-hidden">
         {images.length > 0 ? (
           <img
-            src={`http://localhost:3001${images[currentImgIdx]}`}
+            src={`${import.meta.env.VITE_BACKEND_URL || "http://localhost:3001"}${images[currentImgIdx]}`}
             alt={product.name}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />

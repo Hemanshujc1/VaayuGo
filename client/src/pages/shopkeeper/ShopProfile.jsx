@@ -232,7 +232,7 @@ const ShopProfile = () => {
             <div className="flex flex-col md:flex-row gap-6 items-start">
               {shop.image_url && (
                 <img
-                  src={`http://localhost:3001${shop.image_url}`}
+                  src={`${import.meta.env.VITE_BACKEND_URL || "http://localhost:3001"}${shop.image_url}`}
                   alt={shop.name}
                   className="w-32 h-32 object-cover rounded border border-neutral-mid"
                 />
@@ -515,7 +515,7 @@ const ShopProfile = () => {
                   (img, idx) => (
                     <div key={idx} className="relative group">
                       <img
-                        src={`http://localhost:3001${img}`}
+                        src={`${import.meta.env.VITE_BACKEND_URL || "http://localhost:3001"}${img}`}
                         alt={`Shop ${idx}`}
                         className="w-full h-32 object-cover rounded border border-neutral-mid"
                       />

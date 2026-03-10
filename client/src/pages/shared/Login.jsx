@@ -182,8 +182,8 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setEmail("admin@vaayugo.com");
-                    setPassword("admin@123");
+                    setEmail("email id ");
+                    setPassword("password");
                   }}
                   className="px-3 py-1.5 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30 rounded text-sm font-medium transition-colors"
                 >
@@ -192,8 +192,8 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setEmail("221220@iiitt.ac.in");
-                    setPassword("shop@123");
+                    setEmail("email id ");
+                    setPassword("password");
                   }}
                   className="px-3 py-1.5 bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30 rounded text-sm font-medium transition-colors"
                 >
@@ -202,8 +202,8 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setEmail("hemanshujc01@gmail.com");
-                    setPassword("user@123");
+                    setEmail("email id");
+                    setPassword("password");
                   }}
                   className="px-3 py-1.5 bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 border border-purple-500/30 rounded text-sm font-medium transition-colors"
                 >
@@ -212,8 +212,8 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setEmail("xerox@gmail.coom");
-                    setPassword("shop@123");
+                    setEmail("email id ");
+                    setPassword("password");
                   }}
                   className="px-3 py-1.5 bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 border border-purple-500/30 rounded text-sm font-medium transition-colors"
                 >

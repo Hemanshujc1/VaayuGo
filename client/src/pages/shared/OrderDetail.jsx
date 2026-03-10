@@ -376,7 +376,7 @@ const OrderDetail = () => {
                         {item.Product?.image_url ? (
                           <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-white/5 border border-neutral-mid p-1.5 flex items-center justify-center">
                             <img
-                              src={`http://localhost:3001${item.Product.image_url}`}
+                              src={`${import.meta.env.VITE_BACKEND_URL || "http://localhost:3001"}${item.Product.image_url}`}
                               alt={item.Product.name}
                               className="w-full h-full object-contain drop-shadow-md group-hover:scale-110 transition-transform duration-300"
                             />
@@ -482,7 +482,7 @@ const OrderDetail = () => {
                             </div>
 
                             <a
-                              href={`http://localhost:3001${item.file_url}`}
+                              href={`${import.meta.env.VITE_BACKEND_URL || "http://localhost:3001"}${item.file_url}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-primary hover:bg-secondary hover:text-white rounded-xl text-xs font-black transition-all shadow-lg active:scale-95"

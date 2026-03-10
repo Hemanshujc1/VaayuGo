@@ -73,7 +73,7 @@ const AdminShopDetails = () => {
             if (images.length > 0 && images[currentImgIdx]) {
               const imgSrc = images[currentImgIdx].startsWith("http")
                 ? images[currentImgIdx]
-                : `http://localhost:3001${images[currentImgIdx]}`;
+                : `${import.meta.env.VITE_BACKEND_URL || "http://localhost:3001"}${images[currentImgIdx]}`;
               return (
                 <div className="relative w-full h-full bg-neutral-dark">
                   <img
@@ -104,7 +104,7 @@ const AdminShopDetails = () => {
               if (images.length > 0 && images[currentImgIdx]) {
                 const imgSrc = images[currentImgIdx].startsWith("http")
                   ? images[currentImgIdx]
-                  : `http://localhost:3001${images[currentImgIdx]}`;
+                  : `${import.meta.env.VITE_BACKEND_URL || "http://localhost:3001"}${images[currentImgIdx]}`;
                 return (
                   <>
                     <img

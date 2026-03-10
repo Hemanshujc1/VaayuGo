@@ -191,7 +191,7 @@ class EmailService {
         <p>Your shop is now <strong>active</strong> and visible to customers on VaayuGo.</p>
         
         <div style="text-align: center; margin: 30px 0;">
-          <a href="http://localhost:3000/shop/dashboard" style="background-color: #03dac6; color: #121212; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 6px;">Go to Shop Dashboard</a>
+          <a href="${process.env.FRONTEND_URL}/shop/dashboard" style="background-color: #03dac6; color: #121212; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 6px;">Go to Shop Dashboard</a>
         </div>
         
         <p>Time to add some products and start selling!</p>
@@ -238,7 +238,7 @@ class EmailService {
         </table>
         
         <div style="text-align: center; margin: 30px 0;">
-          <a href="http://localhost:3000/admin/shops" style="background-color: #bb86fc; color: #121212; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 6px;">Review Application</a>
+          <a href="${process.env.FRONTEND_URL}/admin/shops" style="background-color: #bb86fc; color: #121212; padding: 12px 24px; text-decoration: none; font-weight: bold; border-radius: 6px;">Review Application</a>
         </div>
       </div>
     `;
