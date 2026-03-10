@@ -62,6 +62,10 @@ npm -v
 
 sudo apt install -y mysql-server
 
+# Install Git
+
+sudo apt install -y git
+
 # Verify MySQL
 
 mysql -V
@@ -93,7 +97,7 @@ _Selection: Remove anonymous users, Disallow root login remotely, Remove test da
 sudo mysql -u root -p
 
 -- Create Dedicated User
-CREATE USER 'vaayugo-admin'@'localhost' IDENTIFIED BY 'vaayugo@123';
+CREATE USER 'vaayugo-admin'@'localhost' IDENTIFIED BY 'passsword';
 GRANT ALL PRIVILEGES ON *.* TO 'vaayugo-admin'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
@@ -123,7 +127,7 @@ NODE_ENV=production
 # Database
 DB_HOST=localhost
 DB_USER=vaayugo-admin
-DB_PASSWORD=vaayugo@123
+DB_PASSWORD=passsword
 DB_NAME=vaayugo
 
 # Security
