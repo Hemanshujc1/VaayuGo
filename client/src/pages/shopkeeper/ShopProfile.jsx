@@ -13,11 +13,16 @@ const ShopProfile = () => {
   const [categories, setCategories] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedCatIds, setSelectedCatIds] = useState([]);
+  const [selectedClosedDays, setSelectedClosedDays] = useState([]);
   const [formData, setFormData] = useState({
     name: "",
     mobile_number: "",
     address: "",
     shopName: "",
+    opening_time: "",
+    closing_time: "",
+    break_start: "",
+    break_end: "",
   });
 
   useEffect(() => {
@@ -40,9 +45,14 @@ const ShopProfile = () => {
         if (shopRes && shopRes.data) {
           setShop(shopRes.data);
           setSelectedCatIds((shopRes.data.Categories || []).map((c) => c.id));
+          setSelectedClosedDays(shopRes.data.closed_days || []);
           setFormData((prev) => ({
             ...prev,
             shopName: shopRes.data.name,
+            opening_time: shopRes.data.opening_time || "",
+            closing_time: shopRes.data.closing_time || "",
+            break_start: shopRes.data.break_start || "",
+            break_end: shopRes.data.break_end || "",
           }));
         }
         if (catRes && catRes.data) setCategories(catRes.data);
@@ -58,9 +68,10 @@ const ShopProfile = () => {
   const handleSaveProfile = async () => {
     const toastId = toast.loading("Updating profile...");
     try {
-      await api.put("/auth/profile", {
+      await api.put("/shop/profile", {
         ...formData,
         categoryIds: selectedCatIds,
+        closed_days: selectedClosedDays,
       });
       toast.success("Profile updated successfully", { id: toastId });
       setIsEditing(false);
@@ -84,6 +95,14 @@ const ShopProfile = () => {
       setSelectedCatIds(selectedCatIds.filter((cid) => cid !== id));
     } else {
       setSelectedCatIds([...selectedCatIds, id]);
+    }
+  };
+
+  const toggleClosedDay = (day) => {
+    if (selectedClosedDays.includes(day)) {
+      setSelectedClosedDays(selectedClosedDays.filter((d) => d !== day));
+    } else {
+      setSelectedClosedDays([...selectedClosedDays, day]);
     }
   };
 
@@ -285,6 +304,121 @@ const ShopProfile = () => {
                     Location
                   </label>
                   <p className="text-white">{shop.location_address || "N/A"}</p>
+                </div>
+
+                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-neutral-mid/30 pt-4">
+                  <div>
+                    <label className="text-neutral-light text-sm block mb-1">
+                      Business Hours
+                    </label>
+                    {isEditing ? (
+                      <div className="flex gap-2">
+                        <input
+                          type="time"
+                          value={formData.opening_time}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              opening_time: e.target.value,
+                            })
+                          }
+                          className="w-full bg-primary/30 border border-neutral-mid rounded px-3 py-1 text-white focus:outline-none focus:border-accent"
+                        />
+                        <span className="text-white self-center">to</span>
+                        <input
+                          type="time"
+                          value={formData.closing_time}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              closing_time: e.target.value,
+                            })
+                          }
+                          className="w-full bg-primary/30 border border-neutral-mid rounded px-3 py-1 text-white focus:outline-none focus:border-accent"
+                        />
+                      </div>
+                    ) : (
+                      <p className="text-white font-medium">
+                        {shop.opening_time && shop.closing_time
+                          ? `${shop.opening_time} - ${shop.closing_time}`
+                          : "Custom / Manual"}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-neutral-light text-sm block mb-1">
+                      Break Time
+                    </label>
+                    {isEditing ? (
+                      <div className="flex gap-2">
+                        <input
+                          type="time"
+                          value={formData.break_start}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              break_start: e.target.value,
+                            })
+                          }
+                          className="w-full bg-primary/30 border border-neutral-mid rounded px-3 py-1 text-white focus:outline-none focus:border-accent"
+                        />
+                        <span className="text-white self-center">to</span>
+                        <input
+                          type="time"
+                          value={formData.break_end}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              break_end: e.target.value,
+                            })
+                          }
+                          className="w-full bg-primary/30 border border-neutral-mid rounded px-3 py-1 text-white focus:outline-none focus:border-accent"
+                        />
+                      </div>
+                    ) : (
+                      <p className="text-white font-medium">
+                        {shop.break_start && shop.break_end
+                          ? `${shop.break_start} - ${shop.break_end}`
+                          : "No break time set"}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-neutral-light text-sm block mb-1">
+                      Weekly Closed Days
+                    </label>
+                    {isEditing ? (
+                      <div className="flex flex-wrap gap-1">
+                        {[
+                          "Monday",
+                          "Tuesday",
+                          "Wednesday",
+                          "Thursday",
+                          "Friday",
+                          "Saturday",
+                          "Sunday",
+                        ].map((day) => (
+                          <button
+                            key={day}
+                            onClick={() => toggleClosedDay(day)}
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-all ${
+                              selectedClosedDays.includes(day)
+                                ? "bg-red-900/40 border-red-500 text-red-200"
+                                : "bg-neutral-mid border-neutral-light/10 text-neutral-light"
+                            }`}
+                          >
+                            {day.substring(0, 3)}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-white font-medium">
+                        {(shop.closed_days || []).length > 0
+                          ? shop.closed_days.join(", ")
+                          : "Open all week"}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="text-neutral-light text-sm block">

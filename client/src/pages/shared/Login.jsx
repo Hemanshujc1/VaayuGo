@@ -192,7 +192,7 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setEmail("ramu@gmail.com");
+                    setEmail("221220@iiitt.ac.in");
                     setPassword("shop@123");
                   }}
                   className="px-3 py-1.5 bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30 rounded text-sm font-medium transition-colors"
@@ -202,7 +202,7 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setEmail("ravindra@gmail.com");
+                    setEmail("hemanshujc01@gmail.com");
                     setPassword("user@123");
                   }}
                   className="px-3 py-1.5 bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 border border-purple-500/30 rounded text-sm font-medium transition-colors"

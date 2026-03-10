@@ -32,8 +32,6 @@ const AdminDiscountRules = () => {
     valid_until: "",
   });
 
-  const categories = ["Street Food", "Grocery", "Medical", "Xerox"];
-
   useEffect(() => {
     fetchData();
   }, [currentPage]);

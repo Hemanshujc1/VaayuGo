@@ -25,13 +25,13 @@ const createDeliveryRule = catchAsync(async (req, res, next) => {
         commission_percent, min_order_value, small_order_delivery_fee,
         small_order_platform_share, small_order_shop_share,
         min_platform_revenue,
+        free_delivery_min_order,
         is_active
     } = req.body;
 
     if (!location_id) return next(new AppError('Location ID is required', 400));
-    
-    if (Number(delivery_fee) < 0 || Number(shop_delivery_share) < 0 || Number(vaayugo_delivery_share) < 0) {
-        return next(new AppError('Delivery fees and shares cannot be negative', 400));
+    if (Number(delivery_fee) < 0 || Number(shop_delivery_share) < 0 || Number(vaayugo_delivery_share) < 0 || (free_delivery_min_order && Number(free_delivery_min_order) < 0)) {
+        return next(new AppError('Delivery fees, shares, and thresholds cannot be negative', 400));
     }
 
     const totalShare = Number(shop_delivery_share) + Number(vaayugo_delivery_share);
@@ -60,6 +60,7 @@ const createDeliveryRule = catchAsync(async (req, res, next) => {
         small_order_platform_share: small_order_platform_share || 0,
         small_order_shop_share: small_order_shop_share || 0,
         min_platform_revenue: min_platform_revenue || 0,
+        free_delivery_min_order: free_delivery_min_order || null,
         is_active
     });
 
@@ -83,11 +84,12 @@ const updateDeliveryRule = catchAsync(async (req, res, next) => {
         commission_percent, min_order_value, small_order_delivery_fee,
         small_order_platform_share, small_order_shop_share,
         min_platform_revenue,
+        free_delivery_min_order,
         is_active
     } = req.body;
 
-    if (Number(delivery_fee) < 0 || Number(shop_delivery_share) < 0 || Number(vaayugo_delivery_share) < 0) {
-        return next(new AppError('Delivery fees and shares cannot be negative', 400));
+    if (Number(delivery_fee) < 0 || Number(shop_delivery_share) < 0 || Number(vaayugo_delivery_share) < 0 || (free_delivery_min_order && Number(free_delivery_min_order) < 0)) {
+        return next(new AppError('Delivery fees, shares, and thresholds cannot be negative', 400));
     }
 
     const totalShare = Number(shop_delivery_share) + Number(vaayugo_delivery_share);
@@ -116,6 +118,7 @@ const updateDeliveryRule = catchAsync(async (req, res, next) => {
         small_order_platform_share: small_order_platform_share || 0,
         small_order_shop_share: small_order_shop_share || 0,
         min_platform_revenue: min_platform_revenue !== undefined ? min_platform_revenue : rule.min_platform_revenue,
+        free_delivery_min_order: free_delivery_min_order !== undefined ? free_delivery_min_order : rule.free_delivery_min_order,
         is_active: is_active !== undefined ? is_active : rule.is_active
     });
 

@@ -19,7 +19,7 @@ class AuthService {
   }
 
   static async registerUser(data) {
-    const { email, password, role, name, mobile_number, address, location, shopName, category } = data;
+    const { email, password, role, name, mobile_number, address, location, shopName, category, opening_time, closing_time, break_start, break_end, closed_days } = data;
 
     if (!email || !isValidEmail(email)) throw new AppError('Invalid email format', 400);
     if (!password || password.length < 6) throw new AppError('Password must be at least 6 characters', 400);
@@ -69,8 +69,13 @@ class AuthService {
         name: shopName,
         category: category,
         location_address: address,
-        is_open: true,
-        status: 'pending'
+        is_open: false, // Default to closed until cron runs or manual open
+        status: 'pending',
+        opening_time,
+        closing_time,
+        break_start,
+        break_end,
+        closed_days: closed_days || []
       });
     }
 
@@ -140,7 +145,7 @@ class AuthService {
   }
 
   static async updateUserProfile(userId, data) {
-    const { name, mobile_number, address, location, shopName, categoryIds } = data;
+    const { name, mobile_number, address, location, shopName, categoryIds, opening_time, closing_time, break_start, break_end, closed_days } = data;
 
     if (name !== undefined && (name.trim() === '' || name.length > 50)) {
         throw new AppError('Name cannot be empty and must be under 50 characters', 400);
@@ -170,6 +175,11 @@ class AuthService {
     const shop = await Shop.findOne({ where: { owner_id: user.id } });
     if (shop) {
       if (shopName) shop.name = shopName;
+      if (opening_time) shop.opening_time = opening_time;
+      if (closing_time) shop.closing_time = closing_time;
+      if (break_start !== undefined) shop.break_start = break_start;
+      if (break_end !== undefined) shop.break_end = break_end;
+      if (closed_days) shop.closed_days = closed_days;
       await shop.save();
 
       if (user.role === 'shopkeeper' && categoryIds && Array.isArray(categoryIds)) {

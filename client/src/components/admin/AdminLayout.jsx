@@ -25,6 +25,7 @@ const AdminLayout = () => {
     { name: "Delivery Slots", path: "/admin/slots", icon: "⏱️" },
     { name: "Settlements", path: "/admin/settlements", icon: "💰" },
     { name: "Penalties", path: "/admin/penalties", icon: "⚖️" },
+    { name: "Categories", path: "/admin/categories", icon: "📁" },
   ];
 
   return (
@@ -39,11 +40,11 @@ const AdminLayout = () => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed md:relative z-30 w-64 h-full bg-neutral-dark border-r border-neutral-mid transform transition-transform duration-300 ease-in-out ${
+        className={`fixed md:relative z-30 w-64 h-full flex flex-col bg-neutral-dark border-r border-neutral-mid transform transition-transform duration-300 ease-in-out ${
           isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
-        <div className="p-6 flex items-center gap-3 border-b border-neutral-mid">
+        <div className="shrink-0 p-6 flex items-center gap-3 border-b border-neutral-mid">
           <img
             src={logo}
             alt="VaayuGo Logo"
@@ -57,7 +58,7 @@ const AdminLayout = () => {
           </span>
         </div>
 
-        <nav className="p-4 space-y-2">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-2 pb-6">
           {navItems.map((item) => (
             <Link
               key={item.path}
@@ -73,7 +74,7 @@ const AdminLayout = () => {
           ))}
         </nav>
 
-        <div className="absolute bottom-0 w-full p-4 border-t border-neutral-mid">
+        <div className="shrink-0 w-full p-4 border-t border-neutral-mid bg-neutral-dark z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
           <div className="flex items-center gap-3 px-4 py-3 mb-2 rounded bg-primary/30">
             <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-primary font-bold">
               {user?.username?.charAt(0).toUpperCase() || "A"}

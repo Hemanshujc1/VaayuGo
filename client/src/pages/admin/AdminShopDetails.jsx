@@ -223,8 +223,37 @@ const AdminShopDetails = () => {
                 <span className="text-[10px] font-bold text-neutral-light uppercase tracking-tighter">
                   Shop ID
                 </span>
-                <span className="font-bold text-accent">
-                  #{shop.id}
+                <span className="font-bold text-accent">#{shop.id}</span>
+              </div>
+              <div className="bg-white/5 backdrop-blur-xl px-5 py-3 rounded-2xl border border-white/10 flex flex-col gap-1 shadow-xl">
+                <span className="text-[10px] font-bold text-neutral-light uppercase tracking-tighter">
+                  Business Hours
+                </span>
+                <span className="text-white font-bold">
+                  {shop.opening_time && shop.closing_time
+                    ? `🕒 ${shop.opening_time} - ${shop.closing_time}`
+                    : "🕒 Manual"}
+                </span>
+              </div>
+              <div className="bg-white/5 backdrop-blur-xl px-5 py-3 rounded-2xl border border-white/10 flex flex-col gap-1 shadow-xl">
+                <span className="text-[10px] font-bold text-neutral-light uppercase tracking-tighter">
+                  Break Time
+                </span>
+                <span className="text-white font-bold">
+                  {shop.break_start && shop.break_end
+                    ? `☕ ${shop.break_start} - ${shop.break_end}`
+                    : "☕ No Break"}
+                </span>
+              </div>
+              <div className="bg-white/5 backdrop-blur-xl px-5 py-3 rounded-2xl border border-white/10 flex flex-col gap-1 shadow-xl">
+                <span className="text-[10px] font-bold text-neutral-light uppercase tracking-tighter">
+                  Closed On
+                </span>
+                <span className="text-white font-bold text-sm">
+                  🛑{" "}
+                  {(shop.closed_days || []).length > 0
+                    ? shop.closed_days.join(", ")
+                    : "Open all week"}
                 </span>
               </div>
             </div>

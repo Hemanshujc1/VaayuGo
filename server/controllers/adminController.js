@@ -510,19 +510,9 @@ const rejectShop = catchAsync(async (req, res, next) => {
 // --- Category Management ---
 
 const getAllCategories = catchAsync(async (req, res, next) => {
-    // Fetch distinct categories directly from Shop model because the app uses the `category` string field
-    const shops = await Shop.findAll({
-        attributes: [[sequelize.fn('DISTINCT', sequelize.col('category')), 'category']],
-        raw: true
+    const categories = await Category.findAll({
+        order: [['name', 'ASC']]
     });
-    
-    // Map to standard format expected by frontend
-    const categories = shops
-        .map(s => s.category)
-        .filter(c => c && c.trim() !== '')
-        .map(c => ({ id: c, name: c }))
-        .sort((a, b) => a.name.localeCompare(b.name));
-        
     res.json(categories);
 });
 

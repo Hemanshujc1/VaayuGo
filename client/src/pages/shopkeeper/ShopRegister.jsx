@@ -8,6 +8,11 @@ const ShopRegister = () => {
     name: "",
     location_address: "",
     categoryIds: [],
+    opening_time: "09:00",
+    closing_time: "21:00",
+    break_start: "",
+    break_end: "",
+    closed_days: [],
   });
 
   const navigate = useNavigate();
@@ -48,6 +53,20 @@ const ShopRegister = () => {
         };
       } else {
         return { ...prev, categoryIds: [...currentIds, id] };
+      }
+    });
+  };
+
+  const toggleClosedDay = (day) => {
+    setFormData((prev) => {
+      const currentDays = prev.closed_days || [];
+      if (currentDays.includes(day)) {
+        return {
+          ...prev,
+          closed_days: currentDays.filter((d) => d !== day),
+        };
+      } else {
+        return { ...prev, closed_days: [...currentDays, day] };
       }
     });
   };
@@ -148,6 +167,99 @@ const ShopRegister = () => {
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Business Hours */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-neutral-light text-sm font-semibold mb-2">
+                Opening Time
+              </label>
+              <input
+                type="time"
+                value={formData.opening_time}
+                onChange={(e) =>
+                  setFormData({ ...formData, opening_time: e.target.value })
+                }
+                className="w-full px-4 py-3 rounded-lg border border-neutral-mid bg-neutral-mid text-white focus:outline-none focus:ring-2 focus:ring-accent transition"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-neutral-light text-sm font-semibold mb-2">
+                Closing Time
+              </label>
+              <input
+                type="time"
+                value={formData.closing_time}
+                onChange={(e) =>
+                  setFormData({ ...formData, closing_time: e.target.value })
+                }
+                className="w-full px-4 py-3 rounded-lg border border-neutral-mid bg-neutral-mid text-white focus:outline-none focus:ring-2 focus:ring-accent transition"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Break Times */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-neutral-light text-sm font-semibold mb-2">
+                Break Start (Optional)
+              </label>
+              <input
+                type="time"
+                value={formData.break_start}
+                onChange={(e) =>
+                  setFormData({ ...formData, break_start: e.target.value })
+                }
+                className="w-full px-4 py-3 rounded-lg border border-neutral-mid bg-neutral-mid text-white focus:outline-none focus:ring-2 focus:ring-accent transition"
+              />
+            </div>
+            <div>
+              <label className="block text-neutral-light text-sm font-semibold mb-2">
+                Break End (Optional)
+              </label>
+              <input
+                type="time"
+                value={formData.break_end}
+                onChange={(e) =>
+                  setFormData({ ...formData, break_end: e.target.value })
+                }
+                className="w-full px-4 py-3 rounded-lg border border-neutral-mid bg-neutral-mid text-white focus:outline-none focus:ring-2 focus:ring-accent transition"
+              />
+            </div>
+          </div>
+
+          {/* Closed Days */}
+          <div>
+            <label className="block text-neutral-light text-sm font-semibold mb-3">
+              Weekly Closed Days (If any)
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+                "Sunday",
+              ].map((day) => (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => toggleClosedDay(day)}
+                  className={`px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all ${
+                    formData.closed_days.includes(day)
+                      ? "bg-red-900/40 border-red-500 text-red-200"
+                      : "bg-neutral-mid border-neutral-light/20 text-neutral-light hover:border-neutral-light hover:text-white"
+                  }`}
+                >
+                  {day}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Button */}

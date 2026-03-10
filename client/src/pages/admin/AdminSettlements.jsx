@@ -204,7 +204,7 @@ const AdminSettlements = () => {
                 <th className="px-6 py-4 text-center">Orders</th>
                 <th className="px-6 py-4">COD Coll.</th>
                 <th className="px-6 py-4">Comm. Total</th>
-                <th className="px-6 py-4">NET PAYOUT</th>
+                <th className="px-6 py-4">SETTLEMENT AMOUNT</th>
                 <th className="px-6 py-4 text-center">Status</th>
                 <th className="px-6 py-4 text-center">Breakdown</th>
                 <th className="px-6 py-4 text-right">Actions</th>
@@ -243,8 +243,13 @@ const AdminSettlements = () => {
                         s.net_payout >= 0 ? "text-success" : "text-danger"
                       }
                     >
-                      {s.net_payout >= 0 ? "+" : ""} ₹{s.net_payout}
+                      {s.net_payout >= 0 ? "+" : "-"} ₹{Math.abs(s.net_payout)}
                     </span>
+                    {s.net_payout < 0 && (
+                      <p className="text-[9px] text-danger/70 uppercase font-black leading-none mt-1">
+                        Shop owes VaayuGO
+                      </p>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex justify-center">
@@ -445,7 +450,8 @@ const AdminSettlements = () => {
                       </div>
                       <div className="text-right flex items-center gap-2">
                         <p className="text-red-400 font-bold text-lg">
-                          -₹{selectedSettlement.penalty_total.toFixed(2)}
+                          -₹
+                          {Number(selectedSettlement.penalty_total).toFixed(2)}
                         </p>
                         <svg
                           className="w-4 h-4 text-red-400 opacity-60 ml-2"
@@ -470,12 +476,12 @@ const AdminSettlements = () => {
                         Net Settlement Amount
                       </p>
                       <p className="text-xs text-neutral-light mt-1">
-                        Final amount to be paid to shopkeeper
+                        Final amount to be settled
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-accent font-extrabold text-2xl tracking-tighter">
-                        ₹{selectedSettlement.net_payout.toFixed(2)}
+                        ₹{Number(selectedSettlement.net_payout).toFixed(2)}
                       </p>
                     </div>
                   </div>

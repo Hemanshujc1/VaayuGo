@@ -48,7 +48,10 @@ async function resolveDiscounts(location_id, shop_id, category, subtotal_amount,
         for (let breakdown of itemBreakdown.filter(i => i.id === rule.target_id || rule.target_id === null)) {
             let runAmount = 0;
             if (rule.type === 'FLAT') {
-                runAmount = Number(rule.value);
+                runAmount = Number(rule.value) * breakdown.quantity;
+                if (rule.max_discount_amount && runAmount > Number(rule.max_discount_amount)) {
+                    runAmount = Number(rule.max_discount_amount);
+                }
                 if (runAmount > breakdown.gross) runAmount = breakdown.gross;
             } else if (rule.type === 'PERCENTAGE') {
                 runAmount = breakdown.gross * (Number(rule.value) / 100);

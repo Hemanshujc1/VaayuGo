@@ -15,7 +15,12 @@ const Register = () => {
     role: "customer",
     // Shopkeeper specific fields
     shopName: "",
-    category: "Street Food",
+    category: "",
+    opening_time: "09:00",
+    closing_time: "21:00",
+    break_start: "",
+    break_end: "",
+    closed_days: [],
   });
 
   const { register, verifyOtp, resendOtp } = useAuth();
@@ -26,6 +31,7 @@ const Register = () => {
   const [isVerifying, setIsVerifying] = useState(false);
 
   const [locations, setLocations] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -40,18 +46,30 @@ const Register = () => {
   }, [resendTimer]);
 
   useEffect(() => {
-    const fetchLocations = async () => {
+    const fetchInitialData = async () => {
       try {
-        const res = await api.get("/public/locations");
-        setLocations(res.data);
-        if (res.data.length > 0) {
-          setFormData((prev) => ({ ...prev, location: res.data[0].name }));
+        const [locRes, catRes] = await Promise.all([
+          api.get("/public/locations"),
+          api.get("/public/categories"),
+        ]);
+        setLocations(locRes.data);
+        setCategories(catRes.data);
+
+        let updates = {};
+        if (locRes.data.length > 0) {
+          updates.location = locRes.data[0].name;
+        }
+        if (catRes.data.length > 0) {
+          updates.category = catRes.data[0].name;
+        }
+        if (Object.keys(updates).length > 0) {
+          setFormData((prev) => ({ ...prev, ...updates }));
         }
       } catch (err) {
-        console.error("Error fetching locations", err);
+        console.error("Error fetching initial data", err);
       }
     };
-    fetchLocations();
+    fetchInitialData();
   }, []);
 
   const handleChange = (e) => {
@@ -508,11 +526,102 @@ const Register = () => {
                       onChange={handleChange}
                       className="w-full px-4 py-3 border border-neutral-mid rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent bg-neutral-dark text-white transition-colors"
                     >
-                      <option value="Street Food">Street Food</option>
-                      <option value="Grocery">grocery</option>
-                      <option value="Medical">Medical</option>
-                      <option value="Xerox">Xerox Document Center</option>
+                      {categories.map((cat) => (
+                        <option key={cat.id} value={cat.name}>
+                          {cat.name}
+                        </option>
+                      ))}
                     </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-neutral-light text-sm font-semibold ml-1">
+                      Opening Time
+                    </label>
+                    <input
+                      type="time"
+                      name="opening_time"
+                      value={formData.opening_time}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-neutral-mid rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent bg-neutral-dark text-white transition-colors"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-neutral-light text-sm font-semibold ml-1">
+                      Closing Time
+                    </label>
+                    <input
+                      type="time"
+                      name="closing_time"
+                      value={formData.closing_time}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-neutral-mid rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent bg-neutral-dark text-white transition-colors"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-neutral-light text-sm font-semibold ml-1">
+                      Break Start (Optional)
+                    </label>
+                    <input
+                      type="time"
+                      name="break_start"
+                      value={formData.break_start}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-neutral-mid rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent bg-neutral-dark text-white transition-colors"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-neutral-light text-sm font-semibold ml-1">
+                      Break End (Optional)
+                    </label>
+                    <input
+                      type="time"
+                      name="break_end"
+                      value={formData.break_end}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-neutral-mid rounded-lg focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent bg-neutral-dark text-white transition-colors"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="block text-neutral-light text-sm font-semibold ml-1">
+                      Weekly Closed Days (Optional)
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        "Monday",
+                        "Tuesday",
+                        "Wednesday",
+                        "Thursday",
+                        "Friday",
+                        "Saturday",
+                        "Sunday",
+                      ].map((day) => (
+                        <button
+                          key={day}
+                          type="button"
+                          onClick={() => {
+                            const current = formData.closed_days || [];
+                            const updated = current.includes(day)
+                              ? current.filter((d) => d !== day)
+                              : [...current, day];
+                            setFormData({ ...formData, closed_days: updated });
+                          }}
+                          className={`px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all ${
+                            formData.closed_days.includes(day)
+                              ? "bg-red-900/40 border-red-500 text-red-200"
+                              : "bg-neutral-mid border-neutral-light/20 text-neutral-light hover:border-neutral-light hover:text-white"
+                          }`}
+                        >
+                          {day}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </>
               )}

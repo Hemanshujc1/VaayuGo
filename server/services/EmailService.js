@@ -104,6 +104,10 @@ class EmailService {
         statusMessage = `is now marked as ${newStatus}.`;
     }
 
+    const itemsHtml = (order.OrderItems || []).map(item => 
+      `<li>${item.quantity}x ${item.name || "Item"} @ ₹${item.price_at_time || item.price}</li>`
+    ).join("");
+
     const subject = `Order Update: #${order.id} is now ${newStatus.replace("_", " ").toUpperCase()}`;
     const html = `
       <div style="font-family: Arial, sans-serif; max-w: 600px; margin: 0 auto; color: #333;">
@@ -111,9 +115,12 @@ class EmailService {
         <p>Hi there,</p>
         <p>Your order <strong>#${order.id}</strong> from <strong>${order.Shop?.name || "the shop"}</strong> ${statusMessage}</p>
         
-        <p><strong>Order Total:</strong> ₹${order.grand_total}</p>
-        
-        <p>Thank you for using VaayuGo!</p>
+        <h3>Order Items:</h3>
+        <ul>${itemsHtml}</ul>
+
+        <p><strong>Order Total:</strong> ₹${order.grand_total} </p>
+        <p>(Incl. all the delivery charges and extra charges)</p>
+        <p>Thank you for using VaayuGo!</p> 
       </div>
     `;
 
@@ -125,7 +132,7 @@ class EmailService {
     const subject = `New Order Received: #${order.id}`;
     let itemsHtml = "";
     if (order.OrderItems && order.OrderItems.length > 0) {
-        itemsHtml = order.OrderItems.map(item => `<li>${item.quantity}x ${item.name || "Item"} @ ₹${item.price}</li>`).join("");
+        itemsHtml = order.OrderItems.map(item => `<li>${item.quantity}x ${item.name || "Item"} @ ₹${item.price_at_time}</li>`).join("");
     }
 
     const html = `
@@ -136,7 +143,8 @@ class EmailService {
         
         <h3>Order Details:</h3>
         <ul>${itemsHtml}</ul>
-        <p><strong>Grand Total:</strong> ₹${order.grand_total}</p>
+        <p><strong>Grand Total:</strong> ₹${order.grand_total} </p>
+        <p>(Incl. all the delivery charges and extra charges)</p>
         <p><strong>Customer Name:</strong> ${order.User?.name || "Customer"}</p>
         <p><strong>Phone:</strong> ${order.User?.mobile_number || order.User?.phone || "N/A"}</p>
         
@@ -155,13 +163,15 @@ class EmailService {
         <h2 style="color: #cf6679;">VaayuGo - Order Cancelled</h2>
         <p>Hi Shopkeeper,</p>
         <p>Order <strong>#${order.id}</strong> has been cancelled by the customer.</p>
-        
+        <p>
         <h3>Reason:</h3>
         <div style="background-color: #f8dbdf; padding: 15px; border-left: 4px solid #cf6679; border-radius: 4px; margin-bottom: 20px;">
             ${order.cancel_reason || "No explicit reason provided."}
         </div>
+        </p>
         
-        <p><strong>Grand Total:</strong> ₹${order.grand_total}</p>
+        <p><strong>Grand Total:</strong> ₹${order.grand_total} </p>
+        <p>(Incl. all the delivery charges and extra charges)</p>
         <p><strong>Customer Name:</strong> ${order.User?.name || "Customer"}</p>
         <p><strong>Phone:</strong> ${order.User?.mobile_number || order.User?.phone || "N/A"}</p>
         

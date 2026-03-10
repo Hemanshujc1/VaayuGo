@@ -127,19 +127,19 @@ const ShopEarnings = () => {
         <ul className="text-neutral-light text-sm space-y-2 list-disc ml-5">
           <li>
             <strong>COD Orders:</strong> Since you collect cash directly,
-            VaayuGo's commission is deducted from your next payout or remains as
+            VaayuGO's commission is deducted from your next payout or remains as
             a due.
           </li>
           <li>
-            <strong>Online Orders:</strong> VaayuGo collects the cash and pays
+            <strong>Online Orders:</strong> VaayuGO collects the cash and pays
             you the net amount after commission.
           </li>
           <li>
-            <strong>Positive Payout (+):</strong> VaayuGo owes you money
+            <strong>Positive Payout (+):</strong> VaayuGO owes you money
             (typically from online orders).
           </li>
           <li>
-            <strong>Negative Payout (-):</strong> You owe VaayuGo (typically
+            <strong>Negative Payout (-):</strong> You owe VaayuGO (typically
             commission from high-volume COD sales).
           </li>
           <li>
@@ -177,7 +177,7 @@ const ShopEarnings = () => {
         </div>
         <div className="bg-neutral-dark p-6 rounded-xl border border-neutral-mid shadow-lg">
           <p className="text-neutral-light text-sm mb-1 uppercase tracking-wider font-bold">
-            Platform Due (COD)
+            VaayuGO Due (COD)
           </p>
           <p className="text-3xl font-bold text-danger">
             ₹
@@ -236,7 +236,7 @@ const ShopEarnings = () => {
                 <th className="px-6 py-4 text-center">Orders</th>
                 <th className="px-6 py-4">COD Collected</th>
                 <th className="px-6 py-4">Commission</th>
-                <th className="px-6 py-4">Net Payout</th>
+                <th className="px-6 py-4">Settlement Amount</th>
                 <th className="px-6 py-4 text-center">Status</th>
                 <th className="px-6 py-4 text-right">Details</th>
               </tr>
@@ -264,15 +264,23 @@ const ShopEarnings = () => {
                     ₹{s.commission_total}
                   </td>
                   <td className="px-6 py-4 font-bold">
-                    <span
-                      className={
-                        Number(s.net_payout) >= 0
-                          ? "text-success"
-                          : "text-danger"
-                      }
-                    >
-                      {Number(s.net_payout) >= 0 ? "+" : ""} ₹{s.net_payout}
-                    </span>
+                    <div className="flex flex-col">
+                      <span
+                        className={
+                          Number(s.net_payout) >= 0
+                            ? "text-success"
+                            : "text-danger"
+                        }
+                      >
+                        {Number(s.net_payout) >= 0 ? "+" : "-"} ₹
+                        {Math.abs(s.net_payout)}
+                      </span>
+                      {Number(s.net_payout) < 0 && (
+                        <span className="text-[10px] text-danger/70 uppercase font-black mt-1">
+                          Owe to VaayuGO
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex justify-center">

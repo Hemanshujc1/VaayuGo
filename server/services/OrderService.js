@@ -105,7 +105,6 @@ class OrderService {
             // Format splits as strict Decimals
             let platform_delivery_share = new Decimal(rule.vaayugo_delivery_share || 0);
             let shop_delivery_share = new Decimal(rule.shop_delivery_share || 0);
-            const applied_delivery_fee = platform_delivery_share.plus(shop_delivery_share);
 
             let small_order_fee_applied = new Decimal(0);
             let platform_small_order_share = new Decimal(0);
@@ -117,10 +116,23 @@ class OrderService {
                 shop_small_order_share = new Decimal(rule.small_order_shop_share || 0);
             }
 
+            // --- FREE DELIVERY OVERRIDE ---
+            // If the rule engine returned 0 for deliveryFee, force all shares to 0
+            if (validation.deliveryFee === 0) {
+                platform_delivery_share = new Decimal(0);
+                shop_delivery_share = new Decimal(0);
+                small_order_fee_applied = new Decimal(0);
+                platform_small_order_share = new Decimal(0);
+                shop_small_order_share = new Decimal(0);
+            }
+
+            const applied_delivery_fee = platform_delivery_share.plus(shop_delivery_share);
+
             // Calculations based on EXACT sheet formulas
             // Shop Net Settlement = (Shop Gross Sale) - (Total Shop Discounts) - (Commission Deducted) + (Delivery Revenue Shop Share) + (Extra Charges Shop small order)
             const shop_final_settlement = subtotal_amount
                 .minus(shop_discount_amount)
+                .minus(product_discount_amount)
                 .minus(total_commission)
                 .plus(shop_delivery_share)
                 .plus(shop_small_order_share);
@@ -166,6 +178,8 @@ class OrderService {
             });
 
             const penalty_charges = pendingPenalties.reduce((sum, p) => sum.plus(new Decimal(p.amount)), new Decimal(0));
+            // Calculate total payable before penalties
+            const total_payable = net_item_total.plus(applied_delivery_fee).plus(small_order_fee_applied);
             const total_payable_with_penalties = total_payable.plus(penalty_charges);
 
             // Round to precisely 2 decimals
@@ -185,7 +199,7 @@ class OrderService {
                 commission_rate: rule.commission_percent,
                 commission_amount: round2(total_commission),
                 shop_settlement_amount: round2(shop_final_settlement),
-                delivery_fee: round2(applied_delivery_fee.plus(small_order_fee_applied)), // what customer pays total for delivery
+                delivery_fee: validation.deliveryFee === 0 ? 0 : round2(applied_delivery_fee.plus(small_order_fee_applied)), // what customer pays total for delivery
                 platform_fee: 0,
                 grand_total: round2(total_payable_with_penalties),
                 delivery_address,
@@ -392,6 +406,7 @@ class OrderService {
             const fullOrder = await Order.findByPk(order.id, {
                 include: [
                     { model: User, attributes: ['name', 'email', 'mobile_number'] },
+                    { model: OrderItem },
                     { 
                         model: Shop, 
                         attributes: ['name', 'owner_id'],

@@ -7,7 +7,7 @@ const EmailService = require('../services/EmailService');
 const Decimal = require('decimal.js');
 
 const registerShop = catchAsync(async (req, res, next) => {
-    const { name, category, location_address, categoryIds } = req.body;
+    const { name, category, location_address, categoryIds, opening_time, closing_time, closed_days, break_start, break_end } = req.body;
     const owner_id = req.user.id;
 
     if (!name || name.trim().length < 3 || name.trim().length > 100) {
@@ -27,7 +27,12 @@ const registerShop = catchAsync(async (req, res, next) => {
       name,
       category: category || (categoryIds && categoryIds.length > 0 ? 'Multi' : 'General'),
       location_address,
-      status: 'pending'
+      status: 'pending',
+      opening_time,
+      closing_time,
+      closed_days: closed_days || [],
+      break_start,
+      break_end
     });
 
     if (categoryIds && Array.isArray(categoryIds)) {
@@ -223,7 +228,7 @@ const deleteShopImage = catchAsync(async (req, res, next) => {
 });
 
 const updateShopProfile = catchAsync(async (req, res, next) => {
-    const { name, location_address, categoryIds } = req.body;
+    const { name, location_address, categoryIds, opening_time, closing_time, closed_days, break_start, break_end } = req.body;
 
     if (name !== undefined && (name.trim().length < 3 || name.trim().length > 100)) {
         return next(new AppError('Shop name must be between 3 and 100 characters', 400));
@@ -237,6 +242,11 @@ const updateShopProfile = catchAsync(async (req, res, next) => {
 
     if (name) shop.name = name;
     if (location_address) shop.location_address = location_address;
+    if (opening_time !== undefined) shop.opening_time = opening_time;
+    if (closing_time !== undefined) shop.closing_time = closing_time;
+    if (closed_days !== undefined) shop.closed_days = closed_days;
+    if (break_start !== undefined) shop.break_start = break_start;
+    if (break_end !== undefined) shop.break_end = break_end;
     
     await shop.save();
 

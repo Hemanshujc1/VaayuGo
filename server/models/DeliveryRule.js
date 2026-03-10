@@ -66,6 +66,11 @@ const DeliveryRule = sequelize.define(
       allowNull: false,
       defaultValue: 0.00,
     },
+    free_delivery_min_order: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      comment: 'Above this value, delivery_fee and small_order_delivery_fee become 0',
+    },
     is_active: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,

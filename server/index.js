@@ -31,6 +31,7 @@ const cartRoutes = require('./routes/cartRoutes');
 const discountRoutes = require('./routes/discountRoutes');
 const xeroxRoutes = require('./routes/xeroxRoutes');
 const initSettlementCron = require('./cron/settlementCron');
+const initShopStatusCron = require('./cron/shopStatusCron');
 
 // Database Connection
 connectDB();
@@ -75,4 +76,5 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   // Initialize Cron Jobs
   initSettlementCron();
+  initShopStatusCron();
 });

@@ -578,34 +578,16 @@ const OrderDetail = () => {
                   </h3>
 
                   <div className="space-y-3.5 text-sm text-slate-400">
-                    <div className="flex justify-between items-center group">
-                      <span
-                        className="flex items-center gap-1.5 cursor-help"
-                        title="Total sum of all items in the cart before any discounts"
-                      >
-                        Items Total (Gross)
-                        <svg
-                          className="w-3.5 h-3.5 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                      </span>
+                    <div className="flex justify-between items-center">
+                      <span>Item Total</span>
                       <span className="font-medium text-slate-300">
                         ₹{Number(revenueLog.subtotal).toFixed(2)}
                       </span>
                     </div>
 
                     {Number(revenueLog.product_discount_amount) > 0 && (
-                      <div className="flex justify-between items-center text-rose-400/90 bg-rose-500/5 -mx-2 px-2 py-1.5 rounded">
-                        <span>Product Discounts Applied</span>
+                      <div className="flex justify-between items-center text-accent font-bold">
+                        <span>Product Discount</span>
                         <span className="font-medium">
                           -₹
                           {Number(revenueLog.product_discount_amount).toFixed(
@@ -615,28 +597,14 @@ const OrderDetail = () => {
                       </div>
                     )}
 
-                    <div className="flex justify-between items-center font-medium text-slate-200 pt-2 border-t border-slate-800/80 border-dashed">
-                      <span
-                        className="flex items-center gap-1.5 cursor-help"
-                        title="Total after product-specific discounts are removed. Also called GMV."
-                      >
-                        Net Item Sale
-                        <svg
-                          className="w-3.5 h-3.5 text-slate-500"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                      </span>
+                    <div className="flex justify-between items-center font-medium text-white pt-2 border-t border-slate-800/80">
+                      <span>Subtotal</span>
                       <span>
-                        ₹{Number(revenueLog.net_item_total).toFixed(2)}
+                        ₹
+                        {(
+                          Number(revenueLog.subtotal) -
+                          Number(revenueLog.product_discount_amount)
+                        ).toFixed(2)}
                       </span>
                     </div>
 
@@ -650,8 +618,8 @@ const OrderDetail = () => {
                     )}
 
                     {Number(revenueLog.platform_discount_amount) > 0 && (
-                      <div className="flex justify-between items-center text-emerald-400 bg-emerald-500/5 -mx-2 px-2 py-1.5 rounded mt-1">
-                        <span>Platform Discount (Vaayu Promo)</span>
+                      <div className="flex justify-between items-center text-emerald-400">
+                        <span>VaayuGO Discount</span>
                         <span className="font-medium">
                           -₹
                           {Number(revenueLog.platform_discount_amount).toFixed(
@@ -669,26 +637,8 @@ const OrderDetail = () => {
                     </div>
 
                     {revenueLog.is_small_order && (
-                      <div className="flex justify-between items-center text-amber-400/90 bg-amber-500/5 -mx-2 px-2 py-1.5 rounded mt-1">
-                        <span
-                          className="flex items-center gap-1.5 cursor-help"
-                          title="Extra fee applied because order value was below minimum threshold"
-                        >
-                          Small Order Fee
-                          <svg
-                            className="w-3.5 h-3.5 opacity-60"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                        </span>
+                      <div className="flex justify-between items-center text-orange-400">
+                        <span>Min Order Extra Charge</span>
                         <span className="font-medium">
                           ₹
                           {Number(revenueLog.small_order_fee_applied).toFixed(

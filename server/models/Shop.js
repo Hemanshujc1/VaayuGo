@@ -47,6 +47,32 @@ const Shop = sequelize.define('Shop', {
   delivery_rating: {
     type: DataTypes.FLOAT,
     defaultValue: 0.0,
+  },
+  opening_time: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'Format: HH:mm'
+  },
+  closing_time: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'Format: HH:mm'
+  },
+  break_start: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'Format: HH:mm'
+  },
+  break_end: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'Format: HH:mm'
+  },
+  closed_days: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: [],
+    comment: 'Array of days shop is closed, e.g., ["Sunday", "Monday"]'
   }
 }, {
   timestamps: true,

@@ -231,9 +231,7 @@ const ShopDashboard = () => {
               <p className="text-xl font-bold text-danger mt-1">
                 - ₹{analytics.deductedCommission || "0.00"}
               </p>
-              <p className="text-[10px] text-neutral-light mt-1">
-                Platform Cut
-              </p>
+              <p className="text-[10px] text-neutral-light mt-1">VaayuGO Cut</p>
             </div>
             <div className="bg-neutral-dark p-5 rounded-lg shadow border-l-4 border-red-500">
               <h4 className="text-neutral-light font-bold text-xs uppercase tracking-wider">

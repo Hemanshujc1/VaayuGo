@@ -8,6 +8,7 @@ const AdminGlobalRules = () => {
   const [rules, setRules] = useState([]);
   const [shops, setShops] = useState([]);
   const [locations, setLocations] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const confirm = useConfirm();
 
@@ -24,10 +25,9 @@ const AdminGlobalRules = () => {
     small_order_shop_share: 0,
     small_order_platform_share: 0,
     min_platform_revenue: 0,
+    free_delivery_min_order: "",
     is_active: true,
   });
-
-  const categories = ["Street Food", "Grocery", "Medical", "Xerox"];
 
   useEffect(() => {
     fetchData();
@@ -35,14 +35,16 @@ const AdminGlobalRules = () => {
 
   const fetchData = async () => {
     try {
-      const [rulesRes, shopsRes, locRes] = await Promise.all([
+      const [rulesRes, shopsRes, locRes, catRes] = await Promise.all([
         api.get("/admin/delivery-rules"),
         api.get("/admin/shops/all", { params: { limit: 1000 } }),
         api.get("/public/locations"),
+        api.get("/public/categories"),
       ]);
       setRules(rulesRes.data);
       setShops(shopsRes.data?.shops || []);
       setLocations(locRes.data);
+      setCategories(catRes.data);
 
       if (locRes.data.length > 0) {
         setNewRule((prev) => ({ ...prev, location_id: locRes.data[0].id }));
@@ -116,6 +118,7 @@ const AdminGlobalRules = () => {
         small_order_delivery_fee: "",
         small_order_shop_share: 0,
         small_order_platform_share: 0,
+        free_delivery_min_order: "",
         is_active: true,
       });
       fetchData();
@@ -161,6 +164,7 @@ const AdminGlobalRules = () => {
       small_order_shop_share: rule.small_order_shop_share || 0,
       small_order_platform_share: rule.small_order_platform_share || 0,
       min_platform_revenue: rule.min_platform_revenue || 0,
+      free_delivery_min_order: rule.free_delivery_min_order || "",
       is_active: rule.is_active,
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -313,8 +317,8 @@ const AdminGlobalRules = () => {
               >
                 <option value="">All Categories</option>
                 {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
+                  <option key={cat.id} value={cat.name}>
+                    {cat.name}
                   </option>
                 ))}
               </select>
@@ -412,7 +416,7 @@ const AdminGlobalRules = () => {
           </div>
 
           {/* MINIMUMS AND SMALL ORDERS (Full Width) */}
-          <div className="col-span-1 md:col-span-2 lg:col-span-4 bg-primary/20 border border-neutral-mid/30 rounded-2xl p-6 mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 gap-y-8">
+          <div className="col-span-1 md:col-span-2 lg:col-span-4 bg-primary/20 border border-neutral-mid/30 rounded-2xl p-6 mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div className="flex flex-col">
               <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-2">
                 Minimum Order Value (₹){" "}
@@ -438,6 +442,9 @@ const AdminGlobalRules = () => {
                   className="w-full bg-neutral-dark border border-neutral-mid rounded-xl p-3 pl-8 text-white focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all"
                 />
               </div>
+              <p className="text-[10px] text-neutral-500 mt-2 ml-1 italic min-h-6">
+                Orders below this value will trigger small order logic.
+              </p>
             </div>
 
             <div className="flex flex-col">
@@ -465,6 +472,39 @@ const AdminGlobalRules = () => {
                   className="w-full bg-neutral-dark border border-neutral-mid rounded-xl p-3 pl-8 text-white focus:ring-2 focus:ring-orange-400/50 focus:border-orange-400 transition-all"
                 />
               </div>
+              <p className="text-[10px] text-neutral-500 mt-2 ml-1 italic min-h-6">
+                If blank, orders below minimum are strictly blocked.
+              </p>
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-xs font-bold text-green-400 uppercase tracking-wider mb-2">
+                Free Delivery Above (₹)
+                <span className="text-[10px] ml-1 text-neutral-500 opacity-70">
+                  (Optional)
+                </span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-3 text-green-400 font-bold">
+                  ₹
+                </span>
+                <input
+                  type="number"
+                  placeholder="e.g. 500"
+                  value={newRule.free_delivery_min_order}
+                  onChange={(e) =>
+                    setNewRule({
+                      ...newRule,
+                      free_delivery_min_order:
+                        e.target.value === "" ? "" : parseFloat(e.target.value),
+                    })
+                  }
+                  className="w-full bg-green-500/10 border border-green-500/30 rounded-xl p-3 pl-8 text-white focus:ring-2 focus:ring-green-400/50 focus:border-green-400 transition-all font-bold"
+                />
+              </div>
+              <p className="text-[10px] text-neutral-500 mt-2 ml-1 italic min-h-6">
+                Delivery fee becomes ₹0 if order meets this value.
+              </p>
             </div>
 
             <div className="flex flex-col">
@@ -534,7 +574,7 @@ const AdminGlobalRules = () => {
                 Min. Platform Revenue (₹)
               </label>
               <div className="relative">
-                <span className="absolute left-4 top-3 text-red-300 font-bold">
+                <span className="absolute left-4 top-3 text-red-400 font-bold">
                   ₹
                 </span>
                 <input
@@ -548,19 +588,19 @@ const AdminGlobalRules = () => {
                         e.target.value === "" ? 0 : parseFloat(e.target.value),
                     })
                   }
-                  className="w-full bg-red-900/10 border border-red-500/30 rounded-xl p-3 pl-8 text-white focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all"
+                  className="w-full bg-red-500/10 border border-red-500/30 rounded-xl p-3 pl-8 text-white focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all"
                 />
               </div>
-              <p className="text-[10px] text-neutral-500 mt-1 ml-1 italic">
-                Platform discount will be capped to maintain this revenue.
+              <p className="text-[10px] text-neutral-500 mt-2 ml-1 italic min-h-6">
+                Platform discount capped to maintain this revenue.
               </p>
             </div>
 
-            <div className="col-span-1 md:col-span-2 lg:col-span-4 mt-[-10px]">
-              <p className="text-xs text-orange-400/80 flex items-center gap-1">
+            <div className="col-span-1 md:col-span-2 lg:col-span-3 mt-2 py-4 border-t border-neutral-mid/30">
+              <p className="text-xs text-orange-400/90 flex items-center gap-2 bg-orange-400/5 p-3 rounded-xl border border-orange-400/10">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
+                  className="h-5 w-5 shrink-0"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -572,8 +612,11 @@ const AdminGlobalRules = () => {
                     d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                If "Min Order Extra Charge" is blank, orders below minimum value
-                are strictly blocked.
+                <span>
+                  <strong>Configuration Tip:</strong> If "Min Order Extra
+                  Charge" is blank, any order below "Minimum Order Value" will
+                  be strictly blocked from checkout.
+                </span>
               </p>
             </div>
           </div>
@@ -721,6 +764,7 @@ const AdminGlobalRules = () => {
                   <th className="px-6 py-4">Structure</th>
                   <th className="px-6 py-4 text-center">Comm. %</th>
                   <th className="px-6 py-4 text-center">Min Rev</th>
+                  <th className="px-6 py-4 text-center">Free Delivery</th>
                   <th className="px-6 py-4 text-center">Status</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
@@ -836,6 +880,22 @@ const AdminGlobalRules = () => {
                             Min. Rev.
                           </span>
                         </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {rule.free_delivery_min_order ? (
+                          <div className="flex flex-col">
+                            <span className="font-bold text-green-400">
+                              ₹{rule.free_delivery_min_order}
+                            </span>
+                            <span className="text-[10px] text-neutral-500">
+                              Free Above
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-neutral-500 italic text-xs">
+                            Not Set
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-center">
                         <span

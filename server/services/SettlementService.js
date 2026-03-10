@@ -59,41 +59,23 @@ class SettlementService {
           const grandTotal = new Decimal(order.grand_total || 0);
           totalCodCollected = totalCodCollected.plus(grandTotal);
           
-          // Net Payable to VaayuGo = (Commission + Platform Fees) - Platform Discounts
-          const netToPlatform = commission.plus(platformFees).minus(platformDiscount);
-          
-          // Convert to our "payout" perspective: netPayout += (-netToPlatform)
-          // i.e., VaayuGo pays Shop a negative amount (Shop pays VaayuGo)
-          netPayout = netPayout.minus(netToPlatform);
+          // Net Perspective for COD (Value VaayuGO pays Shopkeeper):
+          // VaayuGO pays Platform Discount (as subsidy)
+          // Shopkeeper pays VaayuGO: (Commission + Platform Delivery/Small Order Share)
+          // result = platformDiscount - (commission + platformFees)
+          const netPayoutForThisOrder = platformDiscount.minus(commission.plus(platformFees));
+          netPayout = netPayout.plus(netPayoutForThisOrder);
         } else {
           // Online Payment
           const grandTotal = new Decimal(order.grand_total || 0);
           totalOnlineCollected = totalOnlineCollected.plus(grandTotal);
           
-          // Net Payable to Shopkeeper = Shop Net Revenue (which is log.shop_final_settlement)
+          // Net Payable to Shopkeeper = shop_final_settlement (already has commission and shop disc deducted)
           netPayout = netPayout.plus(shopFinalSettlement);
         }
       }
 
-      // 2. Fetch pending penalties for this shop
-      const { Penalty } = require('../models');
-      const pendingPenalties = await Penalty.findAll({
-        where: {
-          target_type: 'shopkeeper',
-          target_id: shopId,
-          status: 'pending',
-          is_reversed: false
-        },
-        transaction
-      });
-
-      let totalPenaltyDeduction = new Decimal(0);
-      pendingPenalties.forEach(p => {
-        totalPenaltyDeduction = totalPenaltyDeduction.plus(p.amount);
-      });
-
-      // Apply penalties to net payout
-      netPayout = netPayout.minus(totalPenaltyDeduction);
+      // 2. Penalties are managed separately as per user request (removed from here)
 
       // 3. Create the Settlement record
       const settlement = await Settlement.create({
@@ -105,25 +87,10 @@ class SettlementService {
         total_online_collected: totalOnlineCollected.toNumber(),
         commission_total: commissionTotal.toNumber(),
         platform_discount_total: platformDiscountTotal.toNumber(),
-        penalty_total: totalPenaltyDeduction.toNumber(), // Ensure this field exists or add it
+        penalty_total: 0, // Penalties removed from settlement cycle
         net_payout: netPayout.toNumber(),
         status: 'pending'
       }, { transaction });
-
-      // 4. Mark the penalties as applied
-      if (pendingPenalties.length > 0) {
-        await Penalty.update(
-          { 
-            status: 'applied', 
-            applied_at: new Date(), 
-            reference_id: settlement.id.toString() 
-          },
-          { 
-            where: { id: { [Op.in]: pendingPenalties.map(p => p.id) } },
-            transaction 
-          }
-        );
-      }
 
       // 5. Mark the logs and orders as settled
       await OrderRevenueLog.update(

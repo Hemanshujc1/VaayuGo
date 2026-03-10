@@ -51,6 +51,15 @@ async function getApplicableRule(location_id, category = null, shop_id = null) {
 }
 
 function validateOrderAgainstRule(orderValue, rule) {
+  // Check for Free Delivery Threshold first
+  if (rule.free_delivery_min_order && orderValue >= parseFloat(rule.free_delivery_min_order)) {
+    return {
+      isValid: true,
+      isSmallOrder: false,
+      deliveryFee: 0,
+    };
+  }
+
   // If no minimum order is configured, return normal fee
   if (!rule.min_order_value || orderValue >= rule.min_order_value) {
     return {

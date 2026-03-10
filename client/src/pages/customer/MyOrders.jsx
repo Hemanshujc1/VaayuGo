@@ -337,7 +337,7 @@ const MyOrders = () => {
                             <button
                               key={`shop-${star}`}
                               onClick={() => setShopRating(star)}
-                              className={`text-2xl transition-colors ${shopRating >= star ? "text-warning" : "text-neutral-mid hover:text-warning/50"}`}
+                              className={`text-2xl transition-colors ${shopRating >= star ? "text-warning" : "text-[whitesmoke] hover:text-warning/50"}`}
                             >
                               ★
                             </button>
@@ -354,7 +354,7 @@ const MyOrders = () => {
                             <button
                               key={`delivery-${star}`}
                               onClick={() => setDeliveryRating(star)}
-                              className={`text-2xl transition-colors ${deliveryRating >= star ? "text-warning" : "text-neutral-mid hover:text-warning/50"}`}
+                              className={`text-2xl transition-colors ${deliveryRating >= star ? "text-warning" : "text-[whitesmoke] hover:text-warning/50"}`}
                             >
                               ★
                             </button>
