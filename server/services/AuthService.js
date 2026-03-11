@@ -41,7 +41,7 @@ class AuthService {
 
     // Generate 6-digit numeric OTP
     const verificationOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    const verificationOtpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const verificationOtpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     const user = await User.create({
       email,
@@ -93,7 +93,7 @@ class AuthService {
       throw new AppError('Please verify your email address using the OTP sent to you before logging in.', 401);
     }
 
-    if (user.is_blocked) throw new AppError('Your account has been blocked. Please contact admin.', 403);
+    if (user.is_blocked) throw new AppError('Your account has been blocked.', 403);
 
     return user;
   }
@@ -104,7 +104,7 @@ class AuthService {
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expires = new Date();
-    expires.setMinutes(expires.getMinutes() + 10);
+    expires.setMinutes(expires.getMinutes() + 5);
 
     user.resetPasswordOtp = otp;
     user.resetPasswordExpires = expires;
@@ -115,7 +115,7 @@ class AuthService {
     console.log(`--------------------------------------`);
     console.log(`User: ${user.email}`);
     console.log(`OTP:  ${otp}`);
-    console.log(`Expiry: 10 Minutes`);
+    console.log(`Expiry: 5 Minutes`);
     console.log(`======================================\n`);
 
     return true;
@@ -229,7 +229,7 @@ class AuthService {
     if (user.is_verified) throw new AppError('Email already verified', 400);
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const expires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
     user.verificationOtp = otp;
     user.verificationOtpExpires = expires;

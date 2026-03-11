@@ -382,8 +382,8 @@ class OrderService {
 
             if (isCustomer) {
                 const orderAgeMinutes = (Date.now() - new Date(order.createdAt).getTime()) / 60000;
-                if (orderAgeMinutes > 10) {
-                    throw new AppError('Customers can only cancel within 10 minutes of placing the order.', 400);
+                if (orderAgeMinutes > 5) {
+                    throw new AppError('Customers can only cancel within 5 minutes of placing the order.', 400);
                 }
                 order.cancelled_by = 'customer';
             } else if (isShopOwner) {

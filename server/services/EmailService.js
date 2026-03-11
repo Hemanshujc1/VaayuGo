@@ -55,7 +55,7 @@ class EmailService {
           </div>
         </div>
         
-        <p>This code will expire in 10 minutes. If it expires, you can request a new one from the registration page.</p>
+        <p>This code will expire in 5 minutes. If it expires, you can request a new one from the registration page.</p>
         <p>If you did not create an account, please ignore this email.</p>
         
         <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
@@ -72,7 +72,7 @@ class EmailService {
     console.log(`--------------------------------------`);
     console.log(`User: ${to}`);
     console.log(`OTP:  ${otp}`);
-    console.log(`Expiry: 10 Minutes`);
+    console.log(`Expiry: 5 Minutes`);
     console.log(`======================================\n`);
 
     return this.sendEmail(to, subject, html);
