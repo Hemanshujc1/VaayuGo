@@ -310,7 +310,7 @@ const OrderDetail = () => {
                 </span>
                 {order.delivery_attempt > 1 && (
                   <span className="bg-accent text-primary text-[10px] font-black px-2 py-0.5 rounded">
-                    RETRYING
+                    Cancelled
                   </span>
                 )}
               </div>

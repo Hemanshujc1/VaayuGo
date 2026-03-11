@@ -28,6 +28,9 @@ const ShopOrders = () => {
   const [failureReason, setFailureReason] = useState("");
   const [cancelReason, setCancelReason] = useState("");
 
+  // Tab State
+  const [activeTab, setActiveTab] = useState("active"); // 'active', 'slot_ID', 'completed'
+
   const fetchOrders = async () => {
     try {
       const res = await api.get("/orders/shop-orders");
@@ -94,7 +97,7 @@ const ShopOrders = () => {
   // Reset page if data changes dramatically
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filter, sortOrder, slotFilter]);
+  }, [searchTerm, filter, sortOrder, slotFilter, activeTab]);
 
   if (loading)
     return (
@@ -104,19 +107,36 @@ const ShopOrders = () => {
   // ----- Data Processing -----
   let processedOrders = [...orders];
 
-  // 1. Filter
+  // 1. Tab Filtering
+  if (activeTab === "active") {
+    processedOrders = processedOrders.filter((o) =>
+      ["pending", "accepted", "out_for_delivery"].includes(o.status),
+    );
+  } else if (activeTab === "completed") {
+    processedOrders = processedOrders.filter((o) =>
+      ["delivered", "failed", "cancelled"].includes(o.status),
+    );
+  } else if (activeTab.startsWith("slot_")) {
+    const slotId = activeTab.split("_")[1];
+    processedOrders = processedOrders.filter(
+      (o) =>
+        String(o.delivery_slot_id) === String(slotId) &&
+        ["pending", "accepted", "out_for_delivery"].includes(o.status),
+    );
+  }
+
+  // 2. Legacy Filter (Status/Slot within Tab)
   if (filter && filter !== "all") {
     processedOrders = processedOrders.filter((o) => o.status === filter);
   }
 
-  // 1b. Slot Filter
   if (slotFilter && slotFilter !== "all") {
     processedOrders = processedOrders.filter(
       (o) => String(o.delivery_slot_id) === String(slotFilter),
     );
   }
 
-  // 2. Search
+  // 3. Search
   if (searchTerm) {
     const term = searchTerm.toLowerCase();
     processedOrders = processedOrders.filter((o) => {
@@ -128,7 +148,7 @@ const ShopOrders = () => {
     });
   }
 
-  // 3. Sort
+  // 4. Sort
   processedOrders.sort((a, b) => {
     if (sortOrder === "newest")
       return new Date(b.createdAt) - new Date(a.createdAt);
@@ -139,7 +159,7 @@ const ShopOrders = () => {
     return 0;
   });
 
-  // 4. Paginate
+  // 5. Paginate
   const totalPages = Math.ceil(processedOrders.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedOrders = processedOrders.slice(
@@ -200,6 +220,45 @@ const ShopOrders = () => {
           </div>
         </div>
 
+        {/* Tab Navigation */}
+        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide no-scrollbar">
+          <button
+            onClick={() => setActiveTab("active")}
+            className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap border ${
+              activeTab === "active"
+                ? "bg-accent text-primary border-accent shadow-[0_0_15px_rgba(0,229,255,0.4)]"
+                : "bg-neutral-dark/40 text-neutral-light border-neutral-mid/50 hover:border-accent/50"
+            }`}
+          >
+            All Active
+          </button>
+
+          {availableSlots.map((slot) => (
+            <button
+              key={slot.id}
+              onClick={() => setActiveTab(`slot_${slot.id}`)}
+              className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap border ${
+                activeTab === `slot_${slot.id}`
+                  ? "bg-indigo-500 text-white border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.4)]"
+                  : "bg-neutral-dark/40 text-neutral-light border-neutral-mid/50 hover:border-indigo-500/50"
+              }`}
+            >
+              {slot.name} ({slot.start_time.slice(0, 5)})
+            </button>
+          ))}
+
+          <button
+            onClick={() => setActiveTab("completed")}
+            className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap border ${
+              activeTab === "completed"
+                ? "bg-green-500 text-white border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.4)]"
+                : "bg-neutral-dark/40 text-neutral-light border-neutral-mid/50 hover:border-green-500/50"
+            }`}
+          >
+            Completed
+          </button>
+        </div>
+
         {/* Filter Bar */}
         <div className="bg-neutral-dark/40 backdrop-blur-md p-4 rounded-2xl border border-neutral-mid/50 flex flex-col xl:flex-row gap-4 shadow-xl">
           <div className="flex-1">
@@ -213,7 +272,7 @@ const ShopOrders = () => {
             <FilterDropdown
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              placeholder="All Statuses"
+              placeholder="Advanced Filter"
               options={[
                 { label: "All Statuses", value: "all" },
                 { label: "Pending", value: "pending" },
@@ -372,6 +431,16 @@ const ShopOrders = () => {
                           {order.OrderRevenueLog?.is_small_order &&
                             ` | Extra: +₹${order.OrderRevenueLog?.shop_small_order_share || 0}`}
                           )
+                        </span>
+                      </div>
+                    ) : ["failed", "cancelled"].includes(order.status) ? (
+                      <div className="flex flex-col sm:flex-row sm:items-end gap-2">
+                        <span className="text-2xl font-black text-neutral-light opacity-50">
+                          ₹0.00
+                        </span>
+                        <span className="text-[10px] text-neutral-light mb-1 italic">
+                          (Order{" "}
+                          {order.status === "failed" ? "Failed" : "Cancelled"})
                         </span>
                       </div>
                     ) : (
