@@ -32,17 +32,17 @@ const calculateCart = async (req, res, next) => {
     }
     const location_id = loc.id;
 
+    const Decimal = require('decimal.js');
+    
     // 1. Calculate Base Order Value
-    const subtotal_amount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const subtotal_amount = new Decimal(items.reduce((sum, item) => sum + (item.price * item.quantity), 0));
     
     // Resolve dynamic discounts
-    const discountData = await resolveDiscounts(location_id, shop_id, category, subtotal_amount, items);
-    const shop_discount_amount = discountData.shop_discount_amount;
-    const platform_discount_amount = discountData.platform_discount_amount;
-    const product_discount_amount = discountData.product_discount_amount;
+    const discountData = await resolveDiscounts(location_id, shop_id, category, subtotal_amount.toNumber(), items);
+    let shop_discount_amount = new Decimal(discountData.shop_discount_amount || 0);
+    let platform_discount_amount = new Decimal(discountData.platform_discount_amount || 0);
+    let product_discount_amount = new Decimal(discountData.product_discount_amount || 0);
     const applied_rules = discountData.applied_rules;
-
-    const final_payable_amount = Math.max(0, subtotal_amount - shop_discount_amount - platform_discount_amount - product_discount_amount);
 
     // 2. Fetch Applicable Rule
     let rule;
@@ -55,38 +55,70 @@ const calculateCart = async (req, res, next) => {
     // 3. Validate Order Value Against Rule
     let validation;
     try {
-      validation = validateOrderAgainstRule(subtotal_amount - product_discount_amount, rule);
+      validation = validateOrderAgainstRule(subtotal_amount.minus(product_discount_amount).toNumber(), rule);
     } catch (err) {
-      // For Strict Mode blockages
       return res.status(400).json({ error: err.message });
     }
 
     // 4. Derive Final Amounts
-    const delivery_fee = validation.deliveryFee;
-    const extra_charge = validation.isSmallOrder ? (validation.extraCharge || 0) : 0;
-    const commission_percent = Number(rule.commission_percent);
+    const delivery_fee = new Decimal(validation.deliveryFee || 0);
+    const extra_charge = validation.isSmallOrder ? new Decimal(validation.extraCharge || 0) : new Decimal(0);
+    const commission_percent = new Decimal(rule.commission_percent || 0);
     
-    // Revenue calculations
     // Calculate commission item by item
-    let commission_amount = 0;
+    let total_commission = new Decimal(0);
     if (discountData.itemBreakdown) {
-      commission_amount = discountData.itemBreakdown.reduce((sum, item) => {
-          // Commission base = gross - product_discount - shop_discount
-          const base = item.gross - item.product_discount - item.shop_discount;
-          return sum + (base * (commission_percent / 100));
-      }, 0);
+      total_commission = discountData.itemBreakdown.reduce((sum, item) => {
+          const base = new Decimal(item.gross).minus(item.product_discount).minus(item.shop_discount);
+          return sum.plus(base.times(commission_percent.div(100)));
+      }, new Decimal(0));
     } else {
-        // Fallback just in case
-        const commission_base = subtotal_amount - shop_discount_amount - product_discount_amount;
-        commission_amount = commission_base * (commission_percent / 100);
+        const commission_base = subtotal_amount.minus(shop_discount_amount).minus(product_discount_amount);
+        total_commission = commission_base.times(commission_percent.div(100));
     }
     
-    // Ensure precision
-    commission_amount = Number(commission_amount.toFixed(2));
-    const shop_settlement_amount = subtotal_amount - shop_discount_amount - product_discount_amount - commission_amount + delivery_fee + extra_charge;
+    total_commission = total_commission.toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+
+    // Platform Revenue Protection Logic
+    let platform_delivery_share = new Decimal(rule.vaayugo_delivery_share || 0);
+    let platform_small_order_share = new Decimal(0);
+    if (validation.isSmallOrder) {
+        platform_small_order_share = new Decimal(rule.small_order_platform_share || 0);
+    }
+
+    // Free delivery override (sync with OrderService)
+    if (validation.deliveryFee === 0) {
+        platform_delivery_share = new Decimal(0);
+        platform_small_order_share = new Decimal(0);
+    }
+
+    // Platform Net Revenue = (Commission) + (Delivery Platform Share) + (Extra Charges Platform small order) - (Platform Discount)
+    let platform_net_revenue = total_commission
+        .plus(platform_delivery_share)
+        .plus(platform_small_order_share)
+        .minus(platform_discount_amount);
+
+    const min_revenue_threshold = new Decimal(rule.min_platform_revenue || 0);
+    if (platform_net_revenue.lessThan(min_revenue_threshold)) {
+        const shortfall = min_revenue_threshold.minus(platform_net_revenue);
+        const adjusted_platform_discount = platform_discount_amount.minus(shortfall).greaterThan(0) 
+            ? platform_discount_amount.minus(shortfall) 
+            : new Decimal(0);
+        
+        platform_discount_amount = adjusted_platform_discount;
+        
+        // Final net revenue after adjustment
+        platform_net_revenue = total_commission
+            .plus(platform_delivery_share)
+            .plus(platform_small_order_share)
+            .minus(platform_discount_amount);
+    }
+
+    const final_payable_amount = subtotal_amount.minus(shop_discount_amount).minus(platform_discount_amount).minus(product_discount_amount);
+    const shop_settlement_amount = subtotal_amount.minus(shop_discount_amount).minus(product_discount_amount).minus(total_commission).plus(validation.deliveryFee - platform_delivery_share.toNumber()).plus(validation.isSmallOrder ? (validation.extraCharge - platform_small_order_share.toNumber()) : 0);
 
     // 5. Integrate Customer Penalties
-    let penalty_charges = 0;
+    let penalty_charges = new Decimal(0);
     if (req.user && req.user.id) {
       const { Penalty } = require('../models');
       const pendingPenalties = await Penalty.findAll({
@@ -97,24 +129,24 @@ const calculateCart = async (req, res, next) => {
           is_reversed: false
         }
       });
-      penalty_charges = pendingPenalties.reduce((sum, p) => sum + Number(p.amount), 0);
+      penalty_charges = pendingPenalties.reduce((sum, p) => sum.plus(new Decimal(p.amount)), new Decimal(0));
     }
 
-    const total_payable = final_payable_amount + delivery_fee + extra_charge + penalty_charges;
+    const total_payable = final_payable_amount.plus(delivery_fee).plus(extra_charge).plus(penalty_charges);
 
     res.status(200).json({
-      subtotal_amount,
-      shop_discount_amount,
-      product_discount_amount,
-      platform_discount_amount,
-      final_payable_amount,
-      delivery_fee,
-      extra_charge,
-      penalty_charges,
+      subtotal_amount: subtotal_amount.toNumber(),
+      shop_discount_amount: shop_discount_amount.toNumber(),
+      product_discount_amount: product_discount_amount.toNumber(),
+      platform_discount_amount: platform_discount_amount.toNumber(),
+      final_payable_amount: final_payable_amount.toNumber(),
+      delivery_fee: delivery_fee.toNumber(),
+      extra_charge: extra_charge.toNumber(),
+      penalty_charges: penalty_charges.toNumber(),
       is_small_order: validation.isSmallOrder,
-      commission_amount,
-      shop_settlement_amount,
-      total_payable,
+      commission_amount: total_commission.toNumber(),
+      shop_settlement_amount: shop_settlement_amount.toNumber(),
+      total_payable: total_payable.toNumber(),
       applied_rules,
       min_order_value: rule.min_order_value,
       free_delivery_min_order: rule.free_delivery_min_order

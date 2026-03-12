@@ -19,6 +19,9 @@ async function resolveDiscounts(location_id, shop_id, category, subtotal_amount,
             ]
         }
     });
+    
+    console.log(`[DEBUG] resolveDiscounts called. Subtotal: ${subtotal_amount}, Rules found: ${rules.length}`);
+    rules.forEach(r => console.log(`[DEBUG] Rule Found - ID: ${r.id}, Name: ${r.name}, Creator: ${r.creator_type}, Target: ${r.target_type}, MinOrder: ${r.min_order_value}`));
 
     let bestShopDiscount = null;
     let bestPlatformDiscount = null;
@@ -75,8 +78,19 @@ async function resolveDiscounts(location_id, shop_id, category, subtotal_amount,
     // 2. Determine Best Shop Discount
     const newSubtotalAfterProductDiscounts = itemBreakdown.reduce((sum, item) => sum + item.net_after_product, 0);
 
-    for (const rule of rules.filter(r => r.creator_type === 'SHOP' && r.target_type !== 'PRODUCT')) {
-        if (rule.min_order_value && subtotal_amount < Number(rule.min_order_value)) continue;
+    // Sort rules by min_order_value DESC to find the highest threshold met
+    const shopRules = rules
+        .filter(r => r.creator_type === 'SHOP' && r.target_type !== 'PRODUCT')
+        .sort((a, b) => (Number(b.min_order_value) || 0) - (Number(a.min_order_value) || 0));
+
+    console.log(`[DEBUG] Found ${shopRules.length} potential shop rules for subtotal ${subtotal_amount}`);
+    
+    for (const rule of shopRules) {
+        console.log(`[DEBUG] Checking Shop Rule: ${rule.name} (Min: ${rule.min_order_value}, Type: ${rule.type}, Value: ${rule.value})`);
+        if (rule.min_order_value && subtotal_amount < Number(rule.min_order_value)) {
+            console.log(`[DEBUG] Rule ${rule.name} skipped: threshold not met`);
+            continue;
+        }
 
         let runAmount = 0;
         if (rule.type === 'FLAT') {
@@ -89,10 +103,11 @@ async function resolveDiscounts(location_id, shop_id, category, subtotal_amount,
             }
         }
 
-        if (!bestShopDiscount || runAmount > total_shop_discount) {
-            bestShopDiscount = rule;
-            total_shop_discount = runAmount;
-        }
+        // Tiered Logic: Pick the first rule that meets the threshold (highest min_order_value)
+        bestShopDiscount = rule;
+        total_shop_discount = runAmount;
+        console.log(`[DEBUG] Selected Best Shop Discount: ${rule.name} (Amount: ${runAmount})`);
+        break; 
     }
 
     // Distribute best shop discount proportionally
@@ -116,7 +131,15 @@ async function resolveDiscounts(location_id, shop_id, category, subtotal_amount,
     // 3. Determine Best Platform Discount
     const newSubtotalAfterShopDiscounts = newSubtotalAfterProductDiscounts - total_shop_discount;
 
-    for (const rule of rules.filter(r => r.creator_type === 'ADMIN')) {
+    // Sort rules by min_order_value DESC
+    const platformRules = rules
+        .filter(r => r.creator_type === 'ADMIN')
+        .sort((a, b) => (Number(b.min_order_value) || 0) - (Number(a.min_order_value) || 0));
+
+    console.log(`[DEBUG] Found ${platformRules.length} potential platform rules`);
+
+    for (const rule of platformRules) {
+        console.log(`[DEBUG] Checking Platform Rule: ${rule.name} (Min: ${rule.min_order_value})`);
         if (rule.min_order_value && subtotal_amount < Number(rule.min_order_value)) continue;
 
         let runAmount = 0;
@@ -130,10 +153,10 @@ async function resolveDiscounts(location_id, shop_id, category, subtotal_amount,
             }
         }
 
-        if (!bestPlatformDiscount || runAmount > total_platform_discount) {
-            bestPlatformDiscount = rule;
-            total_platform_discount = runAmount;
-        }
+        // Tiered Logic: Pick the first rule that meets the threshold (highest min_order_value)
+        bestPlatformDiscount = rule;
+        total_platform_discount = runAmount;
+        break;
     }
 
      // Distribute best platform discount proportionally

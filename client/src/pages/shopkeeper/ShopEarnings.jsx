@@ -149,46 +149,77 @@ const ShopEarnings = () => {
         </ul>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-neutral-dark p-6 rounded-xl border border-neutral-mid shadow-lg">
-          <p className="text-neutral-light text-sm mb-1 uppercase tracking-wider font-bold">
-            Total Settled
-          </p>
-          <p className="text-3xl font-bold text-success">
-            ₹
-            {settlements
-              .filter((s) => s.status === "completed")
-              .reduce((sum, s) => sum + Math.max(0, Number(s.net_payout)), 0)
-              .toFixed(2)}
-          </p>
+      {/* Summary Section */}
+      <div className="bg-neutral-dark/40 backdrop-blur-xl p-8 rounded-3xl border border-neutral-mid/30 shadow-2xl">
+        <h2 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
+          <span className="p-2 bg-accent/20 rounded-lg text-accent">📊</span>
+          Settlement Summary
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="border-r border-neutral-mid/30 pr-4">
+            <p className="text-neutral-light text-xs font-bold uppercase tracking-widest mb-2">
+              Total Orders
+            </p>
+            <p className="text-4xl font-black text-white">
+              {settlements.reduce((sum, s) => sum + (s.total_orders || 0), 0)}
+            </p>
+          </div>
+          <div className="border-r border-neutral-mid/30 pr-4">
+            <p className="text-neutral-light text-xs font-bold uppercase tracking-widest mb-2">
+              COD Collected
+            </p>
+            <p className="text-4xl font-black text-orange-400">
+              ₹{settlements.reduce((sum, s) => sum + Number(s.total_cod_collected || 0), 0).toFixed(2)}
+            </p>
+          </div>
+          <div className="border-r border-neutral-mid/30 pr-4">
+            <p className="text-neutral-light text-xs font-bold uppercase tracking-widest mb-2">
+              Shop Earnings
+            </p>
+            <p className="text-4xl font-black text-green-400">
+              ₹{settlements.reduce((sum, s) => sum + Number(s.total_cod_collected || 0) + Number(s.net_payout || 0), 0).toFixed(2)}
+            </p>
+          </div>
+          <div>
+            <p className="text-neutral-light text-xs font-bold uppercase tracking-widest mb-2">
+              Vaayugo Charges
+            </p>
+            <p className="text-4xl font-black text-red-400">
+              ₹{settlements.reduce((sum, s) => sum + (Number(s.vaayugo_charges_total) - Number(s.platform_discount_total || 0)), 0).toFixed(2)}
+            </p>
+          </div>
         </div>
-        <div className="bg-neutral-dark p-6 rounded-xl border border-neutral-mid shadow-lg">
-          <p className="text-neutral-light text-sm mb-1 uppercase tracking-wider font-bold">
-            Pending Approval
-          </p>
-          <p className="text-3xl font-bold text-warning">
-            ₹
-            {settlements
-              .filter((s) => s.status === "pending")
-              .reduce((sum, s) => sum + Math.max(0, Number(s.net_payout)), 0)
-              .toFixed(2)}
-          </p>
-        </div>
-        <div className="bg-neutral-dark p-6 rounded-xl border border-neutral-mid shadow-lg">
-          <p className="text-neutral-light text-sm mb-1 uppercase tracking-wider font-bold">
-            VaayuGO Due (COD)
-          </p>
-          <p className="text-3xl font-bold text-danger">
-            ₹
-            {Math.abs(
-              settlements.reduce(
-                (sum, s) => sum + Math.min(0, Number(s.net_payout)),
-                0,
-              ),
-            ).toFixed(2)}
-          </p>
-        </div>
+
+        {/* Pending Settlement Highlight */}
+        {settlements.find(s => s.status === 'pending') && (
+          <div className="mt-12 p-1 rounded-2xl bg-linear-to-r from-accent/30 via-accent/10 to-transparent">
+            <div className="bg-neutral-dark/80 backdrop-blur-md p-6 rounded-[0.9rem] flex flex-col md:flex-row justify-between items-center gap-6">
+              <div className="flex items-center gap-6">
+                <div className={`h-16 w-16 rounded-2xl flex items-center justify-center text-3xl shadow-lg ${
+                  Number(settlements.find(s => s.status === 'pending').net_payout) < 0 ? 'bg-red-500/20 text-red-500' : 'bg-green-500/20 text-green-500'
+                }`}>
+                  {Number(settlements.find(s => s.status === 'pending').net_payout) < 0 ? '💸' : '💰'}
+                </div>
+                <div>
+                  <p className="text-neutral-light text-sm font-bold uppercase tracking-widest">Pending Settlement</p>
+                  <p className={`text-3xl font-black ${
+                    Number(settlements.find(s => s.status === 'pending').net_payout) < 0 ? 'text-red-400' : 'text-green-400'
+                  }`}>
+                    ₹{Math.abs(settlements.find(s => s.status === 'pending').net_payout).toFixed(2)}
+                  </p>
+                  <p className={`text-xs font-black uppercase mt-1 ${
+                    Number(settlements.find(s => s.status === 'pending').net_payout) < 0 ? 'text-red-500' : 'text-green-500'
+                  }`}>
+                    {Number(settlements.find(s => s.status === 'pending').net_payout) < 0 ? 'You need to pay VaayuGO' : 'VaayuGO will pay you'}
+                  </p>
+                </div>
+              </div>
+              <button className="bg-white text-black px-8 py-3 rounded-xl font-bold hover:scale-105 transition-all shadow-xl active:scale-95">
+                Pay Settlement
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col md:flex-row gap-4">
@@ -224,111 +255,122 @@ const ShopEarnings = () => {
       </div>
 
       {/* History Table */}
-      <div className="bg-neutral-dark border border-neutral-mid rounded-xl overflow-hidden shadow-2xl">
-        <div className="p-6 border-b border-neutral-mid bg-primary/20">
+      <div className="bg-neutral-dark/40 backdrop-blur-xl border border-neutral-mid/30 rounded-3xl overflow-hidden shadow-2xl">
+        <div className="p-6 border-b border-neutral-mid/30 bg-primary/20 flex justify-between items-center">
           <h2 className="text-xl font-bold text-white">Settlement History</h2>
+          <div className="flex gap-2">
+            <span className="flex items-center gap-1 text-[10px] font-bold text-green-400 uppercase">
+              <span className="w-2 h-2 rounded-full bg-green-400"></span>
+              Receiving
+            </span>
+            <span className="flex items-center gap-1 text-[10px] font-bold text-red-400 uppercase">
+              <span className="w-2 h-2 rounded-full bg-red-400"></span>
+              Paying
+            </span>
+          </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-primary/50 text-neutral-light text-xs uppercase tracking-wider">
+          <table className="w-full text-left whitespace-nowrap">
+            <thead className="bg-neutral-mid/20 text-neutral-light text-[10px] font-bold uppercase tracking-widest">
               <tr>
-                <th className="px-6 py-4">Period</th>
-                <th className="px-6 py-4 text-center">Orders</th>
-                <th className="px-6 py-4">COD Collected</th>
-                <th className="px-6 py-4">Commission</th>
-                <th className="px-6 py-4">Settlement Amount</th>
-                <th className="px-6 py-4 text-center">Status</th>
-                <th className="px-6 py-4 text-right">Details</th>
+                <th className="px-6 py-5">Period</th>
+                <th className="px-6 py-5">Orders</th>
+                <th className="px-6 py-5">COD Collected</th>
+                <th className="px-6 py-5">Your Earnings</th>
+                <th className="px-6 py-5">Amount to Pay</th>
+                <th className="px-6 py-5">Status</th>
+                <th className="px-6 py-5 text-right">Details</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-mid">
-              {currentSettlements.map((s) => (
-                <tr
-                  key={s.id}
-                  className="hover:bg-white/5 transition-colors group"
-                >
-                  <td className="px-6 py-4 text-white text-sm">
-                    {new Date(s.start_date).getFullYear() <= 2000
-                      ? "Full History"
-                      : new Date(s.start_date).toLocaleDateString()}{" "}
-                    - <br />
-                    {new Date(s.end_date).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 text-center text-white">
-                    {s.total_orders}
-                  </td>
-                  <td className="px-6 py-4 text-neutral-light">
-                    ₹{s.total_cod_collected}
-                  </td>
-                  <td className="px-6 py-4 text-neutral-light">
-                    ₹{s.commission_total}
-                  </td>
-                  <td className="px-6 py-4 font-bold">
-                    <div className="flex flex-col">
-                      <span
-                        className={
-                          Number(s.net_payout) >= 0
-                            ? "text-success"
-                            : "text-danger"
-                        }
-                      >
-                        {Number(s.net_payout) >= 0 ? "+" : "-"} ₹
-                        {Math.abs(s.net_payout)}
-                      </span>
-                      {Number(s.net_payout) < 0 && (
-                        <span className="text-[10px] text-danger/70 uppercase font-black mt-1">
-                          Owe to VaayuGO
+            <tbody className="divide-y divide-neutral-mid/20">
+              {currentSettlements.map((s) => {
+                const shopEarnings = Number(s.total_cod_collected || 0) + Number(s.net_payout || 0);
+                return (
+                  <tr
+                    key={s.id}
+                    className="hover:bg-white/5 transition-colors group"
+                  >
+                    <td className="px-6 py-5">
+                      <div className="flex flex-col">
+                        <span className="text-white font-bold text-sm">
+                          {new Date(s.start_date).getFullYear() <= 2000
+                            ? "Full History"
+                            : new Date(s.start_date).toLocaleDateString()}
                         </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex justify-center">
+                        <span className="text-[10px] text-neutral-500 font-bold">
+                          to {new Date(s.end_date).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 text-white font-medium">
+                      {s.total_orders}
+                    </td>
+                    <td className="px-6 py-5 text-neutral-light font-medium">
+                      ₹{Number(s.total_cod_collected).toFixed(2)}
+                    </td>
+                    <td className="px-6 py-5 text-green-400/80 font-bold">
+                      ₹{shopEarnings.toFixed(2)}
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex flex-col">
+                        <span
+                          className={`text-sm font-black transition-all ${
+                            s.status === "completed"
+                              ? "text-neutral-light/20 line-through"
+                              : Number(s.net_payout) >= 0
+                                ? "text-green-400"
+                                : "text-red-400"
+                          }`}
+                        >
+                          ₹{Math.abs(s.net_payout).toFixed(2)}
+                        </span>
+                        <span
+                          className={`text-[9px] uppercase font-black mt-0.5 ${
+                            s.status === "completed"
+                              ? "text-neutral-light/30"
+                              : Number(s.net_payout) >= 0
+                                ? "text-green-500/60"
+                                : "text-red-500/60"
+                          }`}
+                        >
+                          {s.status === "completed"
+                            ? "Settled"
+                            : Number(s.net_payout) >= 0
+                              ? "VaayuGO will pay you"
+                              : "Pay to VaayuGO"}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-bold border ${getStatusColor(s.status)}`}
+                        className={`px-3 py-1 rounded-lg text-[10px] uppercase font-black border tracking-wider ${getStatusColor(s.status)} shadow-lg shadow-black/20`}
                       >
                         {s.status}
                       </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      className="text-accent hover:underline text-xs flex items-center gap-1 justify-end ml-auto"
-                      onClick={() => handleViewOrders(s)}
-                    >
-                      <svg
-                        className="w-3 h-3"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                    </td>
+                    <td className="px-6 py-5 text-right">
+                      <button
+                        className="p-2 bg-neutral-mid/30 hover:bg-accent hover:text-primary rounded-xl transition-all group/btn"
+                        onClick={() => handleViewOrders(s)}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                        />
-                      </svg>
-                      View Breakdown
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
               {currentSettlements.length === 0 && (
                 <tr>
                   <td
                     colSpan="7"
-                    className="px-6 py-10 text-center text-neutral-light italic"
+                    className="px-6 py-12 text-center text-neutral-light italic bg-neutral-dark/20"
                   >
                     {settlements.length === 0
-                      ? "No settlements processed yet."
-                      : "No matching settlements found."}
+                      ? "No settlements recorded under your shop profile yet."
+                      : "No matching records found for the applied filters."}
                   </td>
                 </tr>
               )}

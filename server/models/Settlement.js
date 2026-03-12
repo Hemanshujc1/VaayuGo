@@ -39,6 +39,11 @@ const Settlement = sequelize.define('Settlement', {
     allowNull: false,
     defaultValue: 0.00,
   },
+  vaayugo_charges_total: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    defaultValue: 0.00,
+  },
   platform_discount_total: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,

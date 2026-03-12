@@ -6,9 +6,11 @@ const ShopDashboard = () => {
   const [shop, setShop] = useState(null);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [settlements, setSettlements] = useState([]);
 
   useEffect(() => {
     fetchShopAndAnalytics();
+    fetchSettlements();
   }, []);
 
   const fetchShopAndAnalytics = async () => {
@@ -27,6 +29,15 @@ const ShopDashboard = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSettlements = async () => {
+    try {
+      const { data } = await api.get("/shop/settlements");
+      setSettlements(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Error fetching settlements:", error);
     }
   };
 
@@ -128,9 +139,17 @@ const ShopDashboard = () => {
       {/* Analytics Overview */}
       {shop.status === "approved" && analytics && (
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-6">
-            Earnings Dashboard
-          </h2>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-white">
+              Earnings Dashboard
+            </h2>
+            <Link
+              to="/shop/earnings"
+              className="text-accent hover:underline text-sm font-medium"
+            >
+              Detailed History →
+            </Link>
+          </div>
 
           {/* 1. Revenue Overview */}
           <h3 className="text-lg font-bold text-neutral-light mb-4 flex items-center gap-2">
@@ -226,12 +245,17 @@ const ShopDashboard = () => {
             </div>
             <div className="bg-neutral-dark p-5 rounded-lg shadow border-l-4 border-danger">
               <h4 className="text-neutral-light font-bold text-xs uppercase tracking-wider">
-                Deducted Commission
+                Vaayugo Charges
               </h4>
               <p className="text-xl font-bold text-danger mt-1">
-                - ₹{analytics.deductedCommission || "0.00"}
+                - ₹
+                {analytics.vaayugoCharges ||
+                  analytics.deductedCommission ||
+                  "0.00"}
               </p>
-              <p className="text-[10px] text-neutral-light mt-1">VaayuGO Cut</p>
+              <p className="text-[10px] text-neutral-light mt-1">
+                VaayuGO Earnings
+              </p>
             </div>
             <div className="bg-neutral-dark p-5 rounded-lg shadow border-l-4 border-red-500">
               <h4 className="text-neutral-light font-bold text-xs uppercase tracking-wider">
@@ -312,6 +336,154 @@ const ShopDashboard = () => {
               </div>
               <div className="text-4xl opacity-50">🛒</div>
             </div>
+          </div>
+          {/* Settlement Summary Section */}
+          <div className="bg-neutral-dark/40 backdrop-blur-xl p-8 rounded-3xl border border-neutral-mid/30 shadow-2xl mb-12">
+            <h3 className="text-xl font-bold text-white mb-8 flex items-center gap-3">
+              <span className="p-2 bg-accent/20 rounded-lg text-accent">
+                💹
+              </span>
+              Settlement Summary
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8 border-b border-neutral-mid/20 pb-8">
+              <div className="border-r border-neutral-mid/20 pr-4">
+                <p className="text-neutral-light text-[10px] font-black uppercase tracking-[0.2em] mb-3">
+                  Total Orders
+                </p>
+                <p className="text-4xl font-black text-white">
+                  {settlements.reduce(
+                    (sum, s) => sum + (s.total_orders || 0),
+                    0,
+                  )}
+                </p>
+              </div>
+              <div className="border-r border-neutral-mid/20 pr-4">
+                <p className="text-neutral-light text-[10px] font-black uppercase tracking-[0.2em] mb-3">
+                  COD Collected
+                </p>
+                <p className="text-4xl font-black text-orange-400">
+                  ₹
+                  {Number(
+                    settlements.reduce(
+                      (sum, s) => sum + Number(s.total_cod_collected || 0),
+                      0,
+                    ),
+                  ).toFixed(0)}
+                </p>
+              </div>
+              <div className="border-r border-neutral-mid/20 pr-4">
+                <p className="text-neutral-light text-[10px] font-black uppercase tracking-[0.2em] mb-3">
+                  Your Earnings
+                </p>
+                <p className="text-4xl font-black text-green-400">
+                  ₹
+                  {Number(
+                    settlements.reduce(
+                      (sum, s) =>
+                        sum +
+                        (Number(s.total_cod_collected || 0) +
+                          Number(s.total_online_collected || 0)) -
+                        (Number(s.vaayugo_charges_total) ||
+                          Number(s.commission_total) ||
+                          0),
+                      0,
+                    ),
+                  ).toFixed(0)}
+                </p>
+              </div>
+              <div>
+                <p className="text-neutral-light text-[10px] font-black uppercase tracking-[0.2em] mb-3">
+                  Vaayugo Charges
+                </p>
+                <p className="text-4xl font-black text-red-400">
+                  ₹
+                  {Number(
+                    settlements.reduce(
+                      (sum, s) =>
+                        sum +
+                        (Number(s.vaayugo_charges_total) ||
+                          Number(s.commission_total) ||
+                          0),
+                      0,
+                    ),
+                  ).toFixed(0)}
+                </p>
+              </div>
+            </div>
+
+            {/* Pending Settlement Quick Card */}
+            {settlements.find((s) => s.status === "pending") && (
+              <div
+                className={`p-6 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-6 border ${
+                  Number(
+                    settlements.find((s) => s.status === "pending").net_payout,
+                  ) < 0
+                    ? "bg-red-500/5 border-red-500/20"
+                    : "bg-green-500/5 border-green-500/20"
+                }`}
+              >
+                <div className="flex items-center gap-6 text-center md:text-left">
+                  <div
+                    className={`p-4 rounded-2xl shadow-inner text-3xl ${
+                      Number(
+                        settlements.find((s) => s.status === "pending")
+                          .net_payout,
+                      ) < 0
+                        ? "bg-red-500/10 text-red-400"
+                        : "bg-green-500/10 text-green-400"
+                    }`}
+                  >
+                    💸
+                  </div>
+                  <div>
+                    <p className="text-neutral-light text-[10px] font-black uppercase tracking-widest mb-1">
+                      Pending Settlement
+                    </p>
+                    <p
+                      className={`text-4xl font-black ${
+                        Number(
+                          settlements.find((s) => s.status === "pending")
+                            .net_payout,
+                        ) < 0
+                          ? "text-red-400"
+                          : "text-green-400"
+                      }`}
+                    >
+                      ₹
+                      {Math.abs(
+                        Number(
+                          settlements.find((s) => s.status === "pending")
+                            .net_payout,
+                        ),
+                      ).toFixed(2)}
+                    </p>
+                    <p
+                      className={`text-[10px] font-bold uppercase mt-2 ${
+                        Number(
+                          settlements.find((s) => s.status === "pending")
+                            .net_payout,
+                        ) < 0
+                          ? "text-red-500"
+                          : "text-green-500"
+                      }`}
+                    >
+                      {Number(
+                        settlements.find((s) => s.status === "pending")
+                          .net_payout,
+                      ) < 0
+                        ? "⚠️ You need to pay VaayuGO"
+                        : "✨ VaayuGO will pay you"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => (window.location.href = "/shop/earnings")}
+                  className="bg-white text-black px-10 py-4 rounded-2xl font-black text-sm hover:scale-105 active:scale-95 transition-all shadow-xl whitespace-nowrap"
+                >
+                  Pay Settlement
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

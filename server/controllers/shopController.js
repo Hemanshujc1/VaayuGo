@@ -115,6 +115,8 @@ const getMyShopAnalytics = catchAsync(async (req, res, next) => {
     let extraCharges = new Decimal(0);
     let deliveryRevenue = new Decimal(0);
     let totalShopDiscounts = new Decimal(0);
+    let totalCodCollected = new Decimal(0);
+    let vaayugoCharges = new Decimal(0);
 
     let completedOrders = 0;
     let cancelledOrders = 0;
@@ -142,6 +144,16 @@ const getMyShopAnalytics = catchAsync(async (req, res, next) => {
                 extraCharges = extraCharges.plus(log.shop_small_order_share || 0);
                 deliveryRevenue = deliveryRevenue.plus(log.shop_delivery_share || 0);
                 
+                const platCharges = new Decimal(log.commission_deducted || 0)
+                    .plus(log.platform_delivery_share || 0)
+                    .plus(log.platform_small_order_share || 0);
+                
+                vaayugoCharges = vaayugoCharges.plus(platCharges);
+
+                if (o.payment_method === 'cod') {
+                    totalCodCollected = totalCodCollected.plus(o.grand_total || 0);
+                }
+                
                 if (log.is_small_order) smallOrdersCount++;
             }
         }
@@ -161,10 +173,12 @@ const getMyShopAnalytics = catchAsync(async (req, res, next) => {
         deductedCommission: round2(deductedCommission),
         extraCharges: round2(extraCharges),
         deliveryRevenue: round2(deliveryRevenue),
+        vaayugoCharges: round2(vaayugoCharges),
         shopGrossRevenue: round2(shopGrossRevenue),
         totalShopDiscounts: round2(totalShopDiscounts),
         potentialRevenue: round2(potentialRevenue),
         shopNetRevenue: round2(shopNetRevenue), // Payout
+        totalCodCollected: round2(totalCodCollected),
         
         totalOrders: orders.length,
         completedOrders,

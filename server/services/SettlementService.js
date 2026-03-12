@@ -39,8 +39,9 @@ class SettlementService {
       let totalCodCollected = new Decimal(0);
       let totalOnlineCollected = new Decimal(0);
       let commissionTotal = new Decimal(0);
+      let vaayugoChargesTotal = new Decimal(0);
       let platformDiscountTotal = new Decimal(0);
-      let netPayout = new Decimal(0); // Positive means VaayuGo pays Shop, Negative means Shop pays VaayuGo
+      let netPayout = new Decimal(0); // Positive means VaayuGo pays Shop, Negative means Shop pays VaayuGO
 
       for (const log of logs) {
         const order = log.Order;
@@ -53,6 +54,7 @@ class SettlementService {
         const platformFees = platformDeliveryShare.plus(platformSmallOrderShare);
         
         commissionTotal = commissionTotal.plus(commission);
+        vaayugoChargesTotal = vaayugoChargesTotal.plus(commission).plus(platformFees);
         platformDiscountTotal = platformDiscountTotal.plus(platformDiscount);
 
         if (order.payment_method === 'cod') {
@@ -86,6 +88,7 @@ class SettlementService {
         total_cod_collected: totalCodCollected.toNumber(),
         total_online_collected: totalOnlineCollected.toNumber(),
         commission_total: commissionTotal.toNumber(),
+        vaayugo_charges_total: vaayugoChargesTotal.toNumber(),
         platform_discount_total: platformDiscountTotal.toNumber(),
         penalty_total: 0, // Penalties removed from settlement cycle
         net_payout: netPayout.toNumber(),
