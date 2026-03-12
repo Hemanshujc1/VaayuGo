@@ -112,11 +112,12 @@ const calculateCart = async (req, res, next) => {
       extra_charge,
       penalty_charges,
       is_small_order: validation.isSmallOrder,
-      commission_percent,
       commission_amount,
       shop_settlement_amount,
       total_payable,
-      applied_rules
+      applied_rules,
+      min_order_value: rule.min_order_value,
+      free_delivery_min_order: rule.free_delivery_min_order
     });
 
   } catch (error) {

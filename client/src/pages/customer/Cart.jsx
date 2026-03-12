@@ -174,12 +174,32 @@ const Cart = () => {
               )}
               <div className="flex justify-between mb-4 pt-2 border-t border-neutral-mid font-medium text-white">
                 <span>Subtotal</span>
-                <span>
-                  ₹
-                  {(
-                    calculation.subtotal_amount -
-                    calculation.product_discount_amount
-                  ).toFixed(2)}
+                <span className="flex flex-col items-end">
+                  <span>
+                    ₹
+                    {(
+                      calculation.subtotal_amount -
+                      calculation.product_discount_amount
+                    ).toFixed(2)}
+                  </span>
+                  {calculation.free_delivery_min_order &&
+                    (calculation.subtotal_amount -
+                      calculation.product_discount_amount <
+                    calculation.free_delivery_min_order ? (
+                      <span className="text-[10px] text-accent animate-pulse">
+                        Add ₹
+                        {(
+                          calculation.free_delivery_min_order -
+                          (calculation.subtotal_amount -
+                            calculation.product_discount_amount)
+                        ).toFixed(2)}{" "}
+                        more for FREE delivery!
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-green-400 font-bold">
+                        Eligible for FREE delivery! ✨
+                      </span>
+                    ))}
                 </span>
               </div>
 
@@ -203,13 +223,18 @@ const Cart = () => {
               </div>
               {calculation.is_small_order && (
                 <>
-                  <div className="flex justify-between mb-2 text-orange-400">
+                  <div className="flex justify-between mb-2 text-red-400">
                     <span>Min Order Extra Charge</span>
                     <span>₹{calculation.extra_charge?.toFixed(2)}</span>
                   </div>
-                  <p className="text-xs text-orange-400 mb-4 bg-orange-400/10 p-2 rounded">
-                    ⚠️ An extra charge applies because the order value does not
-                    meet the minimum requirement.
+                  <p className="text-s text-orange-400 mb-4 bg-orange-400/10 p-2 rounded">
+                    ⚠️ Almost there! Add ₹
+                    {(
+                      calculation.min_order_value -
+                      (calculation.subtotal_amount -
+                        calculation.product_discount_amount)
+                    ).toFixed(2)}{" "}
+                    more to waive the min-order fee.
                   </p>
                 </>
               )}

@@ -761,7 +761,7 @@ const OrderDetail = () => {
                         </div>
 
                         <div className="flex justify-between items-center font-bold text-base text-indigo-400 mt-5 pt-4 border-t-2 border-slate-800">
-                          <span>Shop Net Revenue (Payout)</span>
+                          <span>Shop Net Revenue (Your Earning)</span>
                           <span className="text-lg">
                             ₹
                             {Number(revenueLog.shop_final_settlement).toFixed(

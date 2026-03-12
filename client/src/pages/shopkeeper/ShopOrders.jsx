@@ -444,10 +444,34 @@ const ShopOrders = () => {
                         </span>
                       </div>
                     ) : (
-                      <p className="text-warning font-bold flex items-center gap-2 animate-pulse">
-                        <span className="w-2 h-2 rounded-full bg-warning"></span>
-                        Calculating on Delivery...
-                      </p>
+                      <div className="flex flex-col sm:flex-row sm:items-end gap-2">
+                        <span className="text-2xl font-black text-warning">
+                          ₹{order.OrderRevenueLog?.shop_final_settlement ?? 0}
+                        </span>
+                        <span className="text-[10px] text-warning/70 mb-1 italic font-bold animate-pulse">
+                          (Estimated Payout on Delivery)
+                        </span>
+                        <span className="text-[10px] text-neutral-light mb-1 italic hidden sm:inline">
+                          • Breakdown: ₹
+                          {(
+                            Number(order.OrderRevenueLog?.net_item_total || 0) -
+                            Number(
+                              order.OrderRevenueLog?.commission_deducted || 0,
+                            )
+                          ).toFixed(2)}{" "}
+                          items + ₹
+                          {(
+                            Number(
+                              order.OrderRevenueLog?.shop_delivery_share || 0,
+                            ) +
+                            Number(
+                              order.OrderRevenueLog?.shop_small_order_share ||
+                                0,
+                            )
+                          ).toFixed(2)}{" "}
+                          delivery
+                        </span>
+                      </div>
                     )}
                   </div>
 

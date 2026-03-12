@@ -19,3 +19,8 @@
 body {
   @apply bg-primary text-primary-text;
 }
+
+/* Fix time picker indicator visibility on dark background */
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}

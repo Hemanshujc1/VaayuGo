@@ -522,7 +522,7 @@ const AdminGlobalRules = () => {
                     setNewRule({
                       ...newRule,
                       small_order_shop_share:
-                        e.target.value === "" ? 0 : parseFloat(e.target.value),
+                        e.target.value === "" ? "" : parseFloat(e.target.value),
                     })
                   }
                   disabled={
@@ -553,7 +553,7 @@ const AdminGlobalRules = () => {
                     setNewRule({
                       ...newRule,
                       small_order_platform_share:
-                        e.target.value === "" ? 0 : parseFloat(e.target.value),
+                        e.target.value === "" ? "" : parseFloat(e.target.value),
                     })
                   }
                   disabled={
@@ -585,7 +585,7 @@ const AdminGlobalRules = () => {
                     setNewRule({
                       ...newRule,
                       min_platform_revenue:
-                        e.target.value === "" ? 0 : parseFloat(e.target.value),
+                        e.target.value === "" ? "" : parseFloat(e.target.value),
                     })
                   }
                   className="w-full bg-red-500/10 border border-red-500/30 rounded-xl p-3 pl-8 text-white focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all"
