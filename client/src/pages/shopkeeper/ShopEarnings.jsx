@@ -390,110 +390,115 @@ const ShopEarnings = () => {
       </div>
 
       {selectedSettlement && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-neutral-dark rounded-2xl border border-neutral-mid w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl">
-            <div className="p-6 border-b border-neutral-mid flex justify-between items-center">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-xl flex items-center justify-center p-4 z-9999 animate-in fade-in duration-300">
+          <div className="bg-[#111] border border-white/10 w-full max-w-2xl rounded-[2.5rem] shadow-3xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-8 border-b border-white/5 flex justify-between items-center bg-linear-to-br from-white/2 to-transparent">
               <div>
-                <h3 className="text-xl font-bold text-white">
-                  Settlement Order Breakdown
-                </h3>
-                <p className="text-xs text-neutral-light mt-1 flex items-center gap-2">
-                  <span className="bg-primary px-1.5 py-0.5 rounded border border-neutral-mid">
-                    SETTLEMENT #{selectedSettlement.id}
-                  </span>
-                  <span>•</span>
-                  <span>
-                    Cycle:{" "}
-                    {new Date(selectedSettlement.start_date).getFullYear() <=
-                    2000
-                      ? "Full History"
-                      : new Date(
-                          selectedSettlement.start_date,
-                        ).toLocaleDateString()}{" "}
-                    -{" "}
-                    {new Date(selectedSettlement.end_date).toLocaleDateString()}
-                  </span>
-                </p>
+                <h3 className="text-2xl font-black text-white tracking-tight">Cycle Breakdown</h3>
+                <div className="flex items-center gap-3 mt-2">
+                   <span className="text-[10px] bg-accent/20 text-accent px-2 py-0.5 rounded font-black tracking-widest uppercase">
+                     REF #{selectedSettlement.id}
+                   </span>
+                   <span className="text-neutral-light/20 text-xs">•</span>
+                   <span className="text-neutral-light/50 text-xs font-medium uppercase tracking-wider">
+                     {new Date(selectedSettlement.start_date).getFullYear() <= 2000 ? "Full History" : new Date(selectedSettlement.start_date).toLocaleDateString()} - {new Date(selectedSettlement.end_date).toLocaleDateString()}
+                   </span>
+                </div>
               </div>
               <button
                 onClick={() => setSelectedSettlement(null)}
-                className="text-neutral-light hover:text-white p-2"
+                className="w-10 h-10 flex items-center justify-center rounded-2xl bg-white/5 text-neutral-light/40 hover:text-white transition-all hover:bg-red-500/20 group"
               >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
+                <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-8 space-y-4 custom-scrollbar">
               {loadingOrders ? (
-                <div className="flex justify-center p-10">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+                <div className="flex flex-col items-center justify-center py-20 gap-4">
+                  <div className="w-12 h-12 border-4 border-accent/20 border-t-accent rounded-full animate-spin"></div>
+                  <p className="text-xs font-black text-accent/50 uppercase tracking-[0.2em] animate-pulse">Retrieving Data...</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {settlementOrders.map((order) => (
-                    <div
-                      key={order.id}
-                      className="bg-primary/40 border border-neutral-mid p-4 rounded-xl flex justify-between items-center hover:bg-primary/60 transition-colors"
-                    >
-                      <div>
-                        <p className="text-white font-bold text-sm">
-                          Order #{order.id}
-                        </p>
-                        <p className="text-[10px] text-neutral-light">
-                          {new Date(order.createdAt).toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="text-right flex items-center gap-4">
-                        <div>
-                          <p className="text-accent font-bold text-sm">
-                            ₹{order.grand_total}
-                          </p>
-                          <p className="text-[10px] text-neutral-light uppercase">
-                            {order.status}
-                          </p>
+                <>
+                  <div className="grid grid-cols-1 gap-3">
+                    {settlementOrders.map((order) => (
+                      <div key={order.id} className="group bg-white/2 border border-white/5 p-5 rounded-2xl flex justify-between items-center hover:bg-white/4 transition-all">
+                        <div className="flex items-center gap-4">
+                           <div className="w-10 h-10 bg-primary/40 rounded-xl flex items-center justify-center text-accent text-sm font-black border border-white/5">
+                             #{order.id.toString().slice(-2)}
+                           </div>
+                           <div>
+                             <p className="text-white font-bold text-sm underline decoration-accent/30 underline-offset-4 cursor-pointer hover:text-accent transition-colors">
+                                Order #{order.id}
+                             </p>
+                             <p className="text-[10px] text-neutral-light/40 mt-1 uppercase tracking-wider">
+                               {new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                             </p>
+                           </div>
                         </div>
-                        <a
-                          href={`/shop/orders/${order.id}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="p-2 bg-neutral-mid/50 hover:bg-neutral-mid rounded-lg text-neutral-light hover:text-white transition-all"
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                            />
-                          </svg>
-                        </a>
+                        <div className="flex items-center gap-6">
+                           <div className="text-right">
+                             <p className="text-white font-black text-sm tracking-tighter">₹{Number(order.grand_total).toFixed(2)}</p>
+                             <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded border ${order.status === 'completed' ? 'border-green-500/20 text-green-500 bg-green-500/5' : 'border-orange-500/20 text-orange-500 bg-orange-500/5'}`}>
+                                {order.status}
+                             </span>
+                           </div>
+                           <a href={`/shop/orders/${order.id}`} target="_blank" rel="noreferrer" className="opacity-20 hover:opacity-100 transition-opacity">
+                             <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                             </svg>
+                           </a>
+                        </div>
                       </div>
+                    ))}
+                  </div>
+
+                  {selectedSettlement.penalty_total > 0 && (
+                    <div className="flex items-center justify-between p-6 bg-red-500/10 border border-red-500/20 rounded-3xl">
+                       <div className="flex items-center gap-4">
+                         <div className="w-12 h-12 bg-red-500/20 rounded-2xl flex items-center justify-center text-2xl">⚠️</div>
+                         <div>
+                            <p className="text-red-400 font-bold tracking-tight">Financial Penalties</p>
+                            <p className="text-[10px] text-red-400/50 uppercase tracking-widest mt-1">Deducted from final payout</p>
+                         </div>
+                       </div>
+                       <p className="text-2xl font-black text-red-500 tracking-tighter">-₹{Number(selectedSettlement.penalty_total).toFixed(2)}</p>
                     </div>
-                  ))}
-                  {settlementOrders.length === 0 && (
-                    <p className="text-center text-neutral-light py-10">
-                      No matching orders found in the system for this period.
-                    </p>
                   )}
-                </div>
+                </>
               )}
+            </div>
+
+            <div className="p-8 border-t border-white/5 bg-black/40">
+               <div className="flex justify-between items-end">
+                  <div>
+                    <p className="text-neutral-light/30 text-[10px] font-black uppercase tracking-[0.3em] mb-2 text-center md:text-left">
+                       Statement Summary
+                    </p>
+                    <div className="flex gap-4">
+                       <div className="text-center md:text-left">
+                          <p className="text-white/40 text-[9px] uppercase font-bold">Total Sales</p>
+                          <p className="text-white font-bold tracking-tighter">₹{(Number(selectedSettlement.total_cod_collected) + Number(selectedSettlement.total_online_collected)).toFixed(2)}</p>
+                       </div>
+                       <div className="text-center md:text-left">
+                          <p className="text-accent/60 text-[9px] uppercase font-bold">Platform Share</p>
+                          <p className="text-accent font-bold tracking-tighter">₹{(Number(selectedSettlement.vaayugo_charges_total) - Number(selectedSettlement.platform_discount_total || 0)).toFixed(2)}</p>
+                       </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-neutral-light/50 text-[10px] font-black uppercase mb-1 tracking-widest text-center md:text-right">Final Payout</p>
+                    <p className={`text-4xl font-black tracking-tighter ${Number(selectedSettlement.net_payout) >= 0 ? 'text-green-500 shadow-green-500/10' : 'text-red-500 shadow-red-500/10'}`}>
+                      ₹{Math.abs(Number(selectedSettlement.net_payout)).toFixed(2)}
+                    </p>
+                    <p className={`text-[10px] font-black uppercase tracking-tighter mt-1 ${Number(selectedSettlement.net_payout) >= 0 ? 'text-green-500/60' : 'text-red-500/60'}`}>
+                      {Number(selectedSettlement.net_payout) >= 0 ? 'To Shop' : 'From Shop'}
+                    </p>
+                  </div>
+               </div>
             </div>
           </div>
         </div>

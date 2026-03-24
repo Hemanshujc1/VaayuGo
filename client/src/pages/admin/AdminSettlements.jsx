@@ -543,9 +543,12 @@ const AdminSettlements = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-neutral-light/50 text-xs font-black uppercase mb-1">Final Payout</p>
+                    <p className="text-neutral-light/50 text-[10px] font-black uppercase mb-1 tracking-widest text-center md:text-right">Final Payout</p>
                     <p className={`text-4xl font-black tracking-tighter ${Number(selectedSettlement.net_payout) >= 0 ? 'text-green-500 shadow-green-500/10' : 'text-red-500 shadow-red-500/10'}`}>
-                      ₹{Number(selectedSettlement.net_payout).toFixed(2)}
+                      ₹{Math.abs(Number(selectedSettlement.net_payout)).toFixed(2)}
+                    </p>
+                    <p className={`text-[10px] font-black uppercase tracking-tighter mt-1 ${Number(selectedSettlement.net_payout) >= 0 ? 'text-green-500/60' : 'text-red-500/60'}`}>
+                      {Number(selectedSettlement.net_payout) >= 0 ? 'To Shop' : 'From Shop'}
                     </p>
                   </div>
                </div>

@@ -14,7 +14,7 @@ const AdminShopOrders = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [sortBy, setSortBy] = useState("date_desc");
+  const [sortBy, setSortBy] = useState("date_asc");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 

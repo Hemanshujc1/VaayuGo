@@ -72,7 +72,7 @@ const getShopDetails = catchAsync(async (req, res, next) => {
             metrics.platformDiscounts = metrics.platformDiscounts.plus(log.platform_discount_amount || 0);
 
             metrics.shopNetSale = metrics.shopNetSale.plus(
-                new Decimal(log.subtotal || 0).minus(shopDisc)
+                new Decimal(log.subtotal || 0).minus(prodDisc).minus(shopDisc)
             );
             metrics.totalShopDiscounts = metrics.totalShopDiscounts.plus(shopDisc);
             metrics.commissionDeducted = metrics.commissionDeducted.plus(log.commission_deducted || 0);
