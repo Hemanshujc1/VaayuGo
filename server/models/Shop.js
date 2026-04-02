@@ -18,7 +18,11 @@ const Shop = sequelize.define('Shop', {
   },
   category: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
+  },
+  is_xerox_enabled: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
   },
   location_address: {
     type: DataTypes.STRING,

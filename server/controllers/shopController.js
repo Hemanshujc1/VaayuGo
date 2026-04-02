@@ -7,7 +7,7 @@ const EmailService = require('../services/EmailService');
 const Decimal = require('decimal.js');
 
 const registerShop = catchAsync(async (req, res, next) => {
-    const { name, category, location_address, categoryIds, opening_time, closing_time, closed_days, break_start, break_end } = req.body;
+    const { name, category, location_address, categoryIds, opening_time, closing_time, closed_days, break_start, break_end, is_xerox_enabled } = req.body;
     const owner_id = req.user.id;
 
     if (!name || name.trim().length < 3 || name.trim().length > 100) {
@@ -32,7 +32,8 @@ const registerShop = catchAsync(async (req, res, next) => {
       closing_time,
       closed_days: closed_days || [],
       break_start,
-      break_end
+      break_end,
+      is_xerox_enabled: is_xerox_enabled || false
     });
 
     if (categoryIds && Array.isArray(categoryIds)) {

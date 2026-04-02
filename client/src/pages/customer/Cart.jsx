@@ -99,7 +99,14 @@ const Cart = () => {
               >
                 <div>
                   <p className="font-semibold text-white">
-                    {item.is_xerox ? <span>📄 {item.name}</span> : item.name}
+                    {item.is_xerox ? (
+                      <span className="flex items-center gap-2">
+                        📄 {item.name} 
+                        <a href={item.file_url} target="_blank" rel="noopener noreferrer" className="text-accent underline text-xs font-normal">View Document</a>
+                      </span>
+                    ) : (
+                      item.name
+                    )}
                   </p>
                   <div className="text-sm text-neutral-light">
                     {item.is_xerox && (

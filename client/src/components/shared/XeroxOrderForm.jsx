@@ -3,7 +3,7 @@ import api from "../../api/axios";
 import toast from "react-hot-toast";
 import { useCart } from "../../context/CartContext";
 
-const XeroxOrderForm = ({ shop }) => {
+const XeroxOrderForm = ({ shop, xeroxConfig, bindings }) => {
   const { addToCart } = useCart();
   const [file, setFile] = useState(null);
   const [pageCount, setPageCount] = useState(0);
@@ -13,22 +13,14 @@ const XeroxOrderForm = ({ shop }) => {
     copies: 1,
     color: "bw", // bw, color
     sides: "single", // single, double
-    binding: "none", // none, spiral
+    bindingId: "none", // none, or binding id
   });
 
-  // Find the Xerox service product to get pricing metadata
-  const xeroxProduct = useMemo(() => {
-    return (
-      (shop.Products || []).find((p) => p.is_xerox_service) ||
-      (shop.Products || [])[0]
-    );
-  }, [shop.Products]);
-
-  const pricing = xeroxProduct?.xerox_metadata || {
-    price_per_page_bw: 2,
-    price_per_page_color: 10,
-    binding_fee_spiral: 30,
-    double_side_discount_factor: 0.8,
+  const pricing = xeroxConfig || {
+    bw_single_price: 2,
+    bw_double_price: 3.5,
+    color_single_price: 10,
+    color_double_price: 18,
   };
 
   const handleFileChange = async (e) => {
@@ -68,24 +60,28 @@ const XeroxOrderForm = ({ shop }) => {
   const currentPrice = useMemo(() => {
     if (!pageCount || !pricing) return 0;
 
-    let rate =
-      options.color === "bw"
-        ? pricing.price_per_page_bw
-        : pricing.price_per_page_color;
-    let multiplier = pageCount;
-
-    if (options.sides === "double") {
-      multiplier = multiplier * (pricing.double_side_discount_factor || 1);
+    let rate = 0;
+    if (options.color === "bw") {
+      rate = options.sides === "single" ? pricing.bw_single_price : pricing.bw_double_price;
+    } else {
+      rate = options.sides === "single" ? pricing.color_single_price : pricing.color_double_price;
     }
 
-    let total = rate * multiplier * options.copies;
+    let total = rate * pageCount * options.copies;
 
-    if (options.binding === "spiral") {
-      total += (pricing.binding_fee_spiral || 0) * options.copies;
+    if (options.bindingId !== "none") {
+      const binding = bindings.find(b => b.id.toString() === options.bindingId.toString());
+      if (binding) {
+        if (binding.price_type === 'per_page') {
+          total += (binding.price * pageCount) * options.copies;
+        } else {
+          total += binding.price * options.copies;
+        }
+      }
     }
 
     return Math.round(total * 100) / 100;
-  }, [pageCount, options, pricing]);
+  }, [pageCount, options, pricing, bindings]);
 
   const handleAddToCart = async () => {
     if (!file) {
@@ -95,8 +91,6 @@ const XeroxOrderForm = ({ shop }) => {
 
     setUploading(true);
     try {
-      // Final upload for the order (reuse the same file logic or assume we'll re-upload during placement?)
-      // For now, we reuse the already uploaded file if we save it, but here we just re-upload to a permanent location
       const formData = new FormData();
       formData.append("file", file);
 
@@ -105,12 +99,14 @@ const XeroxOrderForm = ({ shop }) => {
       });
       const fileUrl = uploadRes.data.fileUrl;
 
+      const selectedBinding = bindings.find(b => b.id.toString() === options.bindingId.toString());
+
       const cartItem = {
-        ...xeroxProduct,
         id: `xerox-${Date.now()}`,
         name: `Xerox: ${file.name}`,
         price: currentPrice,
-        description: `${options.color === "bw" ? "B&W" : "Color"}, ${options.sides === "single" ? "Single Side" : "Double Side"}${options.binding !== "none" ? `, Binding: ${options.binding}` : ""}`,
+        image_url: '/uploads/xerox-icon.png', // Placeholder icon
+        description: `${options.color === "bw" ? "B&W" : "Color"}, ${options.sides === "single" ? "Single Side" : "Double Side"}${selectedBinding ? `, Binding: ${selectedBinding.name}` : ""}`,
         file_url: fileUrl,
         options: { ...options, pageCount },
         is_xerox: true,
@@ -197,7 +193,12 @@ const XeroxOrderForm = ({ shop }) => {
                   </svg>
                 </div>
                 <p className="text-white font-bold">{file.name}</p>
-                <p className="text-neutral-light text-xs">
+                <div className="flex items-center gap-2 mt-1 mb-1">
+                  <a href={URL.createObjectURL(file)} target="_blank" rel="noopener noreferrer" className="text-accent underline text-sm font-bold">
+                    View Document
+                  </a>
+                </div>
+                <p className="text-neutral-light text-xs mt-1">
                   {(file.size / (1024 * 1024)).toFixed(2)} MB • {pageCount}{" "}
                   Pages
                 </p>
@@ -356,20 +357,18 @@ const XeroxOrderForm = ({ shop }) => {
                   <label className="block text-xs uppercase tracking-widest font-bold text-neutral-light mb-2">
                     Binding
                   </label>
-                  <div className="flex gap-2">
-                    {["none", "spiral"].map((b) => (
-                      <button
-                        key={b}
-                        onClick={() => setOptions({ ...options, binding: b })}
-                        className={`
-                          flex-1 py-2 px-4 rounded-lg font-bold text-sm transition-all border
-                          ${options.binding === b ? "bg-accent text-primary border-accent" : "bg-neutral-mid text-neutral-light border-neutral-mid hover:border-neutral-light"}
-                        `}
-                      >
-                        {b === "none" ? "None" : "Spiral"}
-                      </button>
+                  <select
+                    value={options.bindingId}
+                    onChange={(e) => setOptions({ ...options, bindingId: e.target.value })}
+                    className="w-full bg-neutral-mid text-white px-3 py-2 rounded-lg border border-neutral-mid focus:border-accent outline-none text-sm"
+                  >
+                    <option value="none">No Binding</option>
+                    {bindings.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} (₹{b.price} {b.price_type === 'per_page' ? '/page' : ''})
+                      </option>
                     ))}
-                  </div>
+                  </select>
                 </div>
               </div>
             </div>
@@ -389,28 +388,28 @@ const XeroxOrderForm = ({ shop }) => {
                   </span>
                   <span>
                     ₹
-                    {options.color === "bw"
-                      ? pricing.price_per_page_bw
-                      : pricing.price_per_page_color}
+                    {(() => {
+                        const r = options.color === 'bw' 
+                          ? (options.sides === 'single' ? pricing.bw_single_price : pricing.bw_double_price)
+                          : (options.sides === 'single' ? pricing.color_single_price : pricing.color_double_price);
+                        return r;
+                    })()}
                     /page
                   </span>
                 </div>
-                {options.sides === "double" && (
-                  <div className="flex justify-between text-success">
-                    <span>Double Sided Discount</span>
-                    <span>
-                      {(1 - pricing.double_side_discount_factor) * 100}% Off
-                    </span>
-                  </div>
-                )}
-                {options.binding === "spiral" && (
-                  <div className="flex justify-between">
-                    <span>Binding Fee</span>
-                    <span>
-                      ₹{pricing.binding_fee_spiral} x {options.copies}
-                    </span>
-                  </div>
-                )}
+               
+                {options.bindingId !== "none" && (() => {
+                  const b = bindings.find(item => item.id.toString() === options.bindingId.toString());
+                  if (!b) return null;
+                  return (
+                    <div className="flex justify-between">
+                      <span>Binding ({b.name})</span>
+                      <span>
+                        ₹{b.price} {b.price_type === 'per_page' ? `x ${pageCount}` : ''} x {options.copies}
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 

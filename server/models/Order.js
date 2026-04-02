@@ -104,6 +104,10 @@ const Order = sequelize.define('Order', {
     type: DataTypes.INTEGER,
     allowNull: true,
   },
+  delivery_date: {
+    type: DataTypes.DATEONLY,
+    allowNull: true,
+  },
   delivery_attempt: {
     type: DataTypes.INTEGER,
     defaultValue: 1,

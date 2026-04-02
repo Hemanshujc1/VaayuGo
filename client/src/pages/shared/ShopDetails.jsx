@@ -11,12 +11,22 @@ const ShopDetails = () => {
   const [loading, setLoading] = useState(true);
   const [currentImgIdx, setCurrentImgIdx] = useState(0);
   const { addToCart, cartItems, updateQuantity } = useCart();
+  const [xeroxConfig, setXeroxConfig] = useState(null);
+  const [bindings, setBindings] = useState([]);
 
   useEffect(() => {
     const fetchShop = async () => {
       try {
         const res = await api.get(`/public/shops/${id}`);
         setShop(res.data);
+        if (res.data.is_xerox_enabled) {
+          const [configRes, bindingsRes] = await Promise.all([
+            api.get(`/xerox/${id}/xerox-config`),
+            api.get(`/xerox/${id}/bindings`),
+          ]);
+          setXeroxConfig(configRes.data.data);
+          setBindings(bindingsRes.data.data);
+        }
       } catch (error) {
         console.error("Error fetching shop details", error);
       } finally {
@@ -224,43 +234,51 @@ const ShopDetails = () => {
           </div>
         </div>
 
-        {shop.category === "Xerox" ? (
-          <XeroxOrderForm shop={shop} />
-        ) : (
-          <>
-            <h2 className="text-2xl font-bold text-white mb-6">Products</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.length > 0 ? (
-                products.map((product) => {
-                  const activeDiscount = (shop.Discounts || []).find(
-                    (d) =>
-                      d.target_type === "PRODUCT" &&
-                      d.target_id === product.id &&
-                      d.is_active,
-                  );
-                  return (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      isShopkeeper={false}
-                      onAddToCart={(p) =>
-                        addToCart({ ...p, activeDiscount }, shop)
-                      }
-                      shopIsOpen={shop.is_open}
-                      cartItem={cartItems.find(
-                        (item) => item.id === product.id,
-                      )}
-                      onUpdateQuantity={updateQuantity}
-                      activeDiscount={activeDiscount}
-                    />
-                  );
-                })
-              ) : (
-                <p className="text-neutral-light">No products available.</p>
-              )}
-            </div>
-          </>
+        {shop.is_xerox_enabled && (
+          <div className="mb-12">
+            <XeroxOrderForm 
+              shop={shop} 
+              xeroxConfig={xeroxConfig} 
+              bindings={bindings} 
+            />
+          </div>
         )}
+
+        <>
+          <h2 className="text-2xl font-bold text-white mb-6">
+            {shop.is_xerox_enabled ? "Other Products" : "Products"}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {products.length > 0 ? (
+              products.map((product) => {
+                const activeDiscount = (shop.Discounts || []).find(
+                  (d) =>
+                    d.target_type === "PRODUCT" &&
+                    d.target_id === product.id &&
+                    d.is_active,
+                );
+                return (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    isShopkeeper={false}
+                    onAddToCart={(p) =>
+                      addToCart({ ...p, activeDiscount }, shop)
+                    }
+                    shopIsOpen={shop.is_open}
+                    cartItem={cartItems.find(
+                      (item) => item.id === product.id,
+                    )}
+                    onUpdateQuantity={updateQuantity}
+                    activeDiscount={activeDiscount}
+                  />
+                );
+              })
+            ) : (
+              <p className="text-neutral-light">No products available.</p>
+            )}
+          </div>
+        </>
       </div>
     </div>
   );

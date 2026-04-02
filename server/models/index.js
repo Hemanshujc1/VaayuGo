@@ -13,6 +13,9 @@ const Category = require('./Category');
 const ShopCategory = require('./ShopCategory');
 const DiscountRule = require('./DiscountRule');
 const Settlement = require('./Settlement');
+const XeroxConfiguration = require('./XeroxConfiguration');
+const BindingOption = require('./BindingOption');
+const XeroxDocument = require('./XeroxDocument');
 
 // Defines relationships
 User.hasOne(Shop, { foreignKey: 'owner_id' });
@@ -76,6 +79,13 @@ OrderRevenueLog.belongsTo(Settlement, { foreignKey: 'settlement_id' });
 Order.belongsTo(Settlement, { foreignKey: 'settlement_id' });
 Settlement.hasMany(Order, { foreignKey: 'settlement_id' });
 
+// Xerox-related relationships
+Shop.hasOne(XeroxConfiguration, { foreignKey: 'shop_id', onDelete: 'CASCADE' });
+XeroxConfiguration.belongsTo(Shop, { foreignKey: 'shop_id', onDelete: 'CASCADE' });
+
+Shop.hasMany(BindingOption, { foreignKey: 'shop_id', onDelete: 'CASCADE' });
+BindingOption.belongsTo(Shop, { foreignKey: 'shop_id', onDelete: 'CASCADE' });
+
 module.exports = {
   connectDB,
   sequelize,
@@ -92,5 +102,8 @@ module.exports = {
   Category,
   ShopCategory,
   DiscountRule,
-  Settlement
+  Settlement,
+  XeroxConfiguration,
+  BindingOption,
+  XeroxDocument
 };

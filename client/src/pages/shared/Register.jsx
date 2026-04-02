@@ -21,6 +21,7 @@ const Register = () => {
     break_start: "",
     break_end: "",
     closed_days: [],
+    is_xerox_enabled: false,
   });
 
   const { register, verifyOtp, resendOtp } = useAuth();
@@ -340,6 +341,9 @@ const Register = () => {
                   minLength={10}
                   title="Mobile number must be exactly 10 digits"
                   required
+                  onInput={(e) => {
+                    e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                  }}
                 />
               </div>
 
@@ -535,6 +539,20 @@ const Register = () => {
                         </option>
                       ))}
                     </select>
+                  </div>
+
+                  {/* Xerox Toggle */}
+                  <div className="md:col-span-2 mt-2 flex items-center gap-3 bg-neutral-dark/80 p-3 rounded-lg border border-neutral-light/20 shadow-inner">
+                    <input 
+                      type="checkbox"
+                      id="is_xerox_enabled"
+                      checked={formData.is_xerox_enabled}
+                      onChange={(e) => setFormData({...formData, is_xerox_enabled: e.target.checked})}
+                      className="w-5 h-5 accent-accent"
+                    />
+                    <label htmlFor="is_xerox_enabled" className="text-white text-sm font-semibold cursor-pointer">
+                      Will your shop provide Xerox/Printing services?
+                    </label>
                   </div>
 
                   <div className="space-y-1">

@@ -13,7 +13,7 @@ const Checkout = () => {
   const [calcLoading, setCalcLoading] = useState(true);
   const [calcError, setCalcError] = useState("");
   const [availableSlots, setAvailableSlots] = useState([]);
-  const [selectedSlotId, setSelectedSlotId] = useState(null);
+  const [selectedSlot, setSelectedSlot] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,17 +27,21 @@ const Checkout = () => {
         setAddress("Failed to load address.");
       }
     };
+    fetchProfile();
+  }, []);
+
+  useEffect(() => {
     const fetchSlots = async () => {
+      if (!cartShop) return;
       try {
-        const res = await api.get("/orders/available-slots");
+        const res = await api.get(`/orders/available-slots?shop_id=${cartShop.id}`);
         setAvailableSlots(res.data || []);
       } catch (error) {
         console.error("Failed to load delivery slots", error);
       }
     };
-    fetchProfile();
     fetchSlots();
-  }, []);
+  }, [cartShop]);
 
   useEffect(() => {
     if (cartItems.length > 0 && cartShop && userLocation) {
@@ -76,7 +80,7 @@ const Checkout = () => {
       return;
     }
 
-    if (!selectedSlotId) {
+    if (!selectedSlot) {
       toast.error("Please select a delivery slot");
       return;
     }
@@ -86,11 +90,11 @@ const Checkout = () => {
       const orderData = {
         shop_id: cartShop.id,
         category: cartShop.category,
-        delivery_slot_id: selectedSlotId,
+        delivery_slot_id: selectedSlot.id,
+        delivery_date: selectedSlot.date,
         items: cartItems.map((item) => ({
           id: item.id,
           quantity: item.quantity,
-          // Custom/Xerox fields
           is_xerox: item.is_xerox,
           name: item.name,
           price: item.price,
@@ -102,7 +106,7 @@ const Checkout = () => {
 
       await api.post("/orders", orderData);
       toast.success("Order Placed Successfully!");
-      clearCart();
+      clearCart(true);
       navigate("/my-orders"); // Need to create this page
     } catch (error) {
       toast.error(error.response?.data?.message || "Order Failed");
@@ -148,8 +152,13 @@ const Checkout = () => {
                   className="flex justify-between text-sm text-neutral-light"
                 >
                   <span className="flex flex-col">
-                    <span>
+                    <span className="flex items-center gap-2">
                       {item.quantity} x {item.name}
+                      {item.is_xerox && (
+                        <a href={item.file_url} target="_blank" rel="noopener noreferrer" className="text-accent underline text-[10px] font-normal">
+                          View
+                        </a>
+                      )}
                     </span>
                     {item.price !== discountedPrice && (
                       <span className="text-[10px] text-accent font-bold">
@@ -293,24 +302,44 @@ const Checkout = () => {
           </div>
 
           <h2 className="text-lg font-bold mb-4 text-accent">Delivery Slot</h2>
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            {availableSlots.map((slot) => (
-              <button
-                key={slot.id}
-                onClick={() => setSelectedSlotId(slot.id)}
-                className={`p-3 rounded-lg border text-left transition-all ${
-                  selectedSlotId === slot.id
-                    ? "bg-accent/20 border-accent text-accent"
-                    : "bg-primary border-neutral-mid text-neutral-light hover:border-neutral-light"
-                }`}
-              >
-                <p className="text-xs font-bold uppercase mb-1">{slot.name}</p>
-                <p className="text-[10px] opacity-70">
-                  {slot.start_time} - {slot.end_time}
-                </p>
-              </button>
-            ))}
-          </div>
+          {availableSlots.length === 0 ? (
+            <p className="text-neutral-light text-sm mb-6">No delivery slots available at this time.</p>
+          ) : (
+            Object.entries(
+              availableSlots.reduce((acc, slot) => {
+                if (!acc[slot.date_label]) acc[slot.date_label] = [];
+                acc[slot.date_label].push(slot);
+                return acc;
+              }, {})
+            ).map(([dateLabel, slots]) => (
+              <div key={dateLabel} className="mb-6">
+                <h3 className="text-sm font-bold text-white mb-3 flex items-baseline gap-2">
+                  {dateLabel} <span className="text-neutral-light font-normal text-xs">{slots[0].date}</span>
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {slots.map((slot) => {
+                    const isSelected = selectedSlot && selectedSlot.id === slot.id && selectedSlot.date === slot.date;
+                    return (
+                      <button
+                        key={`${slot.id}-${slot.date}`}
+                        onClick={() => setSelectedSlot(slot)}
+                        className={`p-3 rounded-lg border text-left transition-all block w-full ${
+                          isSelected
+                            ? "bg-accent/20 border-accent text-accent shadow-[0_0_10px_rgba(0,229,255,0.2)]"
+                            : "bg-primary border-neutral-mid text-neutral-light hover:border-neutral-light hover:bg-neutral-mid/20"
+                        }`}
+                      >
+                        <p className="text-xs font-bold uppercase mb-1">{slot.name}</p>
+                        <p className="text-[10px] opacity-80 font-mono">
+                          {slot.start_time.slice(0,5)} - {slot.end_time.slice(0,5)}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
+          )}
 
           <h2 className="text-lg font-bold mb-4 text-accent">Payment Method</h2>
           <div className="flex items-center gap-2 mb-6 text-white">

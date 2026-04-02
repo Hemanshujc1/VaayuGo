@@ -1,4 +1,4 @@
-const { sequelize, Order, OrderItem, Product, Shop, User, OrderRevenueLog, Location } = require('../models/index');
+const { sequelize, Order, OrderItem, Product, Shop, User, OrderRevenueLog, Location, XeroxDocument } = require('../models/index');
 const { getApplicableRule, validateOrderAgainstRule } = require('../services/RuleEngineService');
 const DiscountService = require('../services/DiscountService');
 const DeliverySlotService = require('./DeliverySlotService');
@@ -8,7 +8,7 @@ const Decimal = require('decimal.js');
 
 class OrderService {
     static async createOrderTransaction(customer_id, data) {
-        const { shop_id, items, delivery_address, category, delivery_slot_id } = data;
+        const { shop_id, items, delivery_address, category, delivery_slot_id, delivery_date } = data;
 
         const transaction = await sequelize.transaction();
         try {
@@ -50,6 +50,13 @@ class OrderService {
                         file_url: item.file_url,
                         options: item.options
                     });
+                    
+                    if (item.file_url) {
+                        await XeroxDocument.update(
+                            { status: 'ordered' },
+                            { where: { file_url: item.file_url }, transaction }
+                        );
+                    }
                 } else {
                     product = await Product.findByPk(item.id);
                     if (!product) throw new AppError(`Product ${item.id} not found`, 404);
@@ -204,6 +211,7 @@ class OrderService {
                 grand_total: round2(total_payable_with_penalties),
                 delivery_address,
                 delivery_slot_id,
+                delivery_date,
                 status: 'pending'
             }, { transaction });
 
@@ -399,6 +407,33 @@ class OrderService {
 
         order.status = status;
         await order.save();
+
+        if (status === 'delivered' || status === 'failed' || status === 'cancelled') {
+            try {
+                const fs = require('fs');
+                const path = require('path');
+                const orderItems = await OrderItem.findAll({ where: { order_id: order.id } });
+                
+                for (const item of orderItems) {
+                    if (item.file_url) {
+                        const filename = item.file_url.split('/').pop();
+                        if (filename) {
+                            const filePath = path.join(__dirname, '../uploads', filename);
+                            if (fs.existsSync(filePath)) {
+                                fs.unlinkSync(filePath);
+                                console.log(`[CLEANUP] Deleted Xerox document: ${filename}`);
+                            }
+                            await XeroxDocument.update(
+                                { status: 'deleted' },
+                                { where: { file_url: item.file_url } }
+                            );
+                        }
+                    }
+                }
+            } catch (cleanupErr) {
+                console.error("[CLEANUP] Failed to cleanup xerox documents for order:", cleanupErr);
+            }
+        }
 
         // Phase 3: Trigger Output Email for Status Change
         try {

@@ -43,6 +43,7 @@ import AdminCategories from "./pages/admin/AdminCategories";
 import AdminDiscountRules from "./pages/admin/AdminDiscountRules";
 import AdminSettlements from "./pages/admin/AdminSettlements";
 import AdminPenalties from "./pages/admin/AdminPenalties";
+import XeroxServiceConfig from "./pages/shopkeeper/XeroxServiceConfig";
 
 function App() {
   return (
@@ -82,6 +83,7 @@ function App() {
             <Route path="support" element={<CompanyOverview />} />
             <Route path="register" element={<ShopRegister />} />
             <Route path="bulk-upload" element={<ShopBulkUpload />} />
+            <Route path="xerox-services" element={<XeroxServiceConfig />} />
             <Route index element={<Navigate to="dashboard" replace />} />
           </Route>
         </Route>

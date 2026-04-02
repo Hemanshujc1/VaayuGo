@@ -13,6 +13,7 @@ const ShopRegister = () => {
     break_start: "",
     break_end: "",
     closed_days: [],
+    is_xerox_enabled: false,
   });
 
   const navigate = useNavigate();
@@ -147,6 +148,20 @@ const ShopRegister = () => {
                 Please select at least one category
               </p>
             )}
+            
+            {/* Xerox Toggle */}
+            <div className="mt-4 flex items-center gap-3 bg-neutral-mid/50 p-3 rounded-lg border border-neutral-light/20">
+              <input 
+                type="checkbox"
+                id="is_xerox_enabled"
+                checked={formData.is_xerox_enabled}
+                onChange={(e) => setFormData({...formData, is_xerox_enabled: e.target.checked})}
+                className="w-5 h-5 accent-accent"
+              />
+              <label htmlFor="is_xerox_enabled" className="text-white text-sm font-semibold cursor-pointer">
+                Will your shop provide Xerox/Printing services?
+              </label>
+            </div>
           </div>
 
           {/* Address */}

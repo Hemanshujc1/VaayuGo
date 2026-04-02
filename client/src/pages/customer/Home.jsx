@@ -30,21 +30,27 @@ const Home = () => {
 
   // Use master categories for the filter bar
   const categories = useMemo(() => {
-    return ["All", ...masterCategories.map((c) => c.name)];
+    return ["All", "Xerox", ...masterCategories.map((c) => c.name).filter(n => n.toLowerCase() !== 'xerox')];
   }, [masterCategories]);
 
   // Filter shops based on search query and category
   const filteredShops = useMemo(() => {
     return shops.filter((shop) => {
       const shopCats = (shop.Categories || []).map((c) => c.name.toLowerCase());
+      if (shop.is_xerox_enabled) shopCats.push("xerox");
 
       const matchesSearch =
         shop.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         shopCats.some((c) => c.includes(searchQuery.toLowerCase()));
 
-      const matchesCategory =
-        activeCategory === "All" ||
-        shopCats.includes(activeCategory.toLowerCase());
+      let matchesCategory = false;
+      if (activeCategory === "All") {
+        matchesCategory = true;
+      } else if (activeCategory.toLowerCase() === "xerox") {
+        matchesCategory = shop.is_xerox_enabled === true;
+      } else {
+        matchesCategory = shopCats.includes(activeCategory.toLowerCase());
+      }
 
       return matchesSearch && matchesCategory;
     });

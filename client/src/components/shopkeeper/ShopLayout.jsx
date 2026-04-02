@@ -1,12 +1,28 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import logo from "../../assets/vaayulogo.jpeg";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import api from "../../api/axios";
 
 const ShopLayout = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [shop, setShop] = useState(null);
+
+  useEffect(() => {
+    const fetchShop = async () => {
+      try {
+        const res = await api.get("/shop/my-shop");
+        setShop(res.data);
+      } catch (error) {
+        console.error("Failed to fetch shop settings for layout", error);
+      }
+    };
+    if (user && user.role === "shopkeeper") {
+      fetchShop();
+    }
+  }, [user]);
 
   const isActive = (path) => {
     return location.pathname === path
@@ -21,6 +37,10 @@ const ShopLayout = () => {
     { name: "Earnings", path: "/shop/earnings", icon: "💰" },
     { name: "Support", path: "/shop/support", icon: "📞" },
   ];
+
+  if (shop?.is_xerox_enabled) {
+    navItems.push({ name: "Xerox Services", path: "/shop/xerox-services", icon: "🖨️" });
+  }
 
   return (
     <div className="flex h-screen bg-primary">

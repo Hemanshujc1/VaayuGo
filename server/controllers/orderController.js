@@ -112,7 +112,8 @@ const getShopOrders = catchAsync(async (req, res, next) => {
 });
 
 const getAvailableSlots = catchAsync(async (req, res, next) => {
-    const slots = await DeliverySlotService.getAvailableSlots();
+    const shopId = req.query.shop_id || null;
+    const slots = await DeliverySlotService.getAvailableSlots(shopId);
     res.json(slots);
 });
 

@@ -3,7 +3,6 @@ import api from "../../api/axios";
 import { useAuth } from "../../context/AuthContext";
 import { useConfirm } from "../../context/ConfirmContext";
 import toast from "react-hot-toast";
-
 const ShopProfile = () => {
   const { user } = useAuth();
   const confirm = useConfirm();
@@ -186,6 +185,9 @@ const ShopProfile = () => {
                 maxLength={10}
                 minLength={10}
                 title="Mobile number must be exactly 10 digits"
+                onInput={(e) => {
+                    e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                  }}
               />
             ) : (
               <p className="text-white font-medium">
@@ -447,6 +449,30 @@ const ShopProfile = () => {
                       ? "Yes, currently open"
                       : "No, currently closed"}
                   </span>
+                </div>
+                <div>
+                  <label className="text-neutral-light text-sm block">
+                    Xerox Service
+                  </label>
+                  <button
+                    onClick={async () => {
+                      const toastId = toast.loading(shop.is_xerox_enabled ? "Disabling..." : "Enabling...");
+                      try {
+                        const res = await api.patch(`/xerox/${shop.id}/toggle-xerox`, { is_enabled: !shop.is_xerox_enabled });
+                        setShop(prev => ({ ...prev, is_xerox_enabled: res.data.data.is_xerox_enabled }));
+                        toast.success(res.data.message, { id: toastId });
+                      } catch (err) {
+                        toast.error(err.response?.data?.message || "Failed to toggle Xerox service", { id: toastId });
+                      }
+                    }}
+                    className={`px-3 py-1 mt-1 rounded text-xs font-bold border transition-colors ${
+                      shop.is_xerox_enabled 
+                        ? "bg-red-900/30 text-red-400 border-red-800 hover:bg-red-800/50" 
+                        : "bg-accent/20 text-accent border-accent hover:bg-accent hover:text-primary"
+                    }`}
+                  >
+                    {shop.is_xerox_enabled ? "Stop Xerox Service" : "Start Xerox Service"}
+                  </button>
                 </div>
                 <div>
                   <label className="text-neutral-light text-sm block">

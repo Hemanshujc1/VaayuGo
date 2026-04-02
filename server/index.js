@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const dotenv = require('dotenv');
+const path = require('path');
 
 const { connectDB, sequelize } = require('./models/index'); // Import from models/index to ensure associations are loaded
 const AppError = require('./utils/AppError');
@@ -16,7 +17,7 @@ app.use(helmet({ crossOriginResourcePolicy: false })); // Allow serving static f
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 
 const authRoutes = require('./routes/authRoutes');
@@ -32,6 +33,8 @@ const discountRoutes = require('./routes/discountRoutes');
 const xeroxRoutes = require('./routes/xeroxRoutes');
 const initSettlementCron = require('./cron/settlementCron');
 const initShopStatusCron = require('./cron/shopStatusCron');
+const initFileCleanupCron = require('./cron/fileCleanupCron');
+const initUnverifiedUserCleanupCron = require('./cron/unverifiedUserCleanupCron');
 
 // Database Connection
 connectDB();
@@ -65,8 +68,19 @@ app.use(globalErrorHandler);
 // Sync Database (Force: false to prevent data loss)
 // In development, you might use { force: true } or { alter: true } initially to update schema, but be careful.
 sequelize.sync()
-  .then(() => {
+  .then(async () => {
     console.log('Database Synced');
+    try {
+      await sequelize.query('ALTER TABLE Orders ADD COLUMN delivery_date DATE;');
+      console.log('Database Schema Patched: Added delivery_date to Orders');
+    } catch (err) {
+      // Ignore if the column already exists
+      if (err.parent && err.parent.code === 'ER_DUP_FIELDNAME') {
+        console.log('Database Schema Patch Skipped: delivery_date already exists');
+      } else {
+        console.error('Database Schema Patch Error:', err.message);
+      }
+    }
   }).catch((err) => {
     console.error('Database Sync Error:', err);
   });
@@ -77,4 +91,6 @@ app.listen(PORT, () => {
   // Initialize Cron Jobs
   initSettlementCron();
   initShopStatusCron();
+  initFileCleanupCron();
+  initUnverifiedUserCleanupCron();
 });

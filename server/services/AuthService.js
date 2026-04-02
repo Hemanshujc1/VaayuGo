@@ -19,7 +19,7 @@ class AuthService {
   }
 
   static async registerUser(data) {
-    const { email, password, role, name, mobile_number, address, location, shopName, category, opening_time, closing_time, break_start, break_end, closed_days } = data;
+    const { email, password, role, name, mobile_number, address, location, shopName, category, opening_time, closing_time, break_start, break_end, closed_days, is_xerox_enabled } = data;
 
     if (!email || !isValidEmail(email)) throw new AppError('Invalid email format', 400);
     if (!password || password.length < 6) throw new AppError('Password must be at least 6 characters', 400);
@@ -30,7 +30,9 @@ class AuthService {
     const finalRole = (role === 'admin') ? 'customer' : (role || 'customer');
 
     const userExists = await User.findOne({ where: { email } });
-    if (userExists) throw new AppError('User already exists', 400);
+    if (userExists && userExists.is_verified) {
+      throw new AppError('User already exists', 400);
+    }
 
     if (finalRole === 'shopkeeper' && (!shopName || !category)) {
       throw new AppError('Shop name and category are required for shopkeepers', 400);
@@ -43,18 +45,32 @@ class AuthService {
     const verificationOtp = Math.floor(100000 + Math.random() * 900000).toString();
     const verificationOtpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-    const user = await User.create({
-      email,
-      password: hashedPassword,
-      role: finalRole,
-      name,
-      mobile_number,
-      address,
-      location,
-      verificationOtp,
-      verificationOtpExpires,
-      is_verified: false
-    });
+    let user;
+    if (userExists) {
+      user = await userExists.update({
+        password: hashedPassword,
+        role: finalRole,
+        name,
+        mobile_number,
+        address,
+        location,
+        verificationOtp,
+        verificationOtpExpires
+      });
+    } else {
+      user = await User.create({
+        email,
+        password: hashedPassword,
+        role: finalRole,
+        name,
+        mobile_number,
+        address,
+        location,
+        verificationOtp,
+        verificationOtpExpires,
+        is_verified: false
+      });
+    }
 
     // Send verification OTP email
     try {
@@ -64,19 +80,35 @@ class AuthService {
     }
 
     if (role === 'shopkeeper') {
-      await Shop.create({
-        owner_id: user.id,
-        name: shopName,
-        category: category,
-        location_address: address,
-        is_open: false, // Default to closed until cron runs or manual open
-        status: 'pending',
-        opening_time,
-        closing_time,
-        break_start,
-        break_end,
-        closed_days: closed_days || []
-      });
+      const shopExists = await Shop.findOne({ where: { owner_id: user.id } });
+      if (shopExists) {
+        await shopExists.update({
+          name: shopName,
+          category: category,
+          location_address: address,
+          opening_time,
+          closing_time,
+          break_start,
+          break_end,
+          closed_days: closed_days || [],
+          is_xerox_enabled: is_xerox_enabled || false
+        });
+      } else {
+        await Shop.create({
+          owner_id: user.id,
+          name: shopName,
+          category: category,
+          location_address: address,
+          is_open: false, // Default to closed until cron runs or manual open
+          status: 'pending',
+          opening_time,
+          closing_time,
+          break_start,
+          break_end,
+          closed_days: closed_days || [],
+          is_xerox_enabled: is_xerox_enabled || false
+        });
+      }
     }
 
     return user;

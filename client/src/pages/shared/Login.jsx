@@ -212,8 +212,8 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setEmail("email id ");
-                    setPassword("password");
+                    setEmail("xerox@gmail.com");
+                    setPassword("xerox@123");
                   }}
                   className="px-3 py-1.5 bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 border border-purple-500/30 rounded text-sm font-medium transition-colors"
                 >

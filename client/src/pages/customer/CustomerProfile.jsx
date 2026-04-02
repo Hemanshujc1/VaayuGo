@@ -163,6 +163,11 @@ const CustomerProfile = () => {
                           mobile_number: e.target.value,
                         })
                       }
+                      onInput={(e) => {
+                    e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                  }}
+                  minLength={10}
+                  maxLength={10}
                     />
                   ) : (
                     <p className="text-lg font-medium text-white">

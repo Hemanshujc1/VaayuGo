@@ -107,9 +107,17 @@ const ShopOrders = () => {
   // ----- Data Processing -----
   let processedOrders = [...orders];
 
+  const todayStr = new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0') + '-' + String(new Date().getDate()).padStart(2, '0');
+
   // 1. Tab Filtering
   if (activeTab === "active") {
     processedOrders = processedOrders.filter((o) =>
+      (!o.delivery_date || o.delivery_date === todayStr) &&
+      ["pending", "accepted", "out_for_delivery"].includes(o.status),
+    );
+  } else if (activeTab === "scheduled") {
+    processedOrders = processedOrders.filter((o) =>
+      o.delivery_date && o.delivery_date > todayStr &&
       ["pending", "accepted", "out_for_delivery"].includes(o.status),
     );
   } else if (activeTab === "completed") {
@@ -121,6 +129,7 @@ const ShopOrders = () => {
     processedOrders = processedOrders.filter(
       (o) =>
         String(o.delivery_slot_id) === String(slotId) &&
+        (!o.delivery_date || o.delivery_date === todayStr) &&
         ["pending", "accepted", "out_for_delivery"].includes(o.status),
     );
   }
@@ -248,6 +257,17 @@ const ShopOrders = () => {
           ))}
 
           <button
+            onClick={() => setActiveTab("scheduled")}
+            className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap border ${
+              activeTab === "scheduled"
+                ? "bg-purple-600 text-white border-purple-500 shadow-[0_0_15px_rgba(147,51,234,0.4)]"
+                : "bg-neutral-dark/40 text-neutral-light border-neutral-mid/50 hover:border-purple-500/50"
+            }`}
+          >
+            Scheduled (Future)
+          </button>
+
+          <button
             onClick={() => setActiveTab("completed")}
             className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap border ${
               activeTab === "completed"
@@ -337,6 +357,11 @@ const ShopOrders = () => {
                           Retry Attempt {order.delivery_attempt}
                         </span>
                       )}
+                    {order.delivery_date && order.delivery_date > todayStr && (
+                      <span className="bg-purple-500/10 text-purple-400 text-[10px] font-black px-3 py-1 rounded-full border border-purple-500/20 uppercase shadow-[0_0_10px_rgba(168,85,247,0.2)] flex items-center gap-1">
+                        📅 SCHEDULED: {order.delivery_date}
+                      </span>
+                    )}
                     {order.status === "delivered" && (
                       <span
                         className={`text-[10px] font-bold px-3 py-1 rounded-full border ${

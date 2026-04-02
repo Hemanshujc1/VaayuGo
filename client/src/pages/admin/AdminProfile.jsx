@@ -138,6 +138,9 @@ const AdminProfile = () => {
                     maxLength={10}
                     minLength={10}
                     title="Mobile number must be exactly 10 digits"
+                    onInput={(e) => {
+                    e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                  }}
                   />
                 ) : (
                   <div className="text-white text-lg font-medium p-3 bg-primary/50 rounded border border-neutral-mid">

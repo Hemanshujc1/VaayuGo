@@ -1,7 +1,7 @@
-/* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useContext, useEffect } from "react";
 import toast from "react-hot-toast";
 import { useConfirm } from "./ConfirmContext";
+import api from "../api/axios";
 
 const CartContext = createContext();
 
@@ -40,6 +40,14 @@ export const CartProvider = ({ children }) => {
     localStorage.setItem("vaayugo_cart", JSON.stringify(cartItems));
     localStorage.setItem("vaayugo_cart_shop", JSON.stringify(cartShop));
   }, [cartItems, cartShop]);
+
+  const deleteXeroxFile = async (fileUrl) => {
+    try {
+      await api.delete('/files/delete', { data: { fileUrl } });
+    } catch (e) {
+      console.error('Failed to delete xerox file from cart context', e);
+    }
+  };
 
   const addToCart = async (product, shop) => {
     // Check if shop matches
@@ -82,6 +90,11 @@ export const CartProvider = ({ children }) => {
   };
 
   const removeFromCart = (productId) => {
+    const itemToRemove = cartItems.find((item) => item.id === productId);
+    if (itemToRemove?.is_xerox && itemToRemove?.file_url) {
+      deleteXeroxFile(itemToRemove.file_url);
+    }
+
     setCartItems((prev) => prev.filter((item) => item.id !== productId));
     if (cartItems.length <= 1) {
       setCartShop(null);
@@ -94,6 +107,9 @@ export const CartProvider = ({ children }) => {
         .map((item) => {
           if (item.id === productId) {
             const newQty = Math.max(0, item.quantity + delta);
+            if (newQty === 0 && item.is_xerox && item.file_url) {
+              deleteXeroxFile(item.file_url);
+            }
             return { ...item, quantity: newQty };
           }
           return item;
@@ -106,7 +122,14 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  const clearCart = () => {
+  const clearCart = (isCheckout = false) => {
+    if (!isCheckout) {
+      cartItems.forEach(item => {
+        if (item.is_xerox && item.file_url) {
+          deleteXeroxFile(item.file_url);
+        }
+      });
+    }
     setCartItems([]);
     setCartShop(null);
   };
