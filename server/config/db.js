@@ -7,6 +7,7 @@ const sequelize = new Sequelize(
   process.env.DB_PASSWORD,
   {
     host: process.env.DB_HOST,
+    port: process.env.DB_PORT, // Added a line to pull a custom port from the .env file (in case the port isn't set to 3306)
     dialect: 'mysql',
     logging: false, // Set to console.log to see SQL queries
   }
